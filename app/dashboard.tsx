@@ -128,6 +128,7 @@ async function loadScreen() {
   try {
     const manager = await getManagerContext();
     setManagerData(manager);
+    console.log("MANAGER CONTEXT:", manager);
 
     const response = await fetch(`${API_BASE}/api/manager/submission-status`, {
       method: "POST",
