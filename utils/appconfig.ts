@@ -11,8 +11,7 @@ export const API_BASE =
   Constants.expoConfig?.extra?.apiBase || DEV_API_BASE;
 
 export const ADMIN_API_KEY =
-  Constants.expoConfig?.extra?.adminApiKey ||
-  "NTABL_ADMIN_LOCAL_2026_5X!!rt867qbzxXyGe435309";
+  Constants.expoConfig?.extra?.adminApiKey || "";
 
 export async function adminFetch(url: string, options: RequestInit = {}) {
   const token = await getAdminToken();
