@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "NTABL Charity All-Star Games",
+    "slug": "ntabl-all-star-games-app",
+    "scheme": "ntablallstargames",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "plugins": [
+      "expo-router",
+      "expo-video",
+      "expo-secure-store",
+      "expo-font"
+    ],
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0b1f3a"
+    },
+    "android": {
+      "package": "com.ntabl.allstargames"
+    },
+    "ios": {
+      "bundleIdentifier": "com.ntabl.allstargames"
+    },
+"web": {
+  "bundler": "metro",
+  "name": "NTABL All-Star Games",
+  "shortName": "NTABL",
+  "themeColor": "#0b1f3a",
+  "backgroundColor": "#0b1f3a",
+  "display": "standalone",
+  "orientation": "portrait"
+}
+  }
+}
