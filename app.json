@@ -4,7 +4,7 @@
     "slug": "ntabl-all-star-games-app",
     "scheme": "ntablallstargames",
     "version": "1.0.0",
-    "icon": "./assets/All-Star Logo.png",
+    "icon": "./assets/icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
@@ -23,7 +23,7 @@
 "android": {
   "package": "com.ntabl.allstargames",
   "adaptiveIcon": {
-    "foregroundImage": "./assets/All-Star Logo.png",
+    "foregroundImage": "./assets/adaptive-icon.png",
     "backgroundColor": "#0b1f3a"
   }
 },
