@@ -2,13 +2,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
-    Image,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    useWindowDimensions,
-    View,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import { clearManagerContext, getManagerContext } from "../stores/store";
 import { API_BASE } from "../utils/appconfig";
@@ -111,7 +111,8 @@ export default function Dashboard() {
 
   const isTabletLayout = width >= 700;
   const isShortScreen = height < 760;
-
+  const isPlayer =
+    String(managerData?.role || "").trim().toLowerCase() === "player";
   const isShawn =
     String(managerData?.email || managerData?.managerEmail || "")
       .trim()
@@ -372,7 +373,9 @@ async function handleLogout() {
               />
 
               <Text style={styles.primaryButtonText}>
-                {status === "Submitted"
+                {isPlayer
+                  ? "View All-Star Selections"
+                  : status === "Submitted"
                   ? "View Submitted All-Stars"
                   : "Select All-Stars"}
               </Text>
