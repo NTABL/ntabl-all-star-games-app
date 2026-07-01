@@ -4,6 +4,7 @@
     "slug": "ntabl-all-star-games-app",
     "scheme": "ntablallstargames",
     "version": "1.0.0",
+    "icon": "./assets/All-Star Logo.png",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
@@ -19,20 +20,30 @@
       "resizeMode": "contain",
       "backgroundColor": "#0b1f3a"
     },
-    "android": {
-      "package": "com.ntabl.allstargames"
-    },
+"android": {
+  "package": "com.ntabl.allstargames",
+  "adaptiveIcon": {
+    "foregroundImage": "./assets/All-Star Logo.png",
+    "backgroundColor": "#0b1f3a"
+  }
+},
     "ios": {
       "bundleIdentifier": "com.ntabl.allstargames"
     },
-"web": {
-  "bundler": "metro",
-  "name": "NTABL All-Star Games",
-  "shortName": "NTABL",
-  "themeColor": "#0b1f3a",
-  "backgroundColor": "#0b1f3a",
-  "display": "standalone",
-  "orientation": "portrait"
-}
+    "web": {
+      "bundler": "metro",
+      "name": "NTABL All-Star Games",
+      "shortName": "NTABL",
+      "themeColor": "#0b1f3a",
+      "backgroundColor": "#0b1f3a",
+      "display": "standalone",
+      "orientation": "portrait"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e6454d9d-b07f-4578-b459-5a86df57c063"
+      }
+    }
   }
 }
