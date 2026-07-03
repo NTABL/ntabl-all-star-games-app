@@ -2,13 +2,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    FlatList,
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    useWindowDimensions,
-    View,
+  FlatList,
+  Image,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import { getManagerContext } from "../stores/store";
 import { API_BASE } from "../utils/appconfig";
@@ -77,7 +79,7 @@ export default function AppSubmittedScreen() {
     require("../assets/NTABL-Logo.png")
   );
   const [loading, setLoading] = useState(true);
-
+  const [showInstructions, setShowInstructions] = useState(false);
   const { width, height } = useWindowDimensions();
   const isTabletLayout = width >= 700;
   const isShortScreen = height < 760;
@@ -176,6 +178,21 @@ export default function AppSubmittedScreen() {
                 <Text style={styles.backButtonText}>Back</Text>
               </View>
             </TouchableOpacity>
+            <TouchableOpacity
+  onPress={() => setShowInstructions(true)}
+  style={styles.helpButton}
+>
+  <View style={styles.smallButtonRow}>
+    <Ionicons
+      name="help-circle-outline"
+      size={17}
+      color="#ffffff"
+      style={{ marginRight: 4 }}
+    />
+
+    <Text style={styles.helpButtonText}>Help</Text>
+  </View>
+</TouchableOpacity>
           </View>
 
           <View
@@ -285,6 +302,49 @@ export default function AppSubmittedScreen() {
             }
           />
         </View>
+
+        <Modal
+          visible={showInstructions}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowInstructions(false)}
+        >
+          <View style={styles.instructionsOverlay}>
+            <View style={styles.instructionsModalCard}>
+              <Image
+                source={require("../assets/NTABL-Logo.png")}
+                style={styles.instructionsLogo}
+                resizeMode="contain"
+              />
+
+              <Text style={styles.instructionsTitle}>Instructions</Text>
+
+              <Text style={styles.instructionsText}>
+                1. To <Text style={styles.boldText}>Edit</Text>, use your finger
+                or a mouse to scroll down to the bottom of your players list.
+              </Text>
+
+              <Text style={styles.instructionsText}>
+                2. Select the{" "}
+                <Text style={styles.blueBoldText}>Edit All-Star Roster</Text>{" "}
+                button to edit your <Text style={styles.boldText}>All-Star Selections</Text>.
+              </Text>
+
+              <Text style={styles.instructionsText}>
+                3. Be sure to scroll down after making edits to{" "}
+                <Text style={styles.greenBoldText}>Submit All-Stars</Text> when
+                completed.
+              </Text>
+
+              <Pressable
+                style={styles.instructionsOkButton}
+                onPress={() => setShowInstructions(false)}
+              >
+                <Text style={styles.instructionsOkButtonText}>OK, Got It!</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
       </View>
     </>
   );
@@ -312,11 +372,12 @@ const styles = StyleSheet.create({
     paddingTop: 28,
   },
 
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    marginBottom: 10,
-  },
+headerRow: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 10,
+},
 
   backButton: {
     backgroundColor: "#1d4ed8",
@@ -565,4 +626,85 @@ const styles = StyleSheet.create({
     marginTop: 24,
     marginBottom: 18,
   },
+
+  helpButton: {
+  backgroundColor: "#6b7280",
+  borderRadius: 9,
+  paddingVertical: 7,
+  paddingHorizontal: 13,
+},
+
+helpButtonText: {
+  color: "#ffffff",
+  fontWeight: "800",
+  fontSize: 14,
+},
+
+instructionsOverlay: {
+  flex: 1,
+  backgroundColor: "rgba(0,0,0,0.35)",
+  justifyContent: "center",
+  alignItems: "center",
+  paddingHorizontal: 20,
+},
+
+instructionsModalCard: {
+  backgroundColor: "#ffffff",
+  borderRadius: 20,
+  padding: 20,
+  width: "90%",
+  maxWidth: 520,
+},
+
+instructionsLogo: {
+  width: 110,
+  height: 70,
+  alignSelf: "center",
+  marginBottom: 6,
+},
+
+instructionsTitle: {
+  fontSize: 24,
+  fontWeight: "900",
+  color: "#1f4e9e",
+  textAlign: "center",
+  marginBottom: 14,
+},
+
+instructionsText: {
+  fontSize: 16,
+  color: "#374151",
+  lineHeight: 24,
+  marginBottom: 10,
+  fontWeight: "700",
+},
+
+boldText: {
+  fontWeight: "900",
+  color: "#111827",
+},
+
+blueBoldText: {
+  fontWeight: "900",
+  color: "#1d4ed8",
+},
+
+greenBoldText: {
+  fontWeight: "900",
+  color: "#15803d",
+},
+
+instructionsOkButton: {
+  backgroundColor: "#15803d",
+  borderRadius: 12,
+  paddingVertical: 14,
+  alignItems: "center",
+  marginTop: 12,
+},
+
+instructionsOkButtonText: {
+  color: "#ffffff",
+  fontSize: 16,
+  fontWeight: "900",
+},
 });

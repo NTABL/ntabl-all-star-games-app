@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router, Stack } from "expo-router";
+import { router, Stack, useFocusEffect } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
+  BackHandler,
   Image,
   Modal,
   Platform,
@@ -35,6 +36,8 @@ type GameState = {
   inning: number;
   half: "Top" | "Bottom";
   outs: number;
+  eastScore?: number;
+  westScore?: number;
   updatedAt?: string;
 };
 
@@ -72,6 +75,8 @@ const DEFAULT_GAME_STATE: GameState = {
   inning: 1,
   half: "Top",
   outs: 0,
+  eastScore: 0,
+  westScore: 0,
   updatedAt: "",
 };
 
@@ -110,6 +115,29 @@ export default function AnnouncerControlScreen() {
   const isWideScreen = width >= 900;
   const isDesktop = width >= 1200;
   const swipeHintScale = useRef(new Animated.Value(1)).current;
+  useFocusEffect(() => {
+  const subscription = BackHandler.addEventListener(
+    "hardwareBackPress",
+    () => true
+  );
+
+  return () => subscription.remove();
+});
+useFocusEffect(() => {
+  if (Platform.OS !== "web") return;
+
+  window.history.pushState(null, "", window.location.href);
+
+  const handlePopState = () => {
+    window.history.pushState(null, "", window.location.href);
+  };
+
+  window.addEventListener("popstate", handlePopState);
+
+  return () => {
+    window.removeEventListener("popstate", handlePopState);
+  };
+});
 
   const activeBatting = activeSquad === "East" ? eastBatting : westBatting;
   const activeGameState =
@@ -245,6 +273,8 @@ return {
   inning: Number(json.gameState.inning || 1),
   half: json.gameState.half || (squad === "East" ? "Top" : "Bottom"),
   outs: Number(json.gameState.outs || 0),
+  eastScore: Number(json.gameState.eastScore || 0),
+  westScore: Number(json.gameState.westScore || 0),
   updatedAt: json.gameState.updatedAt || "",
 };
   }
@@ -381,6 +411,8 @@ const savedState = {
   inning: Number(json.gameState.inning || 1),
   half: json.gameState.half || nextState.half,
   outs: Number(json.gameState.outs || 0),
+  eastScore: Number(json.gameState.eastScore || 0),
+  westScore: Number(json.gameState.westScore || 0),
   updatedAt: json.gameState.updatedAt || "",
 };
 
@@ -428,15 +460,29 @@ function clearOuts() {
   });
 }
 
+function updateScore(team: "East" | "West", amount: number) {
+  const currentEastScore = Number(activeGameState.eastScore || 0);
+  const currentWestScore = Number(activeGameState.westScore || 0);
+
+  saveGameState(activeSquad, {
+    ...activeGameState,
+    eastScore:
+      team === "East" ? Math.max(currentEastScore + amount, 0) : currentEastScore,
+    westScore:
+      team === "West" ? Math.max(currentWestScore + amount, 0) : currentWestScore,
+  });
+}
+
 function advanceHalfInning() {
+  const currentInning = Number(activeGameState.inning || 1);
+  const currentHalf = activeGameState.half;
+
   const nextSquad: Squad = activeSquad === "East" ? "West" : "East";
   const nextHalf: "Top" | "Bottom" =
-    activeGameState.half === "Top" ? "Bottom" : "Top";
+    currentHalf === "Top" ? "Bottom" : "Top";
 
   const nextInning =
-    activeGameState.half === "Bottom"
-      ? Number(activeGameState.inning || 1) + 1
-      : Number(activeGameState.inning || 1);
+    currentHalf === "Bottom" ? currentInning + 1 : currentInning;
 
   const nextState: GameState = {
     ...activeGameState,
@@ -446,6 +492,8 @@ function advanceHalfInning() {
   };
 
   saveGameState(activeSquad, nextState);
+  saveGameState(nextSquad, nextState);
+
   setActiveSquad(nextSquad);
 }
 
@@ -645,11 +693,13 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
 
       <View style={styles.screen}>
         <ScrollView contentContainerStyle={styles.container}>
-          <View style={styles.headerRow}>
-            <Pressable
-              onPress={() => router.replace("/login")}
-              style={styles.logoutButton}
-            >
+<View style={styles.headerRow}>
+  <View style={{ width: 96 }} />
+
+  <Pressable
+    onPress={() => router.replace("/login")}
+    style={styles.logoutButton}
+  >
               <View style={styles.smallButtonRow}>
                 <Ionicons
                   name="log-out-outline"
@@ -753,7 +803,57 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
                     {"●".repeat(Number(activeGameState.outs || 0))}
                     {"○".repeat(3 - Number(activeGameState.outs || 0))}
                   </Text>
+<View style={styles.scoreboardCard}>
+  <Text style={styles.scoreboardTitle}>Score</Text>
 
+  <View style={styles.scoreRow}>
+    <Text style={[styles.scoreTeamLabel, styles.eastScoreLabel]}>East</Text>
+
+    <Pressable
+      style={styles.scoreButton}
+      onPress={() => updateScore("East", -1)}
+      disabled={savingGameState}
+    >
+      <Text style={styles.scoreButtonText}>−</Text>
+    </Pressable>
+
+    <Text style={styles.scoreValue}>
+      {Number(activeGameState.eastScore || 0)}
+    </Text>
+
+    <Pressable
+      style={styles.scoreButton}
+      onPress={() => updateScore("East", 1)}
+      disabled={savingGameState}
+    >
+      <Text style={styles.scoreButtonText}>+</Text>
+    </Pressable>
+  </View>
+
+  <View style={styles.scoreRow}>
+    <Text style={[styles.scoreTeamLabel, styles.westScoreLabel]}>West</Text>
+
+    <Pressable
+      style={styles.scoreButton}
+      onPress={() => updateScore("West", -1)}
+      disabled={savingGameState}
+    >
+      <Text style={styles.scoreButtonText}>−</Text>
+    </Pressable>
+
+    <Text style={styles.scoreValue}>
+      {Number(activeGameState.westScore || 0)}
+    </Text>
+
+    <Pressable
+      style={styles.scoreButton}
+      onPress={() => updateScore("West", 1)}
+      disabled={savingGameState}
+    >
+      <Text style={styles.scoreButtonText}>+</Text>
+    </Pressable>
+  </View>
+</View>
                   <View style={styles.gameManagementButtonRow}>
                     <Pressable
                       style={[
@@ -799,7 +899,7 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
                       />
 
                       <Text style={styles.gameManagementButtonText}>
-                        3 Outs / Switch Sides
+                        End Half-Inning
                       </Text>
                     </View>
                   </Pressable>
@@ -1128,11 +1228,12 @@ container: {
   paddingBottom: 70,
 },
 
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    marginBottom: 8,
-  },
+headerRow: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 8,
+},
 
   logoutButton: {
     backgroundColor: "#c62828",
@@ -1798,5 +1899,66 @@ resetGameButton: {
   paddingVertical: 12,
   alignItems: "center",
   marginTop: 10,
+},
+
+scoreboardCard: {
+  backgroundColor: "#ffffff",
+  borderRadius: 14,
+  padding: 12,
+  marginBottom: 12,
+  borderWidth: 1,
+  borderColor: "#d1d5db",
+},
+
+scoreboardTitle: {
+  fontSize: 18,
+  fontWeight: "900",
+  color: "#1f4e9e",
+  textAlign: "center",
+  marginBottom: 8,
+},
+
+scoreRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginBottom: 8,
+},
+
+scoreTeamLabel: {
+  width: 56,
+  fontSize: 16,
+  fontWeight: "900",
+},
+
+eastScoreLabel: {
+  color: "#c62828",
+},
+
+westScoreLabel: {
+  color: "#1565c0",
+},
+
+scoreButton: {
+  width: 42,
+  height: 36,
+  borderRadius: 10,
+  backgroundColor: "#4b5563",
+  alignItems: "center",
+  justifyContent: "center",
+},
+
+scoreButtonText: {
+  color: "#ffffff",
+  fontSize: 24,
+  fontWeight: "900",
+},
+
+scoreValue: {
+  width: 54,
+  textAlign: "center",
+  fontSize: 24,
+  fontWeight: "900",
+  color: "#111827",
 },
 });

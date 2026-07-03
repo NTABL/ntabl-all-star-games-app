@@ -2,17 +2,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    Keyboard,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 
 import { API_BASE } from "../utils/appconfig";
@@ -65,7 +65,7 @@ async function sendCode() {
 
     showMessage(
       "Code Sent",
-      "A reset code has been emailed to the configured NTABL administrator."
+      "A reset code has been emailed to the NTABL Admin Email on file."
     );
   } catch (e) {
     console.log(e);
@@ -198,7 +198,7 @@ setShowMessageModal(true);
           </Text>
 
 <Text style={styles.adminResetNotice}>
-  This Will Send a Reset Code to the Configured NTABL Admin Email.
+  This Will Send a Reset Code to the NTABL Admin Email on File.
 </Text>
           {!codeSent ? (
             <Pressable

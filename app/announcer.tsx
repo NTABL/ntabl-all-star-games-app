@@ -35,6 +35,8 @@ type GameState = {
   inning: number;
   half: "Top" | "Bottom";
   outs: number;
+  eastScore?: number;
+  westScore?: number;
   updatedAt?: string;
 };
 
@@ -72,6 +74,8 @@ const DEFAULT_GAME_STATE: GameState = {
   inning: 1,
   half: "Top",
   outs: 0,
+  eastScore: 0,
+  westScore: 0,
   updatedAt: "",
 };
 
@@ -255,6 +259,8 @@ return {
   inning: Number(json.gameState.inning || 1),
   half: json.gameState.half || (squad === "East" ? "Top" : "Bottom"),
   outs: Number(json.gameState.outs || 0),
+  eastScore: Number(json.gameState.eastScore || 0),
+  westScore: Number(json.gameState.westScore || 0),
   updatedAt: json.gameState.updatedAt || "",
 };
 }
@@ -570,6 +576,25 @@ return {
                 </View>
 
 <View style={styles.publicGameStateCard}>
+<Text style={styles.scoreboardHeader}>SCORE</Text>
+
+<View style={styles.publicScoreboardRow}>
+  <View style={styles.publicScoreColumn}>
+    <Text style={styles.publicEastLabel}>EAST</Text>
+    <Text style={styles.publicScoreNumber}>
+      {Number(displayGameState.eastScore || 0)}
+    </Text>
+  </View>
+
+  <View style={styles.publicScoreDivider} />
+
+  <View style={styles.publicScoreColumn}>
+    <Text style={styles.publicWestLabel}>WEST</Text>
+    <Text style={styles.publicScoreNumber}>
+      {Number(displayGameState.westScore || 0)}
+    </Text>
+  </View>
+</View>
   <Text style={styles.publicGameStateMain}>
     ⚾ {displayGameState.half.toUpperCase()} {displayGameState.inning}
   </Text>
@@ -1287,5 +1312,52 @@ footerText: {
   fontSize: 12,
   fontWeight: "700",
   textAlign: "center",
+},
+
+scoreboardHeader: {
+  color: "#facc15",
+  fontSize: 18,
+  fontWeight: "900",
+  textAlign: "center",
+  letterSpacing: 2,
+  marginBottom: 10,
+},
+
+publicScoreboardRow: {
+  flexDirection: "row",
+  justifyContent: "space-evenly",
+  alignItems: "center",
+  marginBottom: 12,
+},
+
+publicScoreColumn: {
+  alignItems: "center",
+  flex: 1,
+},
+
+publicEastLabel: {
+  color: "#fca5a5",
+  fontSize: 18,
+  fontWeight: "900",
+},
+
+publicWestLabel: {
+  color: "#93c5fd",
+  fontSize: 18,
+  fontWeight: "900",
+},
+
+publicScoreNumber: {
+  color: "#ffffff",
+  fontSize: 42,
+  fontWeight: "900",
+  marginTop: 2,
+},
+
+publicScoreDivider: {
+  width: 2,
+  alignSelf: "stretch",
+  backgroundColor: "#374151",
+  marginHorizontal: 10,
 },
 });

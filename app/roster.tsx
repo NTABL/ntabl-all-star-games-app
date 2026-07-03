@@ -2,16 +2,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    FlatList,
-    Image,
-    Modal,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    useWindowDimensions,
-    View,
+  FlatList,
+  Image,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import { getManagerContext } from "../stores/store";
 import { API_BASE } from "../utils/appconfig";
@@ -121,14 +121,14 @@ export default function RosterScreen() {
   const [activePlayerId, setActivePlayerId] = useState<string | null>(null);
   const [showSubmittedSplash, setShowSubmittedSplash] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
-
+  const [showInstructions, setShowInstructions] = useState(false);
   const [isPlayer, setIsPlayer] = useState(false);
   const [teamLogoSource, setTeamLogoSource] = useState<any>(
     require("../assets/NTABL-Logo.png")
   );
   const [teamName, setTeamName] = useState("");
   const [divisionName, setDivisionName] = useState("");
-
+  const [managerData, setManagerData] = useState<any>(null);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState<"success" | "error" | "warning">(
     "success"
@@ -185,7 +185,7 @@ export default function RosterScreen() {
   async function loadScreen() {
     try {
       const manager = await getManagerContext();
-
+      setManagerData(manager);
       const nextTeamName = manager?.teamName || "";
       const nextDivisionName = manager?.division || "";
 
@@ -244,9 +244,10 @@ export default function RosterScreen() {
             ? manager.selectedAllStarIds.map(String)
             : []
         );
-      } else {
-        setSelected([]);
-      }
+} else {
+  setSelected([]);
+  setShowInstructions(manager?.role !== "player");
+}
 
       setJerseys(apiJerseys);
       setPositions(apiPositions);
@@ -417,11 +418,12 @@ async function clearRoster() {
       resetPositions[player.id] = getPlayerPosition(player);
     });
 
-    setSelected([]);
-    setJerseys(resetJerseys);
-    setPositions(resetPositions);
+setSelected([]);
+setJerseys(resetJerseys);
+setPositions(resetPositions);
+setShowInstructions(true);
 
-    showToast("Roster Cleared!");
+showToast("Roster Cleared!");
   } catch (e) {
     console.log(e);
     showToast("Roster could not be cleared.", "error");
@@ -494,11 +496,11 @@ async function clearRoster() {
           {isPlayer ? "Team Roster" : "2026 All-Star Selections"}
         </Text>
 
-        <Text style={styles.subtitle}>
-          {isPlayer
-            ? "View Current Team Roster"
-            : "Select 5 Position Players and 2 Pitchers"}
-        </Text>
+<Text style={styles.subtitle}>
+  {isPlayer
+    ? "View Current Team Roster"
+    : `Select ${managerData?.rules?.maxPositionPlayers ?? ""} Position Players and ${managerData?.rules?.maxPitchers ?? ""} Pitchers`}
+</Text>
       </View>
     );
   }
@@ -864,7 +866,68 @@ async function clearRoster() {
             ListFooterComponent={renderActionFooter}
             showsVerticalScrollIndicator={false}
           />
+<Modal
+  visible={showInstructions}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setShowInstructions(false)}
+>
+  <View style={styles.instructionsOverlay}>
+    <View style={styles.instructionsModalCard}>
+      <Image
+        source={require("../assets/NTABL-Logo.png")}
+        style={styles.instructionsLogo}
+        resizeMode="contain"
+      />
 
+      <Text style={styles.instructionsTitle}>Instructions</Text>
+
+      <Text style={styles.instructionsText}>
+        1. Select players from your team roster below who will participate in the{" "}
+        <Text style={styles.boldText}>All-Star Game</Text> by clicking the{" "}
+        <Text style={styles.boldText}>Select</Text> button next to each All-Star
+        player&apos;s name.
+      </Text>
+
+<Text style={styles.instructionsText}>
+  2. Your division uses{" "}
+  <Text style={styles.redBoldText}>
+    {managerData?.rules?.maxPositionPlayers ?? ""}
+  </Text>{" "}
+  <Text style={styles.boldText}>Position Players</Text> and{" "}
+  <Text style={styles.redBoldText}>
+    {managerData?.rules?.maxPitchers ?? ""}
+  </Text>{" "}
+  <Text style={styles.boldText}>Pitchers</Text>.
+</Text>
+
+      <Text style={styles.instructionsText}>
+        3. Use your finger or mouse to{" "}
+        <Text style={styles.underlineText}>scroll down</Text> your team&apos;s
+        roster to select additional players.
+      </Text>
+
+      <Text style={styles.instructionsText}>
+        4. Please be sure to verify{" "}
+        <Text style={styles.boldText}>Jersey Number</Text> and{" "}
+        <Text style={styles.boldText}>Position</Text> for{" "}
+        <Text style={styles.underlineText}>each player</Text>.
+      </Text>
+
+      <Text style={styles.instructionsText}>
+        5. Once completed, scroll down to select{" "}
+        <Text style={styles.greenBoldText}>Submit All-Stars</Text>.
+      </Text>
+
+      <Pressable
+        style={styles.instructionsOkButton}
+        onPress={() => setShowInstructions(false)}
+      >
+        <Text style={styles.instructionsOkButtonText}>OK, Got It!</Text>
+      </Pressable>
+    </View>
+  </View>
+</Modal>
           <Modal
             visible={positionModalVisible}
             transparent
@@ -1627,4 +1690,77 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "900",
   },
+
+  instructionsOverlay: {
+  flex: 1,
+  backgroundColor: "rgba(0,0,0,0.35)",
+  justifyContent: "center",
+  alignItems: "center",
+  paddingHorizontal: 20,
+},
+
+instructionsModalCard: {
+  backgroundColor: "#ffffff",
+  borderRadius: 20,
+  padding: 20,
+  width: "90%",
+  maxWidth: 520,
+},
+
+instructionsLogo: {
+  width: 110,
+  height: 70,
+  alignSelf: "center",
+  marginBottom: 6,
+},
+
+instructionsTitle: {
+  fontSize: 24,
+  fontWeight: "900",
+  color: "#1f4e9e",
+  textAlign: "center",
+  marginBottom: 14,
+},
+
+instructionsText: {
+  fontSize: 16,
+  color: "#374151",
+  lineHeight: 24,
+  marginBottom: 10,
+  fontWeight: "700",
+},
+
+boldText: {
+  fontWeight: "900",
+  color: "#111827",
+},
+
+redBoldText: {
+  fontWeight: "900",
+  color: "#c62828",
+},
+
+greenBoldText: {
+  fontWeight: "900",
+  color: "#15803d",
+},
+
+underlineText: {
+  textDecorationLine: "underline",
+  fontWeight: "900",
+},
+
+instructionsOkButton: {
+  backgroundColor: "#15803d",
+  borderRadius: 12,
+  paddingVertical: 14,
+  alignItems: "center",
+  marginTop: 12,
+},
+
+instructionsOkButtonText: {
+  color: "#ffffff",
+  fontSize: 16,
+  fontWeight: "900",
+},
 });

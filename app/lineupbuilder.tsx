@@ -2,17 +2,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TextInput,
-    useWindowDimensions,
-    View,
+  ActivityIndicator,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -938,16 +938,13 @@ export default function LineupBuilderScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.instructionsModalCard}>
-            <View style={styles.instructionsTitleRow}>
-              <Ionicons
-                name="baseball-outline"
-                size={26}
-                color="#1f4e9e"
-                style={{ marginRight: 8 }}
-              />
+<Image
+  source={require("../assets/NTABL-Logo.png")}
+  style={styles.instructionsLogo}
+  resizeMode="contain"
+/>
 
-              <Text style={styles.modalTitle}>Instructions</Text>
-            </View>
+<Text style={styles.modalTitle}>Instructions</Text>
 
             <Text style={styles.instructionsText}>
               1. Tap <Text style={styles.boldText}>Edit</Text> to update player
@@ -1788,5 +1785,12 @@ footerText: {
   fontSize: 12,
   fontWeight: "700",
   textAlign: "center",
+},
+
+instructionsLogo: {
+  width: 110,
+  height: 70,
+  alignSelf: "center",
+  marginBottom: 6,
 },
 });
