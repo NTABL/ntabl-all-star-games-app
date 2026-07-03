@@ -2,25 +2,25 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    Image,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    useWindowDimensions,
-    View,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import { setAdminLoggedIn } from "../stores/adminstore";
 import { API_BASE } from "../utils/appconfig";
 import {
-    authenticateWithBiometrics,
-    canUseBiometrics,
-    getAdminPassword,
-    saveAdminPassword,
+  authenticateWithBiometrics,
+  canUseBiometrics,
+  getAdminPassword,
+  saveAdminPassword,
 } from "../utils/biometricauth";
 
 type MessageType = "success" | "error" | "warning" | "choice";
@@ -279,7 +279,21 @@ export default function AdminLogin() {
                 </View>
               </Pressable>
             )}
+<Pressable
+  style={styles.forgotPasswordButton}
+  onPress={() => router.push("/adminforgotpassword")}
+>
+  <View style={styles.buttonContentRow}>
+    <Ionicons
+      name="help-circle-outline"
+      size={22}
+      color="#ffffff"
+      style={{ marginRight: 8 }}
+    />
 
+    <Text style={styles.buttonText}>Forgot Admin Password?</Text>
+  </View>
+</Pressable>
             <Pressable
               style={styles.changePasswordButton}
               onPress={() => router.push("/changeadminpassword")}
@@ -703,4 +717,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "900",
   },
+
+  forgotPasswordButton: {
+  marginTop: 12,
+  backgroundColor: "#2563eb",
+  borderRadius: 12,
+  paddingVertical: 14,
+  alignItems: "center",
+},
 });

@@ -2,23 +2,22 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
 import { useState } from "react";
 import {
-  ActivityIndicator,
-  Image,
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Image,
+    Keyboard,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 
 import { API_BASE } from "../utils/appconfig";
 
 export default function ForgotPasswordScreen() {
-  const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -37,38 +36,44 @@ function showMessage(title: string, message: string) {
   setShowMessageModal(true);
 }
 
-  async function sendCode() {
-    if (!email.trim()) {
-      showMessage("Missing Email", "Please Enter Your Email Address.");
+async function sendCode() {
+  try {
+    Keyboard.dismiss();
+    setLoading(true);
+
+    const response = await fetch(
+      `${API_BASE}/api/auth/forgot-admin-password`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.ok) {
+      showMessage(
+        "Reset Failed",
+        data.message || "Unable to send admin reset code."
+      );
       return;
     }
 
-    try {
-      Keyboard.dismiss();
-      setLoading(true);
+    setCodeSent(true);
 
-      const response = await fetch(`${API_BASE}/api/auth/forgot-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.ok) {
-        showMessage("Reset Failed", data.message || "Unable to Send Reset Code.");
-        return;
-      }
-
-      setCodeSent(true);
-      showMessage("Code Sent", "Check Your Email for the 6-Digit Reset Code.");
-    } catch (e) {
-      console.log(e);
-      showMessage("Connection Error", "Could Not Reach the Backend.");
-    } finally {
-      setLoading(false);
-    }
+    showMessage(
+      "Code Sent",
+      "A reset code has been emailed to the configured NTABL administrator."
+    );
+  } catch (e) {
+    console.log(e);
+    showMessage("Connection Error", "Could not reach the backend.");
+  } finally {
+    setLoading(false);
   }
+}
 
   async function resetPassword() {
     if (!code.trim() || !newPassword || !confirmPassword) {
@@ -96,14 +101,13 @@ function showMessage(title: string, message: string) {
       Keyboard.dismiss();
       setLoading(true);
 
-      const response = await fetch(`${API_BASE}/api/auth/reset-password`, {
+      const response = await fetch(`${API_BASE}/api/auth/reset-admin-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim(),
-          code: code.trim(),
-          newPassword,
-        }),
+body: JSON.stringify({
+  code: code.trim(),
+  newPassword,
+}),
       });
 
       const data = await response.json();
@@ -116,8 +120,8 @@ function showMessage(title: string, message: string) {
         return;
       }
 
-setMessageTitle("Password Reset");
-setMessageText("Your Password Has Been Updated.");
+setMessageTitle("Admin Password Reset");
+setMessageText("Your Admin Password Has Been Updated.");
 setMessageCallback(() => () => router.replace("/login"));
 setShowMessageModal(true);
     } catch (e) {
@@ -187,22 +191,15 @@ setShowMessageModal(true);
             resizeMode="contain"
           />
 
-          <Text style={styles.title}>Forgot Password</Text>
+          <Text style={styles.title}>Forgot Admin Password</Text>
 
           <Text style={styles.subtitle}>
-            Enter Your Manager Email and We&apos;ll Send You a Reset Code.
+            We&apos;ll Send an Admin Reset Code to the Configured Admin Email.
           </Text>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            editable={!loading && !codeSent}
-          />
-
+<Text style={styles.adminResetNotice}>
+  This Will Send a Reset Code to the Configured NTABL Admin Email.
+</Text>
           {!codeSent ? (
             <Pressable
               style={[styles.button, loading && styles.disabledButton]}
@@ -418,6 +415,20 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     color: "#555",
   },
+
+adminResetNotice: {
+  backgroundColor: "#eff6ff",
+  borderWidth: 1,
+  borderColor: "#bfdbfe",
+  borderRadius: 12,
+  color: "#1f4e9e",
+  fontSize: 14,
+  fontWeight: "800",
+  lineHeight: 20,
+  marginBottom: 14,
+  padding: 12,
+  textAlign: "center",
+},
 
   input: {
     borderWidth: 1,
