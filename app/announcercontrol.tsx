@@ -2,17 +2,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    Image,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    useWindowDimensions,
-    View,
+  ActivityIndicator,
+  Animated,
+  Image,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
 } from "react-native";
 
 import { adminFetch, API_BASE } from "../utils/appconfig";
@@ -134,7 +134,7 @@ export default function AnnouncerControlScreen() {
     loadGameData();
 
     const interval = setInterval(() => {
-      loadGameData(false);
+      loadLineupDataOnly();
     }, 3000);
 
     return () => clearInterval(interval);
@@ -313,6 +313,48 @@ return {
     }
   }
 
+  async function loadLineupDataOnly() {
+  try {
+    const [east, west] = await Promise.all([
+      loadSquadLineup(selectedGame.divisionId, "East"),
+      loadSquadLineup(selectedGame.divisionId, "West"),
+    ]);
+
+    const nextSnapshot = buildLineupSnapshot(
+      east.batting,
+      east.subs,
+      west.batting,
+      west.subs
+    );
+
+    if (
+      lastLineupSnapshot.current &&
+      lastLineupSnapshot.current !== nextSnapshot
+    ) {
+      setLiveLabel("🟢 LINEUP UPDATED");
+
+      setTimeout(() => {
+        setLiveLabel("🟢 LIVE LINEUP FEED");
+      }, 2500);
+    }
+
+    lastLineupSnapshot.current = nextSnapshot;
+
+    setEastBatting(east.batting);
+    setEastSubs(east.subs);
+    setWestBatting(west.batting);
+    setWestSubs(west.subs);
+    setEastManager(east.managerName || "");
+    setWestManager(west.managerName || "");
+
+    const now = new Date();
+    setLastUpdatedDate(now);
+    setRefreshAge("Updated Just Now");
+  } catch (e) {
+    console.log("ANNOUNCER LINEUP REFRESH ERROR:", e);
+  }
+}
+
   async function saveGameState(squad: Squad, nextState: GameState) {
     try {
       setSavingGameState(true);
@@ -432,16 +474,30 @@ function goBackHalfInning() {
   setActiveSquad(previousSquad);
 }
 
-function resetActiveGame() {
-  saveGameState(activeSquad, {
-    currentBatterIndex: 0,
-    inning: 1,
-    half: activeSquad === "East" ? "Top" : "Bottom",
-    outs: 0,
-    updatedAt: "",
-  });
+async function resetActiveGame() {
+  try {
+    setSavingGameState(true);
 
-  setShowResetGameConfirm(false);
+    const response = await adminFetch(
+      `${API_BASE}/api/game-state/${selectedGame.divisionId}/restart`,
+      {
+        method: "POST",
+      }
+    );
+
+    const json = await response.json();
+
+    if (json?.ok) {
+      await loadGameData(false);
+      setActiveSquad("East");
+    }
+
+    setShowResetGameConfirm(false);
+  } catch (e) {
+    console.log("RESTART GAME ERROR:", e);
+  } finally {
+    setSavingGameState(false);
+  }
 }
 
   function renderFeaturedPlayer(
@@ -788,7 +844,7 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
                         />
 
                         <Text style={styles.gameManagementButtonText}>
-                          Reset Game
+                          Restart Game
                         </Text>
                       </View>
                     </Pressable>
@@ -1019,15 +1075,24 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
 >
   <View style={styles.modalOverlay}>
     <View style={styles.gamePickerCard}>
-      <Text style={styles.modalTitle}>Reset Active Side?</Text>
+      <Text style={styles.modalTitle}>Restart Current Game?</Text>
 
-      <Text style={styles.confirmText}>
-        This will reset {activeSquad} to the start of the game:
-        {"\n\n"}Batter #1
-        {"\n"}Inning 1
-        {"\n"}{activeSquad === "East" ? "Top" : "Bottom"} Half
-        {"\n"}0 Outs
-      </Text>
+<Text style={styles.confirmText}>
+  IMPORTANT: This Will Restart the Current Game
+
+  {"\n\n"}The Following Will Be Reset:
+
+  {"\n"}• East lineup to Batter #1
+  {"\n"}• West lineup to Batter #1
+  {"\n"}• Top of the 1st Inning
+  {"\n"}• 0 Outs
+
+  {"\n\n"}This Will NOT Clear:
+
+  {"\n"}• Team All-Star Selections
+  {"\n"}• Saved Batting Orders
+  {"\n"}• East/West Assignments
+</Text>
 
       <View style={styles.confirmButtonRow}>
         <Pressable
@@ -1041,7 +1106,7 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
           style={styles.confirmYesButton}
           onPress={resetActiveGame}
         >
-          <Text style={styles.cancelButtonText}>Reset</Text>
+          <Text style={styles.cancelButtonText}>Restart Game</Text>
         </Pressable>
       </View>
     </View>

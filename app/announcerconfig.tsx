@@ -2,18 +2,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    useWindowDimensions,
-    View,
+  ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
 } from "react-native";
 
 import { adminFetch, API_BASE } from "../utils/appconfig";
@@ -59,12 +59,14 @@ export default function AnnouncerConfigScreen() {
       const response = await adminFetch(`${API_BASE}/api/admin/announcer`);
       const json = await response.json();
 
-      if (!json?.ok) {
-        showModal("error", "Load Failed", "Announcer account could not be loaded.");
-        return;
-      }
+if (!json?.ok) {
+  showModal("error", "Load Failed", "Announcer account could not be loaded.");
+  return;
+}
 
-      setUsername(json.announcer?.username || "Announcer");
+setModalVisible(false);
+
+setUsername(json.announcer?.username || "Announcer");
       setDisplayName(json.announcer?.displayName || "NTABL Announcer");
       setHasPassword(!!json.announcer?.hasPassword);
       setUpdatedAt(json.announcer?.updatedAt || "");
