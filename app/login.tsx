@@ -16,6 +16,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { setAnnouncerLoggedIn } from "../stores/adminstore";
 import { setManagerContext } from "../stores/store";
 import { API_BASE } from "../utils/appconfig";
 import {
@@ -237,6 +238,7 @@ export default function Login() {
         return;
       }
 
+      await setAnnouncerLoggedIn(true, data.announcerToken);
       router.replace("/announcercontrol");
     } catch (error) {
       console.log(error);

@@ -41,7 +41,6 @@
     },
 "extra": {
   "apiBase": "https://ntabl-backend.onrender.com",
-  "adminApiKey": "NTABL_ADMIN_LOCAL_2026_1FMEE5DPOPLA96714",
   "router": {},
   "eas": {
     "projectId": "e6454d9d-b07f-4578-b459-5a86df57c063"
