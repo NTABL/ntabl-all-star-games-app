@@ -16,7 +16,8 @@ import {
 import { getManagerContext } from "../stores/store";
 import { API_BASE } from "../utils/appconfig";
 
-const MAX_TOTAL = 7;
+const DEFAULT_MAX_POSITION_PLAYERS = 5;
+const DEFAULT_MAX_PITCHERS = 2;
 const FIELD_WIDTH = 58;
 const FIELD_HEIGHT = 42;
 
@@ -137,6 +138,27 @@ export default function RosterScreen() {
   const { width, height } = useWindowDimensions();
   const isTabletLayout = width >= 700;
   const isShortScreen = height < 760;
+  const maxPositionPlayers =
+  Number(managerData?.rules?.maxPositionPlayers) || DEFAULT_MAX_POSITION_PLAYERS;
+
+const maxPitchers =
+  Number(managerData?.rules?.maxPitchers) || DEFAULT_MAX_PITCHERS;
+
+const maxTotal = maxPositionPlayers + maxPitchers;
+
+const selectedPlayers = selected
+  .map((id) => players.find((player) => String(player.id) === String(id)))
+  .filter((player): player is Player => !!player);
+
+const selectedPitchers = selectedPlayers.filter(
+  (player) => (positions[player.id] || getPlayerPosition(player)).toUpperCase() === "P"
+).length;
+
+const selectedPositionPlayers = selected.length - selectedPitchers;
+
+function playerLabel(count: number, singular: string, plural: string) {
+  return count === 1 ? singular : plural;
+}
 
   useEffect(() => {
     loadScreen();
@@ -264,10 +286,10 @@ export default function RosterScreen() {
         return prev.filter((x) => x !== id);
       }
 
-      if (prev.length >= MAX_TOTAL) {
-        showToast("You have already selected 7 players.", "warning");
-        return prev;
-      }
+if (prev.length >= maxTotal) {
+  showToast(`You have already selected ${maxTotal} players.`, "warning");
+  return prev;
+}
 
       return [...prev, id];
     });
@@ -339,10 +361,30 @@ async function saveDraft() {
 }
 
   async function submitRoster() {
-    if (selected.length !== MAX_TOTAL) {
-      showToast("Select 7 total players.", "warning");
-      return;
-    }
+if (selected.length !== maxTotal) {
+  showToast(`Select ${maxTotal} total players.`, "warning");
+  return;
+}
+
+if (selectedPitchers !== maxPitchers) {
+  showToast(
+    `Select ${maxPitchers} ${playerLabel(maxPitchers, "pitcher", "pitchers")}.`,
+    "warning"
+  );
+  return;
+}
+
+if (selectedPositionPlayers !== maxPositionPlayers) {
+  showToast(
+    `Select ${maxPositionPlayers} ${playerLabel(
+      maxPositionPlayers,
+      "position player",
+      "position players"
+    )}.`,
+    "warning"
+  );
+  return;
+}
 
     try {
       const manager = await getManagerContext();
@@ -499,14 +541,18 @@ showToast("Roster Cleared!");
 <Text style={styles.subtitle}>
   {isPlayer
     ? "View Current Team Roster"
-    : `Select ${managerData?.rules?.maxPositionPlayers ?? ""} Position Players and ${managerData?.rules?.maxPitchers ?? ""} Pitchers`}
+    : `Select ${maxPositionPlayers} ${playerLabel(
+    maxPositionPlayers,
+    "Position Player",
+    "Position Players"
+  )} and ${maxPitchers} ${playerLabel(maxPitchers, "Pitcher", "Pitchers")}`}
 </Text>
       </View>
     );
   }
 
   function renderProgressBar() {
-    const percent = Math.min(selected.length / MAX_TOTAL, 1);
+    const percent = Math.min(selected.length / maxTotal, 1);
 
     return (
       <View style={styles.progressCard}>
@@ -516,10 +562,10 @@ showToast("Roster Cleared!");
           <Text
             style={[
               styles.progressCount,
-              selected.length === MAX_TOTAL && styles.progressCompleteText,
+              selected.length === maxTotal && styles.progressCompleteText,
             ]}
           >
-            {selected.length} / {MAX_TOTAL}
+            {selected.length} / {maxTotal}
           </Text>
         </View>
 
@@ -530,7 +576,7 @@ showToast("Roster Cleared!");
               {
                 width: `${percent * 100}%`,
                 backgroundColor:
-                  selected.length === MAX_TOTAL ? "#15803d" : "#1d4ed8",
+                  selected.length === maxTotal ? "#15803d" : "#1d4ed8",
               },
             ]}
           />
@@ -539,13 +585,13 @@ showToast("Roster Cleared!");
         <Text
           style={[
             styles.progressSubText,
-            selected.length === MAX_TOTAL && styles.progressCompleteText,
+            selected.length === maxTotal && styles.progressCompleteText,
           ]}
         >
-          {selected.length === MAX_TOTAL
+          {selected.length === maxTotal
             ? "Ready to Submit"
-            : `${MAX_TOTAL - selected.length} player${
-                MAX_TOTAL - selected.length === 1 ? "" : "s"
+            : `${maxTotal - selected.length} player${
+                maxTotal - selected.length === 1 ? "" : "s"
               } remaining`}
         </Text>
       </View>
@@ -682,7 +728,7 @@ showToast("Roster Cleared!");
     return (
       <View style={styles.actionFooter}>
         <Text style={styles.footerCounter}>
-          {selected.length} of {MAX_TOTAL} Players Selected
+          {selected.length} of {maxTotal} Players Selected
         </Text>
 
         <TouchableOpacity style={styles.saveDraftButton} onPress={saveDraft}>

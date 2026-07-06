@@ -2,18 +2,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    useWindowDimensions,
-    View,
+  ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
 } from "react-native";
 
 import { adminFetch, API_BASE } from "../../utils/appconfig";
@@ -596,56 +596,64 @@ export default function ManagerConfigScreen() {
       </KeyboardAvoidingView>
 
       <Modal
-        visible={!!pickerContext}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setPickerContext(null)}
+  visible={!!pickerContext}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setPickerContext(null)}
+>
+  <Pressable
+    style={styles.modalOverlay}
+    onPress={() => setPickerContext(null)}
+  >
+    <Pressable style={styles.pickerModalCard}>
+      <Image
+        source={require("../../assets/NTABL-Logo.png")}
+        style={styles.modalLogo}
+        resizeMode="contain"
+      />
+
+      <Text style={styles.modalTitle}>
+        Select {pickerContext?.squad} Manager
+      </Text>
+
+      {pickerContext?.options.length ? (
+        pickerContext.options.map((option) => (
+          <Pressable
+            key={option.label}
+            style={styles.pickerOption}
+            onPress={() => {
+              if (!pickerContext) return;
+              selectManagerFromPicker(pickerContext.squad, option);
+              setPickerContext(null);
+            }}
+          >
+            <Text style={styles.pickerOptionText}>{option.label}</Text>
+          </Pressable>
+        ))
+      ) : (
+        <Text style={styles.noCaptainText}>
+          No assigned captain options found.
+        </Text>
+      )}
+
+      <Pressable
+        style={styles.cancelButton}
+        onPress={() => setPickerContext(null)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.pickerModalCard}>
-            <Text style={styles.modalTitle}>
-              Select {pickerContext?.squad} Manager
-            </Text>
+        <View style={styles.buttonContentRow}>
+          <Ionicons
+            name="close-circle-outline"
+            size={18}
+            color="#ffffff"
+            style={{ marginRight: 6 }}
+          />
 
-            {pickerContext?.options.length ? (
-              pickerContext.options.map((option) => (
-                <Pressable
-                  key={option.label}
-                  style={styles.pickerOption}
-                  onPress={() => {
-                    if (!pickerContext) return;
-
-                    selectManagerFromPicker(pickerContext.squad, option);
-                    setPickerContext(null);
-                  }}
-                >
-                  <Text style={styles.pickerOptionText}>{option.label}</Text>
-                </Pressable>
-              ))
-            ) : (
-              <Text style={styles.noCaptainText}>
-                No assigned captain options found.
-              </Text>
-            )}
-
-            <Pressable
-              style={styles.cancelButton}
-              onPress={() => setPickerContext(null)}
-            >
-              <View style={styles.buttonContentRow}>
-                <Ionicons
-                  name="close-circle-outline"
-                  size={18}
-                  color="#ffffff"
-                  style={{ marginRight: 6 }}
-                />
-
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </View>
-            </Pressable>
-          </View>
+          <Text style={styles.cancelButtonText}>Cancel</Text>
         </View>
-      </Modal>
+      </Pressable>
+    </Pressable>
+  </Pressable>
+</Modal>
     </>
   );
 }
@@ -1120,4 +1128,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 8,
   },
+
+  modalLogo: {
+  width: 110,
+  height: 70,
+  alignSelf: "center",
+  marginBottom: 6,
+},
 });

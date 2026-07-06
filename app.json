@@ -20,15 +20,18 @@
       "resizeMode": "contain",
       "backgroundColor": "#0b1f3a"
     },
-"android": {
-  "package": "com.ntabl.allstargames",
-  "adaptiveIcon": {
-    "foregroundImage": "./assets/adaptive-icon.png",
-    "backgroundColor": "#0b1f3a"
-  }
-},
+    "android": {
+      "package": "com.ntabl.allstargames",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0b1f3a"
+      }
+    },
     "ios": {
-      "bundleIdentifier": "com.ntabl.allstargames"
+      "bundleIdentifier": "com.ntabl.allstargames",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "web": {
       "bundler": "metro",
@@ -39,12 +42,12 @@
       "display": "standalone",
       "orientation": "portrait"
     },
-"extra": {
-  "apiBase": "https://ntabl-backend.onrender.com",
-  "router": {},
-  "eas": {
-    "projectId": "e6454d9d-b07f-4578-b459-5a86df57c063"
-  }
-}
+    "extra": {
+      "apiBase": "https://ntabl-backend.onrender.com",
+      "router": {},
+      "eas": {
+        "projectId": "e6454d9d-b07f-4578-b459-5a86df57c063"
+      }
+    }
   }
 }
