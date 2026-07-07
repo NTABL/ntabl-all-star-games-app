@@ -736,15 +736,11 @@ function leaveWithoutSaving() {
               setBattingOrderIds(data.map((player) => player.id));
               markLineupChanged();
             }}
-            renderItem={({ item, drag, getIndex }) => {
-              const index = getIndex() ?? 0;
+renderItem={({ item, getIndex }) => {
+  const index = getIndex() ?? 0;
 
-              return (
-                <Pressable onPressIn={drag}>
-                  {renderPlayer(item, true, index + 1)}
-                </Pressable>
-              );
-            }}
+  return renderPlayer(item, true, index + 1);
+}}
           />
         ) : (
           <Text style={styles.emptyText}>No batting players selected.</Text>
