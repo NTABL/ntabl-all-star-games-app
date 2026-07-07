@@ -318,12 +318,13 @@ useEffect(() => {
     setSaveStatus("Unsaved changes");
   }
 
-  function toggleBatting(playerId: string, value: boolean) {
-    setBattingPlayers((prev) => ({
-      ...prev,
-      [playerId]: value,
-    }));
+function toggleBatting(playerId: string, value: boolean) {
+  setBattingPlayers((prev) => ({
+    ...prev,
+    [playerId]: value,
+  }));
 
+  setTimeout(() => {
     setBattingOrderIds((current) => {
       if (value) {
         if (current.includes(playerId)) return current;
@@ -334,7 +335,8 @@ useEffect(() => {
     });
 
     markLineupChanged();
-  }
+  }, 250);
+}
 
     function renderPlayer(
     player: Player,
@@ -1613,13 +1615,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
 
-  modalCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 20,
-    padding: 20,
-    width: "88%",
-    maxWidth: 420,
-  },
+modalCard: {
+  backgroundColor: "#ffffff",
+  borderRadius: 20,
+  padding: 20,
+  width: "88%",
+  maxWidth: 900,
+},
 
   positionPickerCard: {
     backgroundColor: "#ffffff",
@@ -1641,8 +1643,7 @@ subModalCard: {
   borderRadius: 20,
   padding: 20,
   width: "90%",
-  maxWidth: 520,
-  minHeight: 360,
+  maxWidth: 1200,
 },
 
   modalTitle: {
@@ -1805,7 +1806,8 @@ subModalCard: {
   },
 
   saveToast: {
-    width: 310,
+    width: "70%",
+    maxWidth: 900,
     backgroundColor: "#ffffff",
     borderRadius: 22,
     paddingVertical: 22,
