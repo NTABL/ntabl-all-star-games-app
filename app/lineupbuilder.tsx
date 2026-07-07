@@ -743,7 +743,7 @@ renderItem={({ item, getIndex }) => {
 }}
           />
         ) : (
-          <Text style={styles.emptyText}>No batting players selected.</Text>
+          <Text style={styles.emptyText}>No Batting Players Selected.</Text>
         )}
 
         <Text style={styles.lineupSectionTitle}>
@@ -753,7 +753,7 @@ renderItem={({ item, getIndex }) => {
         {notBattingPlayers.length > 0 ? (
           notBattingPlayers.map((player) => renderPlayer(player, true))
         ) : (
-          <Text style={styles.emptyText}>No players marked as not batting.</Text>
+          <Text style={styles.emptyText}>No Players Marked as Not Batting.</Text>
         )}
       </View>
     );
@@ -1089,7 +1089,7 @@ if (!json?.ok) {
                 </Pressable>
               ))
             ) : (
-              <Text style={styles.emptyText}>No substitutes available.</Text>
+              <Text style={styles.emptyText}>No Substitutes Currently Available.</Text>
             )}
 
             <Pressable
@@ -1636,13 +1636,14 @@ const styles = StyleSheet.create({
     maxWidth: 520,
   },
 
-  subModalCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 20,
-    padding: 20,
-    width: "90%",
-    maxWidth: 520,
-  },
+subModalCard: {
+  backgroundColor: "#ffffff",
+  borderRadius: 20,
+  padding: 20,
+  width: "90%",
+  maxWidth: 520,
+  minHeight: 360,
+},
 
   modalTitle: {
     fontSize: 24,
