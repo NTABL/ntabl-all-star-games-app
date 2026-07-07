@@ -141,7 +141,22 @@ async function loadScreen() {
       }),
     });
 
-    const json = await response.json();
+    const responseText = await response.text();
+
+let json: any = null;
+
+try {
+  json = JSON.parse(responseText);
+} catch {
+  console.log("DASHBOARD STATUS NON-JSON RESPONSE:", {
+    status: response.status,
+    url: `${API_BASE}/api/manager/submission-status`,
+    bodyPreview: responseText.slice(0, 200),
+  });
+
+  setStatus("Not Submitted");
+  return;
+}
 
     if (json?.ok && json?.status) {
       setStatus(json.status);
