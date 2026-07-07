@@ -2,16 +2,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
 import { useState } from "react";
 import {
-    Alert,
-    Image,
-    Modal,
-    Pressable,
-    ScrollView,
-    Share,
-    StyleSheet,
-    Text,
-    View,
+  Alert,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
+import { modalStyles } from "../utils/modalStyles";
 
 const teams = [
   "(18+) Dallas Mustangs",
@@ -336,28 +337,13 @@ shareButton: {
     color: "#111827",
   },
 
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
+modalOverlay: {
+  ...modalStyles.overlay,
+},
 
 modalCard: {
-  backgroundColor: "#ffffff",
-  borderRadius: 20,
-  padding: 20,
-  width: "88%",
+  ...modalStyles.card,
   maxHeight: "75%",
-
-  shadowColor: "#000",
-  shadowOpacity: 0.15,
-  shadowRadius: 12,
-  shadowOffset: {
-    width: 0,
-    height: 6,
-  },
-  elevation: 10,
 },
 
   modalTitle: {

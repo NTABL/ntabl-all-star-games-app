@@ -17,6 +17,7 @@ import {
 } from "react-native";
 
 import { adminFetch, API_BASE } from "../../utils/appconfig";
+import { modalStyles } from "../../utils/modalStyles";
 
 type Squad = "East" | "West";
 
@@ -1013,30 +1014,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
+modalOverlay: {
+  ...modalStyles.overlay,
+},
 
-  pickerModalCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 20,
-    padding: 20,
-    width: "88%",
-    maxWidth: 520,
-
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    elevation: 10,
-  },
+pickerModalCard: {
+  ...modalStyles.compactCard,
+},
 
   modalTitle: {
     fontSize: 22,

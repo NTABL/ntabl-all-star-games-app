@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { getManagerContext } from "../stores/store";
 import { API_BASE } from "../utils/appconfig";
+import { modalStyles } from "../utils/modalStyles";
 
 const DEFAULT_MAX_POSITION_PLAYERS = 5;
 const DEFAULT_MAX_PITCHERS = 2;
@@ -1520,18 +1521,13 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
 
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "center",
-    paddingHorizontal: 28,
-  },
+modalOverlay: {
+  ...modalStyles.overlay,
+},
 
-  modalCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 18,
-    padding: 18,
-  },
+modalCard: {
+  ...modalStyles.compactCard,
+},
 
   modalTitle: {
     fontSize: 20,
@@ -1567,27 +1563,20 @@ const styles = StyleSheet.create({
     fontWeight: "900",
   },
 
-  submittedSplash: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 9999,
-  },
+submittedSplash: {
+  ...modalStyles.overlay,
+  position: "absolute",
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  zIndex: 9999,
+},
 
-  submittedSplashCard: {
-    width: "86%",
-    backgroundColor: "#ffffff",
-    borderRadius: 22,
-    paddingVertical: 26,
-    paddingHorizontal: 20,
-    alignItems: "center",
-    elevation: 10,
-  },
+submittedSplashCard: {
+  ...modalStyles.card,
+  alignItems: "center",
+},
 
   submittedSplashLogo: {
     width: 190,
@@ -1662,27 +1651,20 @@ const styles = StyleSheet.create({
     color: "#15803d",
   },
 
-  confirmOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.35)",
-    zIndex: 99998,
-  },
+confirmOverlay: {
+  ...modalStyles.overlay,
+  position: "absolute",
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  zIndex: 99998,
+},
 
-  confirmCard: {
-    width: "86%",
-    backgroundColor: "#ffffff",
-    borderRadius: 18,
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    alignItems: "center",
-    elevation: 10,
-  },
+confirmCard: {
+  ...modalStyles.card,
+  alignItems: "center",
+},
 
   confirmTitle: {
     color: "#1f4e9e",
@@ -1737,20 +1719,12 @@ const styles = StyleSheet.create({
     fontWeight: "900",
   },
 
-  instructionsOverlay: {
-  flex: 1,
-  backgroundColor: "rgba(0,0,0,0.35)",
-  justifyContent: "center",
-  alignItems: "center",
-  paddingHorizontal: 20,
+instructionsOverlay: {
+  ...modalStyles.overlay,
 },
 
 instructionsModalCard: {
-  backgroundColor: "#ffffff",
-  borderRadius: 20,
-  padding: 20,
-  width: "90%",
-  maxWidth: 520,
+  ...modalStyles.compactCard,
 },
 
 instructionsLogo: {

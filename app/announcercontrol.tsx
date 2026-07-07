@@ -17,6 +17,7 @@ import {
 } from "react-native";
 
 import { adminFetch, API_BASE } from "../utils/appconfig";
+import { modalStyles } from "../utils/modalStyles";
 
 type Squad = "East" | "West";
 
@@ -1684,19 +1685,13 @@ elevation: 6,
     marginBottom: 6,
   },
 
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
+modalOverlay: {
+  ...modalStyles.overlay,
+},
 
-  gamePickerCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 20,
-    padding: 18,
-    width: "88%",
-  },
+gamePickerCard: {
+  ...modalStyles.card,
+},
 
   modalTitle: {
     fontSize: 24,

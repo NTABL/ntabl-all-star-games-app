@@ -2,17 +2,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { clearAdminLogin, isAdminLoggedIn } from "../stores/adminstore";
 import { adminFetch, API_BASE } from "../utils/appconfig";
-
+import { modalStyles } from "../utils/modalStyles";
 export default function AdminScreen() {
   const [refreshingRoster, setRefreshingRoster] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState("");
@@ -530,28 +530,22 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
-  toastOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.25)",
-    zIndex: 99999,
-  },
+toastOverlay: {
+  ...modalStyles.overlay,
+  position: "absolute",
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: "rgba(0,0,0,0.25)",
+  zIndex: 99999,
+},
 
-  saveToast: {
-    width: "84%",
-    backgroundColor: "#ffffff",
-    borderRadius: 22,
-    paddingVertical: 24,
-    paddingHorizontal: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 12,
-  },
+saveToast: {
+  ...modalStyles.card,
+  alignItems: "center",
+  justifyContent: "center",
+},
 
   errorToast: {
     borderWidth: 3,

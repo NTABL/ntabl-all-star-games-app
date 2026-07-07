@@ -22,6 +22,7 @@ import {
   getAdminPassword,
   saveAdminPassword,
 } from "../utils/biometricauth";
+import { modalStyles } from "../utils/modalStyles";
 
 type MessageType = "success" | "error" | "warning" | "choice";
 
@@ -605,22 +606,14 @@ const styles = StyleSheet.create({
     marginTop: 22,
   },
 
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.28)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+modalOverlay: {
+  ...modalStyles.overlay,
+},
 
-  messageModal: {
-    width: "84%",
-    backgroundColor: "#ffffff",
-    borderRadius: 22,
-    paddingVertical: 24,
-    paddingHorizontal: 22,
-    alignItems: "center",
-    elevation: 12,
-  },
+messageModal: {
+  ...modalStyles.card,
+  alignItems: "center",
+},
 
   errorModal: {
     borderWidth: 3,

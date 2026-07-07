@@ -2,21 +2,22 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    useWindowDimensions,
-    View,
+  ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import { clearAdminLogin, isAdminLoggedIn } from "../stores/adminstore";
 import { adminFetch, API_BASE } from "../utils/appconfig";
+import { modalStyles } from "../utils/modalStyles";
 
 type Division = {
   id: string;
@@ -1198,26 +1199,12 @@ const styles = StyleSheet.create({
   },
 
   modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  ...modalStyles.overlay,
+},
 
-  modalCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 20,
-    padding: 20,
-    width: 230,
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    elevation: 10,
-  },
+modalCard: {
+  ...modalStyles.compactCard,
+},
 
   modalTitle: {
     fontSize: 18,

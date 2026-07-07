@@ -16,9 +16,10 @@ import {
   useWindowDimensions,
   View
 } from "react-native";
-import DraggableFlatList from "react-native-draggable-flatlist";
+import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { API_BASE } from "../utils/appconfig";
+import { modalStyles } from "../utils/modalStyles";
 
 type Squad = "East" | "West";
 
@@ -340,26 +341,31 @@ function toggleBatting(playerId: string, value: boolean) {
   }, 650);
 }
 
-    function renderPlayer(
-    player: Player,
-    editable: boolean,
-    battingOrder?: number
-  ) {
+function renderPlayer(
+  player: Player,
+  editable: boolean,
+  battingOrder?: number,
+  drag?: () => void,
+  isActive?: boolean
+) {
     const isBatting = battingPlayers[player.id] ?? true;
 
-    return (
-      <View
-        key={`${player.id}-${battingOrder || "sub"}`}
-        style={[
-          styles.playerCard,
-          editable
-            ? isBatting
-              ? styles.editablePlayerCard
-              : styles.notBattingPlayerCard
-            : styles.viewOnlyPlayerCard,
-          isTabletLayout && styles.playerCardTablet,
-        ]}
-      >
+const cardContent = (
+  <Pressable
+    key={`${player.id}-${battingOrder || "sub"}`}
+    onLongPress={drag}
+    disabled={!drag}
+    style={[
+      styles.playerCard,
+      editable
+        ? isBatting
+          ? styles.editablePlayerCard
+          : styles.notBattingPlayerCard
+        : styles.viewOnlyPlayerCard,
+      isTabletLayout && styles.playerCardTablet,
+      isActive && { opacity: 0.75 },
+    ]}
+  >
         <View style={styles.playerHeaderRow}>
           <View style={styles.playerInfo}>
             <View style={styles.playerNameRow}>
@@ -439,14 +445,14 @@ function toggleBatting(playerId: string, value: boolean) {
               </View>
 
               {battingOrder ? (
-                <View
-                  style={[
-                    styles.dragHandle,
-                    isBatting
-                      ? styles.dragHandleBatting
-                      : styles.dragHandleSubstitute,
-                  ]}
-                >
+<View
+  style={[
+    styles.dragHandle,
+    isBatting
+      ? styles.dragHandleBatting
+      : styles.dragHandleSubstitute,
+  ]}
+>
                   <Ionicons
                     name="reorder-three-outline"
                     size={24}
@@ -461,8 +467,14 @@ function toggleBatting(playerId: string, value: boolean) {
             </View>
           )}
         </View>
-      </View>
-    );
+</Pressable>
+);
+
+if (drag) {
+  return <ScaleDecorator>{cardContent}</ScaleDecorator>;
+}
+
+return cardContent;
   }
 
   function savePlayerEdits() {
@@ -741,10 +753,10 @@ function leaveWithoutSaving() {
               setBattingOrderIds(data.map((player) => player.id));
               markLineupChanged();
             }}
-renderItem={({ item, getIndex }) => {
+renderItem={({ item, getIndex, drag, isActive }) => {
   const index = getIndex() ?? 0;
 
-  return renderPlayer(item, true, index + 1);
+  return renderPlayer(item, true, index + 1, drag, isActive);
 }}
           />
         ) : (
@@ -1021,21 +1033,26 @@ if (!json?.ok) {
 
             <Text style={styles.instructionsText}>
               1. Tap <Text style={styles.boldText}>Edit</Text> to update player
-              numbers or positions.
+              number or position.
             </Text>
 
             <Text style={styles.instructionsText}>
               2. Use the <Text style={styles.boldText}>Batting</Text> toggle to
-              move players between the batting lineup and substitutes.
+              move players between the active batting lineup and non-lineup substitutes.
             </Text>
 
-            <Text style={styles.instructionsText}>
-              3. Press and drag a batting player card to update the batting
-              order.
-            </Text>
+<Text style={styles.instructionsText}>
+  3. <Text style={styles.importantText}>IMPORTANT:</Text> Press and hold the{" "}
+  <Ionicons
+    name="reorder-three-outline"
+    size={18}
+    color="#111827"
+  />{" "}
+  icon to the right of a player to drag a batter up or down the lineup.
+</Text>
 
             <Text style={styles.instructionsText}>
-              4. Use <Text style={styles.boldText}>Sub</Text> to swap a batting
+              4. Use the <Text style={styles.boldText}>Sub</Text> button to swap a batting
               player with a substitute.
             </Text>
 
@@ -1626,27 +1643,20 @@ modalCard: {
   maxWidth: 900,
 },
 
-  positionPickerCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 20,
-    padding: 20,
-    width: 260,
-  },
+positionPickerCard: {
+  ...modalStyles.compactCard,
+},
 
   instructionsModalCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 20,
-    padding: 20,
-    width: "90%",
-    maxWidth: 520,
-  },
+  ...modalStyles.compactCard,
+},
 
 subModalCard: {
   backgroundColor: "#ffffff",
   borderRadius: 20,
   padding: 20,
-  width: "90%",
-  maxWidth: 1200,
+  width: "88%",
+  maxWidth: 900,
 },
 
   modalTitle: {
@@ -1808,17 +1818,17 @@ subModalCard: {
     zIndex: 99999,
   },
 
-  saveToast: {
-    width: "70%",
-    maxWidth: 900,
-    backgroundColor: "#ffffff",
-    borderRadius: 22,
-    paddingVertical: 22,
-    paddingHorizontal: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 12,
-  },
+saveToast: {
+  width: "88%",
+  maxWidth: 900,
+  backgroundColor: "#ffffff",
+  borderRadius: 22,
+  paddingVertical: 22,
+  paddingHorizontal: 20,
+  alignItems: "center",
+  justifyContent: "center",
+  elevation: 12,
+},
 
   saveToastLogo: {
     width: 150,
@@ -1912,5 +1922,11 @@ leaveWithoutSavingButtonText: {
   color: "#ffffff",
   fontSize: 16,
   fontWeight: "900",
+},
+
+importantText: {
+  color: "#c62828",
+  fontWeight: "900",
+  textDecorationLine: "underline",
 },
 });

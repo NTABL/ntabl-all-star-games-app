@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { getManagerContext } from "../stores/store";
 import { API_BASE } from "../utils/appconfig";
+import { modalStyles } from "../utils/modalStyles";
 
 const teamLogoImages: Record<string, any> = {
   dallasspirits: require("../assets/Spirits.png"),
@@ -651,19 +652,11 @@ helpButtonText: {
 },
 
 instructionsOverlay: {
-  flex: 1,
-  backgroundColor: "rgba(0,0,0,0.35)",
-  justifyContent: "center",
-  alignItems: "center",
-  paddingHorizontal: 20,
+  ...modalStyles.overlay,
 },
 
 instructionsModalCard: {
-  backgroundColor: "#ffffff",
-  borderRadius: 20,
-  padding: 20,
-  width: "90%",
-  maxWidth: 520,
+  ...modalStyles.compactCard,
 },
 
 instructionsLogo: {

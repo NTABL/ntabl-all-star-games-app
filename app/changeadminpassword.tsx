@@ -2,21 +2,22 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    Keyboard,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    useWindowDimensions,
-    View,
+  ActivityIndicator,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import { API_BASE } from "../utils/appconfig";
+import { modalStyles } from "../utils/modalStyles";
 
 type MessageType = "success" | "error" | "warning";
 
@@ -510,22 +511,14 @@ const styles = StyleSheet.create({
     opacity: 0.55,
   },
 
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.28)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+modalOverlay: {
+  ...modalStyles.overlay,
+},
 
-  messageModal: {
-    width: "84%",
-    backgroundColor: "#ffffff",
-    borderRadius: 22,
-    paddingVertical: 24,
-    paddingHorizontal: 22,
-    alignItems: "center",
-    elevation: 12,
-  },
+messageModal: {
+  ...modalStyles.card,
+  alignItems: "center",
+},
 
   errorModal: {
     borderWidth: 3,
