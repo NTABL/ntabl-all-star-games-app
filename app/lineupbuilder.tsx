@@ -3,8 +3,10 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,7 +14,7 @@ import {
   Text,
   TextInput,
   useWindowDimensions,
-  View,
+  View
 } from "react-native";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -62,7 +64,7 @@ export default function LineupBuilderScreen() {
 
   const primaryDivisionId = divisionIds[0] || "masters";
   const opponentSquad: Squad = squad === "East" ? "West" : "East";
-
+  const [showUnsavedExitModal, setShowUnsavedExitModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [divisionName, setDivisionName] = useState("");
   const [eastPlayers, setEastPlayers] = useState<Player[]>([]);
@@ -83,7 +85,7 @@ export default function LineupBuilderScreen() {
   );
   const [opponentSubs, setOpponentSubs] = useState<Player[]>([]);
 
-  const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [saveStatus, setSaveStatus] = useState("");
   const [showSaveToast, setShowSaveToast] = useState(false);
@@ -110,6 +112,40 @@ export default function LineupBuilderScreen() {
       !(battingPlayers[player.id] ?? true) && !battingLineupIds.has(player.id)
   );
 
+useEffect(() => {
+  if (Platform.OS === "web") return;
+
+  const subscription = BackHandler.addEventListener(
+    "hardwareBackPress",
+    () => {
+      if (activeTab === "manager" && hasUnsavedChanges) {
+        setShowUnsavedExitModal(true);
+      }
+
+      return true;
+    }
+  );
+
+  return () => subscription.remove();
+}, [activeTab, hasUnsavedChanges]);
+
+useEffect(() => {
+  if (Platform.OS !== "web" || typeof window === "undefined") return;
+
+  const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+    if (!hasUnsavedChanges) return;
+
+    event.preventDefault();
+    event.returnValue = "";
+  };
+
+  window.addEventListener("beforeunload", handleBeforeUnload);
+
+  return () => {
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+  };
+}, [hasUnsavedChanges]);
+
   useEffect(() => {
     loadAllStars();
   }, []);
@@ -131,7 +167,7 @@ export default function LineupBuilderScreen() {
 
     autoSaveTimer.current = setTimeout(() => {
       saveLineup(true);
-    }, 15000);
+    }, 10000);
 
     return () => {
       if (autoSaveTimer.current) {
@@ -464,11 +500,39 @@ export default function LineupBuilderScreen() {
     setSubTargetPlayer(null);
   }
 
+  function requestLeaveScreen() {
+  if (activeTab === "manager" && hasUnsavedChanges) {
+    setShowUnsavedExitModal(true);
+    return;
+  }
+
+  router.replace("/dashboard");
+}
+
+async function saveAndLeaveScreen() {
+  const saved = await saveLineup(false);
+
+  if (saved) {
+    setShowUnsavedExitModal(false);
+    router.replace("/dashboard");
+  }
+}
+
+function leaveWithoutSaving() {
+  if (autoSaveTimer.current) {
+    clearTimeout(autoSaveTimer.current);
+  }
+
+  setHasUnsavedChanges(false);
+  setShowUnsavedExitModal(false);
+  router.replace("/dashboard");
+}
+
   function renderTopControls() {
     return (
       <View style={styles.headerRow}>
         <Pressable
-          onPress={() => router.replace("/dashboard")}
+          onPress={requestLeaveScreen}
           style={styles.backButton}
         >
           <View style={styles.smallButtonRow}>
@@ -727,7 +791,7 @@ export default function LineupBuilderScreen() {
     );
   }
 
-    async function saveLineup(isAutoSave = false) {
+    async function saveLineup(isAutoSave = false): Promise<boolean> {
     try {
       const battingLineupPlayers = battingLineup.map((player, index) => ({
         ...player,
@@ -755,10 +819,11 @@ export default function LineupBuilderScreen() {
 
       const json = await response.json();
 
-      if (!json?.ok) {
-        alert("Lineup Could Not Be Saved.");
-        return;
-      }
+if (!json?.ok) {
+  if (!isAutoSave) alert("Lineup Could Not Be Saved.");
+  setSaveStatus("Auto-Save Failed");
+  return false;
+}
 
       setAutoSaveEnabled(true);
       setHasUnsavedChanges(false);
@@ -771,11 +836,18 @@ export default function LineupBuilderScreen() {
           setShowSaveToast(false);
         }, 1700);
       }
-    } catch (e) {
-      console.log("SAVE LINEUP ERROR:", e);
-      alert("Lineup Could Not Be Saved.");
+
+      return true;
+} catch (e) {
+  console.log("SAVE LINEUP ERROR:", e);
+
+  if (!isAutoSave) alert("Lineup Could Not Be Saved.");
+
+  setSaveStatus("Auto-Save Failed");
+  return false;
+}
+
     }
-  }
 
   return (
     <>
@@ -798,7 +870,7 @@ export default function LineupBuilderScreen() {
             {loading ? (
               <View style={styles.loadingCard}>
                 <ActivityIndicator size="large" color="#1d4ed8" />
-                <Text style={styles.loadingText}>Loading lineup...</Text>
+                <Text style={styles.loadingText}>Loading Lineup...</Text>
               </View>
             ) : (
               <>
@@ -968,8 +1040,7 @@ export default function LineupBuilderScreen() {
 
             <Text style={styles.instructionsText}>
               5. Tap <Text style={styles.greenBoldText}>Save Lineup</Text>.
-              After your first save, lineup changes auto-save after 15 seconds of
-              inactivity.
+              Lineup Changes Auto-Save After 10 Seconds of Inactivity.
             </Text>
 
             <Pressable
@@ -1043,7 +1114,40 @@ export default function LineupBuilderScreen() {
           </View>
         </View>
       </Modal>
+<Modal
+  visible={showUnsavedExitModal}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setShowUnsavedExitModal(false)}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalCard}>
+      <Text style={styles.modalTitle}>Unsaved Changes</Text>
 
+      <Text style={styles.instructionsText}>
+        You have lineup changes that have not been saved yet. What would you like to do?
+      </Text>
+
+      <Pressable style={styles.saveEditButton} onPress={saveAndLeaveScreen}>
+        <View style={styles.buttonContentRow}>
+          <Ionicons name="save-outline" size={18} color="#ffffff" style={{ marginRight: 6 }} />
+          <Text style={styles.saveEditButtonText}>Save Changes</Text>
+        </View>
+      </Pressable>
+
+      <Pressable style={styles.leaveWithoutSavingButton} onPress={leaveWithoutSaving}>
+        <Text style={styles.leaveWithoutSavingButtonText}>Continue Without Saving</Text>
+      </Pressable>
+
+      <Pressable
+        style={styles.cancelEditButton}
+        onPress={() => setShowUnsavedExitModal(false)}
+      >
+        <Text style={styles.cancelEditButtonText}>Cancel</Text>
+      </Pressable>
+    </View>
+  </View>
+</Modal>
       {showSaveToast && (
         <View pointerEvents="none" style={styles.toastOverlay}>
           <View style={styles.saveToast}>
@@ -1792,5 +1896,19 @@ instructionsLogo: {
   height: 70,
   alignSelf: "center",
   marginBottom: 6,
+},
+
+leaveWithoutSavingButton: {
+  backgroundColor: "#6b7280",
+  borderRadius: 12,
+  paddingVertical: 13,
+  alignItems: "center",
+  marginTop: 10,
+},
+
+leaveWithoutSavingButtonText: {
+  color: "#ffffff",
+  fontSize: 16,
+  fontWeight: "900",
 },
 });
