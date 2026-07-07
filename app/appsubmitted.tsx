@@ -141,10 +141,15 @@ export default function AppSubmittedScreen() {
         <View style={styles.playerInfo}>
           <Text style={styles.playerName}>{item.name}</Text>
 
-          <View style={styles.playerDetailRow}>
-            <Text style={styles.detailPill}>#{item.jerseyNumber || "-"}</Text>
-            <Text style={styles.detailPill}>{item.position || "POS"}</Text>
-          </View>
+<View style={styles.playerDetailRow}>
+  <View style={styles.detailPill}>
+    <Text style={styles.detailPillText}>#{item.jerseyNumber || "-"}</Text>
+  </View>
+
+  <View style={styles.detailPill}>
+    <Text style={styles.detailPillText}>{item.position || "POS"}</Text>
+  </View>
+</View>
         </View>
       </View>
     );
@@ -553,17 +558,22 @@ headerRow: {
     marginTop: 7,
   },
 
-  detailPill: {
-    backgroundColor: "#eef2f7",
-    color: "#374151",
-    fontSize: 13,
-    fontWeight: "900",
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    marginRight: 8,
-    overflow: "hidden",
-  },
+detailPill: {
+  backgroundColor: "#eef2f7",
+  minWidth: 54,
+  height: 34,
+  borderRadius: 999,
+  marginRight: 8,
+  alignItems: "center",
+  justifyContent: "center",
+},
+
+detailPillText: {
+  color: "#374151",
+  fontSize: 13,
+  fontWeight: "900",
+  lineHeight: 16,
+},
 
   emptyCard: {
     backgroundColor: "#ffffff",

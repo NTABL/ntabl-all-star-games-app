@@ -324,6 +324,8 @@ function toggleBatting(playerId: string, value: boolean) {
     [playerId]: value,
   }));
 
+  setSaveStatus("Updating lineup...");
+
   setTimeout(() => {
     setBattingOrderIds((current) => {
       if (value) {
@@ -335,7 +337,7 @@ function toggleBatting(playerId: string, value: boolean) {
     });
 
     markLineupChanged();
-  }, 250);
+  }, 650);
 }
 
     function renderPlayer(
@@ -429,10 +431,11 @@ function toggleBatting(playerId: string, value: boolean) {
                   {isBatting ? "Batting" : "Not Batting"}
                 </Text>
 
-                <Switch
-                  value={isBatting}
-                  onValueChange={(value) => toggleBatting(player.id, value)}
-                />
+<Switch
+  value={isBatting}
+  onValueChange={(value) => toggleBatting(player.id, value)}
+  disabled={saveStatus === "Updating lineup..."}
+/>
               </View>
 
               {battingOrder ? (
