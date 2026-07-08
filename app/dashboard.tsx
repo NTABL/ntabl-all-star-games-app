@@ -3,6 +3,7 @@ import { router, Stack, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   Image,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,6 +13,7 @@ import {
 } from "react-native";
 import { clearManagerContext, getManagerContext } from "../stores/store";
 import { API_BASE } from "../utils/appconfig";
+import { modalStyles } from "../utils/modalStyles";
 
 type ManagerData = {
   role?: string;
@@ -107,6 +109,8 @@ function getDivisionLogo(division: string) {
 export default function Dashboard() {
   const [status, setStatus] = useState("Not Submitted");
   const [managerData, setManagerData] = useState<ManagerData | null>(null);
+  const [waiverSigned, setWaiverSigned] = useState(false);
+  const [showWaiverPrompt, setShowWaiverPrompt] = useState(false);
   const { width, height } = useWindowDimensions();
 
   const isTabletLayout = width >= 700;
@@ -124,10 +128,62 @@ export default function Dashboard() {
     }, [])
   );
 
+  function getWaiverPersonId(manager: any) {
+  const loggedInPlayer = Array.isArray(manager?.roster)
+    ? manager.roster.find(
+        (player: any) =>
+          String(player?.email || "").trim().toLowerCase() ===
+          String(manager?.email || "").trim().toLowerCase()
+      )
+    : null;
+
+  return String(loggedInPlayer?.id || manager?.email || "unknown");
+}
+
+async function checkWaiverStatus(manager: any) {
+  try {
+    const role = manager?.isAllStarManager
+      ? "all-star-manager"
+      : String(manager?.role || "player").toLowerCase();
+
+    const squad = manager?.allStarManagerAccess?.squad || manager?.squad || "";
+
+    const response = await fetch(
+      `${API_BASE}/api/waivers/status?divisionId=${encodeURIComponent(
+        manager?.division || ""
+      )}&squad=${encodeURIComponent(squad)}&role=${encodeURIComponent(
+        role
+      )}&personId=${encodeURIComponent(getWaiverPersonId(manager))}`
+    );
+
+    const json = await response.json();
+
+    if (response.ok && json?.ok && json?.signed) {
+      setWaiverSigned(true);
+      setShowWaiverPrompt(false);
+      return;
+    }
+
+    setWaiverSigned(false);
+
+    if (manager?.isAllStarManager || manager?.role === "player") {
+      setShowWaiverPrompt(true);
+    }
+} catch (e) {
+  console.log(e);
+
+  if (manager?.isAllStarManager || manager?.role === "player") {
+    setWaiverSigned(false);
+    setShowWaiverPrompt(true);
+  }
+}
+}
+
 async function loadScreen() {
   try {
     const manager = await getManagerContext();
     setManagerData(manager);
+    await checkWaiverStatus(manager);
     console.log("MANAGER CONTEXT:", manager);
 
     const response = await fetch(`${API_BASE}/api/manager/submission-status`, {
@@ -309,6 +365,21 @@ async function handleLogout() {
 >
   <Text style={styles.statusBadgeText}>{status}</Text>
 </View>
+
+<Text style={styles.label}>PLAYER WAIVER STATUS</Text>
+
+<View
+  style={[
+    styles.statusBadge,
+    {
+      backgroundColor: waiverSigned ? "#15803d" : "#c62828",
+    },
+  ]}
+>
+  <Text style={styles.statusBadgeText}>
+    {waiverSigned ? "Complete" : "Incomplete"}
+  </Text>
+</View>
 </View>
 
               <View style={styles.teamLogoWrap}>
@@ -378,6 +449,27 @@ async function handleLogout() {
               </Text>
             </View>
           </View>
+
+<Pressable
+  style={[
+    styles.waiverButton,
+    waiverSigned && styles.waiverButtonComplete,
+  ]}
+  onPress={() => router.push("/waiver")}
+>
+  <View style={styles.buttonContentRow}>
+    <Ionicons
+      name={waiverSigned ? "checkmark-circle" : "document-text-outline"}
+      size={22}
+      color="#ffffff"
+      style={{ marginRight: 8 }}
+    />
+
+    <Text style={styles.waiverButtonText}>
+  {waiverSigned ? "Waiver Completed" : "Complete Waiver"}
+</Text>
+  </View>
+</Pressable>
 
           <Pressable style={styles.primaryButton} onPress={handleOpenSelections}>
             <View style={styles.buttonContentRow}>
@@ -476,6 +568,50 @@ async function handleLogout() {
 </Text>
         </ScrollView>
       </View>
+      <Modal
+  visible={showWaiverPrompt}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setShowWaiverPrompt(false)}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.waiverPromptModal}>
+      <Ionicons
+        name="document-text-outline"
+        size={54}
+        color="#1d4ed8"
+        style={{ marginBottom: 10 }}
+      />
+
+      <Text style={styles.waiverPromptTitle}>Waiver Required</Text>
+
+      <Text style={styles.waiverPromptMessage}>
+        Please complete your Frisco RoughRiders Agreement and Release of
+        Liability Waiver before participating in the NTABL Charity All-Star
+        Games.
+      </Text>
+
+      <View style={styles.waiverPromptButtonRow}>
+        <Pressable
+          style={styles.waiverPromptLaterButton}
+          onPress={() => setShowWaiverPrompt(false)}
+        >
+          <Text style={styles.waiverPromptButtonText}>Not Now</Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.waiverPromptContinueButton}
+          onPress={() => {
+            setShowWaiverPrompt(false);
+            router.push("/waiver");
+          }}
+        >
+          <Text style={styles.waiverPromptButtonText}>Continue</Text>
+        </Pressable>
+      </View>
+    </View>
+  </View>
+</Modal>
     </>
   );
 }
@@ -661,12 +797,13 @@ divisionLogo: {
     color: "#111827",
   },
 
-  primaryButton: {
-    backgroundColor: "#15803d",
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
+primaryButton: {
+  marginTop: 12,
+  backgroundColor: "#15803d",
+  borderRadius: 12,
+  paddingVertical: 16,
+  alignItems: "center",
+},
 
   primaryButtonText: {
     color: "#ffffff",
@@ -791,5 +928,78 @@ headerCardTablet: {
 
 cardTablet: {
   minHeight: 180,
+},
+
+waiverButton: {
+  marginTop: 12,
+  backgroundColor: "#1f4e9e",
+  borderRadius: 12,
+  paddingVertical: 14,
+  alignItems: "center",
+},
+
+waiverButtonText: {
+  color: "#ffffff",
+  fontSize: 16,
+  fontWeight: "700",
+},
+
+modalOverlay: {
+  ...modalStyles.overlay,
+},
+
+waiverPromptModal: {
+  ...modalStyles.card,
+  alignItems: "center",
+},
+
+waiverPromptTitle: {
+  color: "#1d4ed8",
+  fontSize: 24,
+  fontWeight: "900",
+  textAlign: "center",
+},
+
+waiverPromptMessage: {
+  color: "#555555",
+  fontSize: 15,
+  fontWeight: "700",
+  textAlign: "center",
+  marginTop: 8,
+  lineHeight: 21,
+},
+
+waiverPromptButtonRow: {
+  flexDirection: "row",
+  marginTop: 18,
+  width: "100%",
+},
+
+waiverPromptLaterButton: {
+  flex: 1,
+  backgroundColor: "#6b7280",
+  borderRadius: 10,
+  paddingVertical: 12,
+  alignItems: "center",
+  marginRight: 8,
+},
+
+waiverPromptContinueButton: {
+  flex: 1,
+  backgroundColor: "#1d4ed8",
+  borderRadius: 10,
+  paddingVertical: 12,
+  alignItems: "center",
+  marginLeft: 8,
+},
+
+waiverPromptButtonText: {
+  color: "#ffffff",
+  fontSize: 15,
+  fontWeight: "900",
+},
+
+waiverButtonComplete: {
+  backgroundColor: "#6b7280",
 },
 });

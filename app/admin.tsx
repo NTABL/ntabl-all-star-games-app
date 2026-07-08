@@ -239,6 +239,26 @@ export default function AdminScreen() {
 </View>
 
 <View style={styles.sectionCard}>
+  <Text style={styles.sectionHeader}>Waiver Management</Text>
+
+  <TouchableOpacity
+    style={styles.waiverManagementButton}
+    onPress={() => router.push("/waivermanagement")}
+  >
+    <View style={styles.buttonContentRow}>
+      <Ionicons
+        name="document-text-outline"
+        size={22}
+        color="#ffffff"
+        style={{ marginRight: 8 }}
+      />
+
+      <Text style={styles.buttonText}>Manage Event Waivers</Text>
+    </View>
+  </TouchableOpacity>
+</View>
+
+<View style={styles.sectionCard}>
   <Text style={styles.sectionHeader}>Announcer Configuration</Text>
 
   <TouchableOpacity
@@ -592,6 +612,15 @@ saveToast: {
 
   submissionStatusButton: {
   backgroundColor: "#15803d",
+  borderRadius: 12,
+  paddingVertical: 16,
+  paddingHorizontal: 18,
+  alignItems: "center",
+  justifyContent: "center",
+},
+
+waiverManagementButton: {
+  backgroundColor: "#660000",
   borderRadius: 12,
   paddingVertical: 16,
   paddingHorizontal: 18,
