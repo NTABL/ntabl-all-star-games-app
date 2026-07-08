@@ -145,6 +145,17 @@ export default function WaiverScreen() {
     return getPersonIdFromManager(managerData);
   }
 
+  function getDisplayRole() {
+  const role = String(managerData?.role || "").toUpperCase();
+
+  if (role.includes("CO-CAPTAIN")) return "Co-Captain";
+  if (role.includes("CAPTAIN")) return "Captain";
+  if (role.includes("PLAYER")) return "Player";
+  if (managerData?.isAllStarManager) return "Captain";
+
+  return "Player";
+}
+
   function getRole() {
     if (managerData?.isAllStarManager) return "all-star-manager";
     return String(managerData?.role || "player").toLowerCase();
@@ -193,9 +204,7 @@ export default function WaiverScreen() {
 
       <Text style={styles.infoLabel}>Role</Text>
       <Text style={styles.infoValue}>
-        {getRole() === "all-star-manager"
-          ? "All-Star Manager"
-          : "Player"}
+        {getDisplayRole()}
       </Text>
     </View>
   );

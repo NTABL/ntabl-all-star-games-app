@@ -54,6 +54,17 @@ function formatPhone(phone?: string) {
   )}-${digits.substring(6)}`;
 }
 
+function formatDisplayRole(role?: string) {
+  const value = String(role || "").toUpperCase();
+
+  if (value.includes("CO-CAPTAIN")) return "Co-Captain";
+  if (value.includes("CAPTAIN")) return "Captain";
+  if (value.includes("PLAYER")) return "Player";
+  if (value.includes("ALL-STAR-MANAGER")) return "Captain";
+
+  return "Player";
+}
+
 export default function WaiverDivisionScreen() {
   const params = useLocalSearchParams();
   const divisionId = String(params.divisionId || params.division || "");
@@ -216,12 +227,11 @@ return (
         {selectedPerson?.name || "Participant"}
       </Text>
 
-      <Text style={styles.personModalSubTitle}>
-        {selectedPerson?.detailLabel ||
-          selectedPerson?.teamName ||
-          selectedPerson?.role ||
-          ""}
-      </Text>
+<Text style={styles.personModalSubTitle}>
+  {selectedPerson?.teamName ||
+    selectedPerson?.detailLabel ||
+    formatDisplayRole(selectedPerson?.displayRole || selectedPerson?.role)}
+</Text>
 
       <View style={styles.modalInfoBox}>
         <Text style={styles.modalInfoLabel}> Waiver Status</Text>
