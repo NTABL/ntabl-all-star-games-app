@@ -653,7 +653,7 @@ export default function DivisionConfigScreen() {
               <Ionicons
                 name="checkmark-circle"
                 size={42}
-                color="#ffffff"
+                color="#15803d"
                 style={{ marginBottom: 6 }}
               />
 
