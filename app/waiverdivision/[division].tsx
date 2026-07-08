@@ -224,7 +224,7 @@ return (
       </Text>
 
       <View style={styles.modalInfoBox}>
-        <Text style={styles.modalInfoLabel}>Status</Text>
+        <Text style={styles.modalInfoLabel}> Waiver Status</Text>
         <Text
           style={[
             styles.modalInfoValue,

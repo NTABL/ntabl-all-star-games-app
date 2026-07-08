@@ -151,41 +151,55 @@ export default function WaiverScreen() {
   }
 
   function renderParticipantInfo() {
-    return (
-      <View style={styles.infoBox}>
-        <Text style={styles.infoLabel}>Participant</Text>
-        <Text style={styles.infoValue}>{getParticipantName()}</Text>
+  const address = [
+    managerData?.address,
+    [managerData?.city, managerData?.state]
+      .filter(Boolean)
+      .join(", "),
+    managerData?.zip,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
-        <Text style={styles.infoLabel}>Age</Text>
-        <Text style={styles.infoValue}>{managerData?.age || "Not Listed"}</Text>
+  return (
+    <View style={styles.infoBox}>
+      <Text style={styles.infoLabel}>Participant</Text>
+      <Text style={styles.infoValue}>{getParticipantName()}</Text>
 
-        <Text style={styles.infoLabel}>Address</Text>
-        <Text style={styles.infoValue}>
-          {managerData?.address
-            ? `${managerData.address}, ${managerData.city || ""} ${
-                managerData.state || ""
-              } ${managerData.zip || ""}`.trim()
-            : "Not Listed"}
-        </Text>
+      <Text style={styles.infoLabel}>Age</Text>
+      <Text style={styles.infoValue}>
+        {managerData?.age || "Not Listed"}
+      </Text>
 
-        <Text style={styles.infoLabel}>Phone</Text>
-        <Text style={styles.infoValue}>{formatPhone(managerData?.phone)}</Text>
+      <Text style={styles.infoLabel}>Address</Text>
+      <Text style={styles.infoValue}>
+        {address || "Not Listed"}
+      </Text>
 
-        <Text style={styles.infoLabel}>Team</Text>
-        <Text style={styles.infoValue}>
-          {managerData?.teamName || "Not Listed"}
-        </Text>
+      <Text style={styles.infoLabel}>Phone</Text>
+      <Text style={styles.infoValue}>
+        {formatPhone(managerData?.phone)}
+      </Text>
 
-        <Text style={styles.infoLabel}>Division</Text>
-        <Text style={styles.infoValue}>
-          {managerData?.divisionName || managerData?.division || "Not Listed"}
-        </Text>
+      <Text style={styles.infoLabel}>Team</Text>
+      <Text style={styles.infoValue}>
+        {managerData?.teamName || "Not Listed"}
+      </Text>
 
-        <Text style={styles.infoLabel}>Role</Text>
-        <Text style={styles.infoValue}>{getRole()}</Text>
-      </View>
-    );
-  }
+      <Text style={styles.infoLabel}>Division</Text>
+      <Text style={styles.infoValue}>
+        {managerData?.divisionName || managerData?.division || "Not Listed"}
+      </Text>
+
+      <Text style={styles.infoLabel}>Role</Text>
+      <Text style={styles.infoValue}>
+        {getRole() === "all-star-manager"
+          ? "All-Star Manager"
+          : "Player"}
+      </Text>
+    </View>
+  );
+}
 
   async function signWaiver() {
     if (!agreementAccepted) {
