@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { adminFetch, API_BASE } from "../../utils/appconfig";
+import { modalStyles } from "../../utils/modalStyles";
 
 type Squad = "East" | "West";
 
@@ -47,7 +49,7 @@ export default function WaiverDivisionScreen() {
   const [loading, setLoading] = useState(true);
   const [divisionData, setDivisionData] = useState<any>(null);
   const [config, setConfig] = useState<any>(null);
-
+  const [selectedPerson, setSelectedPerson] = useState<any>(null);
   const { width } = useWindowDimensions();
   const isWideScreen = width >= 900;
 
@@ -82,7 +84,10 @@ export default function WaiverDivisionScreen() {
     if (!person) return null;
 
     return (
-      <View style={styles.personRow}>
+  <Pressable
+    style={styles.personRow}
+    onPress={() => setSelectedPerson({ ...person, detailLabel: label })}
+  >
         <View style={[styles.statusDot, { backgroundColor: person.signed ? "#15803d" : "#c62828" }]} />
 
         <View style={styles.personTextBlock}>
@@ -93,7 +98,7 @@ export default function WaiverDivisionScreen() {
         <View style={[styles.statusPill, { backgroundColor: person.signed ? "#15803d" : "#c62828" }]}>
           <Text style={styles.statusPillText}>{person.signed ? "Complete" : "Missing"}</Text>
         </View>
-      </View>
+      </Pressable>
     );
   }
 
@@ -178,6 +183,85 @@ export default function WaiverDivisionScreen() {
           <Text style={styles.versionFooter}>NTABL All-Star App • Version 1.0</Text>
         </ScrollView>
       </View>
+      <Modal
+  visible={!!selectedPerson}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setSelectedPerson(null)}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.personModalCard}>
+      <Ionicons
+        name={selectedPerson?.signed ? "checkmark-circle" : "close-circle"}
+        size={54}
+        color={selectedPerson?.signed ? "#15803d" : "#c62828"}
+        style={{ marginBottom: 10 }}
+      />
+
+      <Text style={styles.personModalTitle}>
+        {selectedPerson?.name || "Participant"}
+      </Text>
+
+      <Text style={styles.personModalSubTitle}>
+        {selectedPerson?.detailLabel ||
+          selectedPerson?.teamName ||
+          selectedPerson?.role ||
+          ""}
+      </Text>
+
+      <View style={styles.modalInfoBox}>
+        <Text style={styles.modalInfoLabel}>Status</Text>
+        <Text
+          style={[
+            styles.modalInfoValue,
+            { color: selectedPerson?.signed ? "#15803d" : "#c62828" },
+          ]}
+        >
+          {selectedPerson?.signed ? "Complete" : "Missing"}
+        </Text>
+
+        <Text style={styles.modalInfoLabel}>Email</Text>
+        <Text style={styles.modalInfoValue}>
+          {selectedPerson?.email || "Not Listed"}
+        </Text>
+
+        <Text style={styles.modalInfoLabel}>Phone</Text>
+        <Text style={styles.modalInfoValue}>
+          {selectedPerson?.phone || "Not Listed"}
+        </Text>
+
+        <Text style={styles.modalInfoLabel}>Address</Text>
+        <Text style={styles.modalInfoValue}>
+          {selectedPerson?.address
+            ? `${selectedPerson.address}, ${selectedPerson.city || ""} ${
+                selectedPerson.state || ""
+              } ${selectedPerson.zip || ""}`.trim()
+            : "Not Listed"}
+        </Text>
+
+        <Text style={styles.modalInfoLabel}>Waiver Version</Text>
+        <Text style={styles.modalInfoValue}>
+          {config?.waiverVersion || "Not Listed"}
+        </Text>
+      </View>
+
+      <Pressable
+        style={styles.closeButton}
+        onPress={() => setSelectedPerson(null)}
+      >
+        <View style={styles.buttonContentRow}>
+          <Ionicons
+            name="close-circle-outline"
+            size={20}
+            color="#ffffff"
+            style={{ marginRight: 6 }}
+          />
+          <Text style={styles.closeButtonText}>Close</Text>
+        </View>
+      </Pressable>
+    </View>
+  </View>
+</Modal>
     </>
   );
 }
@@ -264,4 +348,68 @@ const styles = StyleSheet.create({
   statusPillText: { color: "#ffffff", fontSize: 11, fontWeight: "900" },
   emptyText: { color: "#6b7280", fontSize: 14, fontWeight: "800", textAlign: "center", paddingVertical: 8 },
   versionFooter: { color: "#6b7280", fontSize: 12, fontWeight: "700", textAlign: "center", marginTop: 22, marginBottom: 8 },
+
+  modalOverlay: {
+  ...modalStyles.overlay,
+},
+
+personModalCard: {
+  ...modalStyles.card,
+  alignItems: "center",
+},
+
+personModalTitle: {
+  fontSize: 24,
+  fontWeight: "900",
+  color: "#1f4e9e",
+  textAlign: "center",
+},
+
+personModalSubTitle: {
+  fontSize: 15,
+  fontWeight: "800",
+  color: "#6b7280",
+  textAlign: "center",
+  marginTop: 4,
+  marginBottom: 14,
+},
+
+modalInfoBox: {
+  width: "100%",
+  backgroundColor: "#f8fafc",
+  borderRadius: 14,
+  padding: 14,
+  marginTop: 8,
+},
+
+modalInfoLabel: {
+  color: "#6b7280",
+  fontSize: 12,
+  fontWeight: "900",
+  textTransform: "uppercase",
+  marginTop: 8,
+},
+
+modalInfoValue: {
+  color: "#111827",
+  fontSize: 15,
+  fontWeight: "800",
+  marginTop: 2,
+},
+
+closeButton: {
+  backgroundColor: "#1d4ed8",
+  borderRadius: 12,
+  paddingVertical: 12,
+  paddingHorizontal: 20,
+  marginTop: 16,
+  width: "100%",
+  alignItems: "center",
+},
+
+closeButtonText: {
+  color: "#ffffff",
+  fontSize: 16,
+  fontWeight: "900",
+},
 });
