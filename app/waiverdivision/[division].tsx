@@ -244,7 +244,51 @@ export default function WaiverDivisionScreen() {
           {config?.waiverVersion || "Not Listed"}
         </Text>
       </View>
+<View style={styles.modalButtonRow}>
+  <Pressable
+    style={styles.secondaryButton}
+onPress={() =>
+  router.push({
+    pathname: "/waiver",
+    params: {
+      participantId: selectedPerson?.id,
+      readonly: "true",
+    },
+  })
+}
+  >
+    <View style={styles.buttonContentRow}>
+      <Ionicons
+        name="document-text-outline"
+        size={20}
+        color="#ffffff"
+        style={{ marginRight: 6 }}
+      />
+      <Text style={styles.secondaryButtonText}>
+        View Waiver
+      </Text>
+    </View>
+  </Pressable>
 
+  <Pressable
+    style={styles.secondaryButton}
+    onPress={() => {
+      // Placeholder
+    }}
+  >
+    <View style={styles.buttonContentRow}>
+      <Ionicons
+        name="print-outline"
+        size={20}
+        color="#ffffff"
+        style={{ marginRight: 6 }}
+      />
+      <Text style={styles.secondaryButtonText}>
+        Print Waiver
+      </Text>
+    </View>
+  </Pressable>
+</View>
       <Pressable
         style={styles.closeButton}
         onPress={() => setSelectedPerson(null)}
@@ -408,6 +452,25 @@ closeButton: {
 },
 
 closeButtonText: {
+  color: "#ffffff",
+  fontSize: 16,
+  fontWeight: "900",
+},
+
+modalButtonRow: {
+  width: "100%",
+  marginTop: 16,
+},
+
+secondaryButton: {
+  backgroundColor: "#15803d",
+  borderRadius: 12,
+  paddingVertical: 12,
+  marginBottom: 10,
+  alignItems: "center",
+},
+
+secondaryButtonText: {
   color: "#ffffff",
   fontSize: 16,
   fontWeight: "900",

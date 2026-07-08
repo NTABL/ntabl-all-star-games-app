@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Stack } from "expo-router";
+import { Stack, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Image,
@@ -18,7 +18,15 @@ import { API_BASE } from "../utils/appconfig";
 import { modalStyles } from "../utils/modalStyles";
 
 type MessageType = "success" | "error" | "warning";
+const {
+  participantId,
+  readonly,
+} = useLocalSearchParams<{
+  participantId?: string;
+  readonly?: string;
+}>();
 
+const isReadOnly = readonly === "true";
 export default function WaiverScreen() {
   const [agreementAccepted, setAgreementAccepted] = useState(false);
   const [typedSignature, setTypedSignature] = useState("");
