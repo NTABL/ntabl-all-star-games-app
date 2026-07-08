@@ -175,7 +175,7 @@ return (
 
           {loading ? (
             <View style={styles.loadingCard}>
-              <ActivityIndicator size="large" color="#660000" />
+              <ActivityIndicator size="large" color="#1f4e9e" />
               <Text style={styles.loadingText}>Loading waiver status...</Text>
             </View>
           ) : !divisionData ? (

@@ -312,7 +312,7 @@ function getRole() {
       </Text>
     </View>
   </>
-) : isReadOnly ? (
+) : (
   <>
                 <View style={styles.infoBox}>
                   <Text style={styles.infoLabel}>Participant</Text>
@@ -373,18 +373,18 @@ function getRole() {
                     affiliated organizations and sign it of my own free will.
                   </Text>
                 </View>
-<View style={styles.readOnlyNotice}>
-  <Ionicons
-    name="eye-outline"
-    size={22}
-    color="#1d4ed8"
-    style={{ marginRight: 8 }}
-  />
-  <Text style={styles.readOnlyNoticeText}>
-    Admin Read-Only View. This waiver has not been completed yet.
-  </Text>
-</View>
-</>
+{isReadOnly ? (
+  <View style={styles.readOnlyNotice}>
+    <Ionicons
+      name="eye-outline"
+      size={22}
+      color="#1d4ed8"
+      style={{ marginRight: 8 }}
+    />
+    <Text style={styles.readOnlyNoticeText}>
+      Admin Read-Only View. This waiver has not been completed yet.
+    </Text>
+  </View>
 ) : (
   <>
                 <Pressable
@@ -437,8 +437,10 @@ function getRole() {
                     </Text>
                   </View>
                 </Pressable>
-              </>
+                            </>
             )}
+          </>
+        )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
