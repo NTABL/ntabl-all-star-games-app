@@ -247,15 +247,17 @@ export default function WaiverDivisionScreen() {
 <View style={styles.modalButtonRow}>
   <Pressable
     style={styles.secondaryButton}
-onPress={() =>
+onPress={() => {
+  setSelectedPerson(null);
+
   router.push({
     pathname: "/waiver",
     params: {
       participantId: selectedPerson?.id,
       readonly: "true",
     },
-  })
-}
+  });
+}}
   >
     <View style={styles.buttonContentRow}>
       <Ionicons
