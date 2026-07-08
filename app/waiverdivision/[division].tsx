@@ -41,6 +41,19 @@ function renderGameLogo(divisionId: string) {
   return null;
 }
 
+function formatPhone(phone?: string) {
+  if (!phone) return "Not Listed";
+
+  const digits = phone.replace(/\D/g, "").replace(/^1/, "");
+
+  if (digits.length !== 10) return phone;
+
+  return `(${digits.substring(0, 3)}) ${digits.substring(
+    3,
+    6
+  )}-${digits.substring(6)}`;
+}
+
 export default function WaiverDivisionScreen() {
   const params = useLocalSearchParams();
   const divisionId = String(params.divisionId || params.division || "");
@@ -227,9 +240,9 @@ return (
         </Text>
 
         <Text style={styles.modalInfoLabel}>Phone</Text>
-        <Text style={styles.modalInfoValue}>
-          {selectedPerson?.phone || "Not Listed"}
-        </Text>
+<Text style={styles.modalInfoValue}>
+  {formatPhone(selectedPerson?.phone)}
+</Text>
 
         <Text style={styles.modalInfoLabel}>Address</Text>
         <Text style={styles.modalInfoValue}>
