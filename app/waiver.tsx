@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 import { getManagerContext } from "../stores/store";
-import { API_BASE } from "../utils/appconfig";
+import { adminFetch, API_BASE } from "../utils/appconfig";
 import { modalStyles } from "../utils/modalStyles";
 
 type MessageType = "success" | "error" | "warning";
@@ -45,8 +45,24 @@ const {
 const isReadOnly = readonly === "true";
 async function loadWaiverScreen() {
   try {
-    const manager = await getManagerContext();
-    setManagerData(manager);
+const manager = await getManagerContext();
+
+if (isReadOnly && participantId) {
+const participantResponse = await adminFetch(
+  `${API_BASE}/api/admin/waivers/person/${encodeURIComponent(participantId)}`
+);
+
+  const participantData = await participantResponse.json();
+
+  if (participantResponse.ok && participantData?.ok) {
+    setManagerData(participantData.participant);
+    setWaiverConfig(participantData.config || null);
+    setSignedAt(participantData.waiver?.signedAt || null);
+    return;
+  }
+}
+
+setManagerData(manager);
 
     const response = await fetch(`${API_BASE}/api/waivers/config`);
     const data = await response.json();

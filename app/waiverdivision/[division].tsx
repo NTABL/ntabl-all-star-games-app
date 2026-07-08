@@ -83,8 +83,9 @@ export default function WaiverDivisionScreen() {
   function renderPerson(person: any, label?: string) {
     if (!person) return null;
 
-    return (
+return (
   <Pressable
+    key={`${person.role || "person"}-${person.id || person.email || person.name}`}
     style={styles.personRow}
     onPress={() => setSelectedPerson({ ...person, detailLabel: label })}
   >
