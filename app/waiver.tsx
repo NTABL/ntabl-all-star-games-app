@@ -293,8 +293,8 @@ function getRole() {
       </Text>
     </View>
   </>
-) : (
-              <>
+) : isReadOnly ? (
+  <>
                 <View style={styles.infoBox}>
                   <Text style={styles.infoLabel}>Participant</Text>
                   <Text style={styles.infoValue}>{getParticipantName()}</Text>
@@ -354,7 +354,20 @@ function getRole() {
                     affiliated organizations and sign it of my own free will.
                   </Text>
                 </View>
-
+<View style={styles.readOnlyNotice}>
+  <Ionicons
+    name="eye-outline"
+    size={22}
+    color="#1d4ed8"
+    style={{ marginRight: 8 }}
+  />
+  <Text style={styles.readOnlyNoticeText}>
+    Admin Read-Only View. This waiver has not been completed yet.
+  </Text>
+</View>
+</>
+) : (
+  <>
                 <Pressable
                   style={styles.checkRow}
                   onPress={() => setAgreementAccepted((current) => !current)}
@@ -767,5 +780,22 @@ backButtonText: {
   color: "#ffffff",
   fontSize: 14,
   fontWeight: "800",
+},
+
+readOnlyNotice: {
+  flexDirection: "row",
+  alignItems: "center",
+  backgroundColor: "#dbeafe",
+  borderRadius: 12,
+  paddingVertical: 12,
+  paddingHorizontal: 12,
+  marginTop: 4,
+},
+
+readOnlyNoticeText: {
+  flex: 1,
+  color: "#1d4ed8",
+  fontSize: 14,
+  fontWeight: "900",
 },
 });
