@@ -137,7 +137,7 @@ export default function WaiverManagementScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.configTitle}>Waiver Configuration</Text>
                 <Text style={styles.configSubtitle}>
-                  Year, version, host, and venue settings
+                  Year, Version, Host, and Venue Settings
                 </Text>
               </View>
 

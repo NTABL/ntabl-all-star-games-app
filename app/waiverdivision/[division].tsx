@@ -148,7 +148,7 @@ return (
           {group.manager ? renderPerson(group.manager, "All-Star Manager") : <Text style={styles.emptyText}>No manager assigned.</Text>}
 
           <Text style={styles.sectionLabel}>Selected Players</Text>
-          {group.players.length ? group.players.map((player: any) => renderPerson(player)) : <Text style={styles.emptyText}>No selected players found.</Text>}
+          {group.players.length ? group.players.map((player: any) => renderPerson(player)) : <Text style={styles.emptyText}>No Selected Players Found.</Text>}
         </View>
       </View>
     );
@@ -191,7 +191,7 @@ return (
             </View>
           ) : !divisionData ? (
             <View style={styles.loadingCard}>
-              <Text style={styles.emptyText}>No waiver data found for this division.</Text>
+              <Text style={styles.emptyText}>No Waiver Data Found for This Division.</Text>
             </View>
           ) : (
             <View style={[styles.squadBoard, isWideScreen && styles.squadBoardWide]}>
@@ -234,42 +234,44 @@ return (
 </Text>
 
       <View style={styles.modalInfoBox}>
-        <Text style={styles.modalInfoLabel}> Waiver Status</Text>
-        <Text
-          style={[
-            styles.modalInfoValue,
-            { color: selectedPerson?.signed ? "#15803d" : "#c62828" },
-          ]}
-        >
-          {selectedPerson?.signed ? "Complete" : "Missing"}
-        </Text>
-
-        <Text style={styles.modalInfoLabel}>Email</Text>
-        <Text style={styles.modalInfoValue}>
-          {selectedPerson?.email || "Not Listed"}
-        </Text>
-
-        <Text style={styles.modalInfoLabel}>Phone</Text>
-<Text style={styles.modalInfoValue}>
-  {formatPhone(selectedPerson?.phone)}
+<Text style={styles.modalInfoLabel}>Waiver Status</Text>
+<Text
+  style={[
+    styles.modalInfoValue,
+    { color: selectedPerson?.signed ? "#15803d" : "#c62828" },
+  ]}
+>
+  {selectedPerson?.signed ? "Complete" : "Missing"}
 </Text>
+
 <Text style={styles.modalInfoLabel}>Age</Text>
 <Text style={styles.modalInfoValue}>
   {selectedPerson?.age || "Not Listed"}
 </Text>
-        <Text style={styles.modalInfoLabel}>Address</Text>
-        <Text style={styles.modalInfoValue}>
-          {selectedPerson?.address
-            ? `${selectedPerson.address}, ${selectedPerson.city || ""} ${
-                selectedPerson.state || ""
-              } ${selectedPerson.zip || ""}`.trim()
-            : "Not Listed"}
-        </Text>
 
-        <Text style={styles.modalInfoLabel}>Waiver Version</Text>
-        <Text style={styles.modalInfoValue}>
-          {config?.waiverVersion || "Not Listed"}
-        </Text>
+<Text style={styles.modalInfoLabel}>Address</Text>
+<Text style={styles.modalInfoValue}>
+  {selectedPerson?.address
+    ? `${selectedPerson.address}, ${selectedPerson.city || ""} ${
+        selectedPerson.state || ""
+      } ${selectedPerson.zip || ""}`.trim()
+    : "Not Listed"}
+</Text>
+
+<Text style={styles.modalInfoLabel}>Phone</Text>
+<Text style={styles.modalInfoValue}>
+  {formatPhone(selectedPerson?.phone)}
+</Text>
+
+<Text style={styles.modalInfoLabel}>Email</Text>
+<Text style={styles.modalInfoValue}>
+  {selectedPerson?.email || "Not Listed"}
+</Text>
+
+<Text style={styles.modalInfoLabel}>Waiver Version</Text>
+<Text style={styles.modalInfoValue}>
+  {config?.waiverVersion || "Not Listed"}
+</Text>
       </View>
 <View style={styles.modalButtonRow}>
   <Pressable
