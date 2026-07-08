@@ -158,7 +158,7 @@ return (
       <View style={styles.screen}>
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.headerRow}>
-            <Pressable style={styles.backButton} onPress={() => router.back()}>
+            <Pressable style={styles.backButton} onPress={() => router.replace("/waivermanagement")}>
               <View style={styles.buttonContentRow}>
                 <Ionicons name="chevron-back-outline" size={16} color="#ffffff" style={{ marginRight: 3 }} />
                 <Text style={styles.backButtonText}>Back</Text>
@@ -243,7 +243,10 @@ return (
 <Text style={styles.modalInfoValue}>
   {formatPhone(selectedPerson?.phone)}
 </Text>
-
+<Text style={styles.modalInfoLabel}>Age</Text>
+<Text style={styles.modalInfoValue}>
+  {selectedPerson?.age || "Not Listed"}
+</Text>
         <Text style={styles.modalInfoLabel}>Address</Text>
         <Text style={styles.modalInfoValue}>
           {selectedPerson?.address

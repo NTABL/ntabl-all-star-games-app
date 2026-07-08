@@ -265,7 +265,10 @@ function getRole() {
     <View style={styles.infoBox}>
       <Text style={styles.infoLabel}>Participant</Text>
       <Text style={styles.infoValue}>{getParticipantName()}</Text>
-
+<Text style={styles.infoLabel}>Age</Text>
+<Text style={styles.infoValue}>
+  {managerData?.age || "Not Listed"}
+</Text>
       <Text style={styles.infoLabel}>Team</Text>
       <Text style={styles.infoValue}>
         {managerData?.teamName || "Not Listed"}
