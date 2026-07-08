@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Image,
@@ -18,15 +18,7 @@ import { API_BASE } from "../utils/appconfig";
 import { modalStyles } from "../utils/modalStyles";
 
 type MessageType = "success" | "error" | "warning";
-const {
-  participantId,
-  readonly,
-} = useLocalSearchParams<{
-  participantId?: string;
-  readonly?: string;
-}>();
 
-const isReadOnly = readonly === "true";
 export default function WaiverScreen() {
   const [agreementAccepted, setAgreementAccepted] = useState(false);
   const [typedSignature, setTypedSignature] = useState("");
@@ -42,7 +34,15 @@ export default function WaiverScreen() {
   useEffect(() => {
     loadWaiverScreen();
   }, []);
+const {
+  participantId,
+  readonly,
+} = useLocalSearchParams<{
+  participantId?: string;
+  readonly?: string;
+}>();
 
+const isReadOnly = readonly === "true";
 async function loadWaiverScreen() {
   try {
     const manager = await getManagerContext();
@@ -206,6 +206,17 @@ function getRole() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView contentContainerStyle={styles.content}>
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
+  <View style={styles.buttonContentRow}>
+    <Ionicons
+      name="chevron-back-outline"
+      size={16}
+      color="#ffffff"
+      style={{ marginRight: 3 }}
+    />
+    <Text style={styles.backButtonText}>Back</Text>
+  </View>
+</Pressable>
           <View style={styles.card}>
             <Image
               source={require("../assets/Frisco-RoughRiders-Logo.png")}
@@ -742,4 +753,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "900",
   },
+
+  backButton: {
+  backgroundColor: "#1d4ed8",
+  borderRadius: 9,
+  paddingVertical: 7,
+  paddingHorizontal: 13,
+  alignSelf: "flex-start",
+  marginBottom: 10,
+},
+
+backButtonText: {
+  color: "#ffffff",
+  fontSize: 14,
+  fontWeight: "800",
+},
 });
