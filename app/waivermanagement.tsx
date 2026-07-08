@@ -1,50 +1,49 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
-import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Image,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
-import { adminFetch, API_BASE } from "../utils/appconfig";
+
+type GameOption = {
+  id: string;
+  gameLabel: string;
+  title: string;
+  divisionId: string;
+  logoType: "single" | "dual";
+};
+
+const GAMES: GameOption[] = [
+  { id: "game1", gameLabel: "Game 1", title: "60+ All-Stars", divisionId: "regency", logoType: "single" },
+  { id: "game2", gameLabel: "Game 2", title: "45+ All-Stars", divisionId: "masters", logoType: "single" },
+  { id: "game3", gameLabel: "Game 3", title: "30+ / Rookie Prospects", divisionId: "veterans", logoType: "dual" },
+  { id: "game4", gameLabel: "Game 4", title: "18+ All-Stars", divisionId: "open", logoType: "single" },
+];
+
+function renderGameLogo(game: GameOption) {
+  if (game.divisionId === "regency") return <Image source={require("../assets/RegencyACP.png")} style={styles.divisionLogo} resizeMode="contain" />;
+  if (game.divisionId === "masters") return <Image source={require("../assets/MastersACP.png")} style={styles.divisionLogo} resizeMode="contain" />;
+  if (game.divisionId === "open") return <Image source={require("../assets/OpenACP.png")} style={styles.divisionLogo} resizeMode="contain" />;
+
+  if (game.divisionId === "veterans") {
+    return (
+      <View style={styles.dualLogoRow}>
+        <Image source={require("../assets/VeteransACP.png")} style={styles.dualDivisionLogo} resizeMode="contain" />
+        <Image source={require("../assets/RookieACP.png")} style={styles.dualDivisionLogo} resizeMode="contain" />
+      </View>
+    );
+  }
+
+  return null;
+}
 
 export default function WaiverManagementScreen() {
-  const [loading, setLoading] = useState(true);
-  const [config, setConfig] = useState<any>(null);
-  const [waivers, setWaivers] = useState<any[]>([]);
-  const [divisions, setDivisions] = useState<any[]>([]);
-
-  useEffect(() => {
-    loadWaiverManagement();
-  }, []);
-
-  async function loadWaiverManagement() {
-    try {
-      setLoading(true);
-
-      const configResponse = await fetch(`${API_BASE}/api/waivers/config`);
-      const configJson = await configResponse.json();
-
-      if (configJson?.ok) {
-        setConfig(configJson.config);
-      }
-
-const statusResponse = await adminFetch(`${API_BASE}/api/admin/waivers/status`);
-const statusJson = await statusResponse.json();
-
-if (statusJson?.ok) {
-  setConfig(statusJson.config || configJson.config);
-  setDivisions(Array.isArray(statusJson.divisions) ? statusJson.divisions : []);
-}
-    } catch (e) {
-      console.log("WAIVER MANAGEMENT ERROR:", e);
-    } finally {
-      setLoading(false);
-    }
+  function openGame(game: GameOption) {
+    router.push(`/waiverdivision/${game.divisionId}`);
   }
 
   return (
@@ -52,165 +51,43 @@ if (statusJson?.ok) {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.screen}>
-        <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
           <View style={styles.headerRow}>
-            <Pressable onPress={() => router.replace("/admin")} style={styles.backButton}>
+            <Pressable style={styles.backButton} onPress={() => router.back()}>
               <View style={styles.buttonContentRow}>
-                <Ionicons
-                  name="chevron-back-outline"
-                  size={16}
-                  color="#ffffff"
-                  style={{ marginRight: 3 }}
-                />
+                <Ionicons name="chevron-back-outline" size={16} color="#ffffff" style={{ marginRight: 3 }} />
                 <Text style={styles.backButtonText}>Back</Text>
               </View>
             </Pressable>
           </View>
 
           <View style={styles.heroCard}>
-            <Image
-  source={require("../assets/NTABL-Logo.png")}
-  style={styles.logo}
-  resizeMode="contain"
-/>
-
+            <Image source={require("../assets/NTABL-Logo.png")} style={styles.logo} resizeMode="contain" />
             <Text style={styles.title}>Waiver Management</Text>
-
-            <Text style={styles.subtitle}>
-              Manage Event Waiver Configuration and Signed Waiver Records.
-            </Text>
+            <Text style={styles.subtitle}>Select a Game to Review Waiver Status</Text>
           </View>
 
-          {loading ? (
-            <View style={styles.sectionCard}>
-              <ActivityIndicator size="large" color="#660000" />
-              <Text style={styles.loadingText}>Loading waiver data...</Text>
-            </View>
-          ) : (
-            <>
-              <View style={styles.sectionCard}>
-                <Text style={styles.sectionHeader}>Configuration</Text>
-
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Waiver Year</Text>
-                  <Text style={styles.infoValue}>{config?.waiverYear || "Not Set"}</Text>
+          <View style={styles.grid}>
+            {GAMES.map((game) => (
+              <View key={game.id} style={styles.gameTile}>
+                <View style={styles.gameHeader}>
+                  <Text style={styles.gameLabel}>{game.gameLabel}</Text>
+                  <Text style={styles.gameTitle}>{game.title}</Text>
                 </View>
 
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Waiver Version</Text>
-                  <Text style={styles.infoValue}>{config?.waiverVersion || "Not Set"}</Text>
-                </View>
+                <View style={styles.logoBox}>{renderGameLogo(game)}</View>
 
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Host</Text>
-                  <Text style={styles.infoValue}>{config?.hostName || "Not Set"}</Text>
-                </View>
-
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Venue</Text>
-                  <Text style={styles.infoValue}>{config?.venueName || "Not Set"}</Text>
-                </View>
-
-                <View style={styles.statusBadgeRow}>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      {
-                        backgroundColor: config?.active ? "#15803d" : "#c62828",
-                      },
-                    ]}
-                  >
-                    <Text style={styles.statusBadgeText}>
-                      {config?.active ? "Active" : "Inactive"}
-                    </Text>
+                <Pressable style={styles.selectButton} onPress={() => openGame(game)}>
+                  <View style={styles.buttonContentRow}>
+                    <Ionicons name="document-text-outline" size={18} color="#ffffff" style={{ marginRight: 6 }} />
+                    <Text style={styles.selectButtonText}>Review</Text>
                   </View>
-                </View>
-              </View>
-
-<View style={styles.sectionCard}>
-  <Text style={styles.sectionHeader}>Participant Status</Text>
-
-  {divisions.map((division) => (
-    <View key={division.divisionId} style={styles.divisionCard}>
-      <Text style={styles.divisionTitle}>
-        {division.divisionName}
-      </Text>
-
-      {["East", "West"].map((squad) => {
-        const group = division.squads[squad];
-
-        return (
-          <View key={squad} style={styles.squadCard}>
-            <Text style={styles.squadTitle}>
-              {squad} All-Stars
-            </Text>
-
-            {group.manager && (
-              <View style={styles.personRow}>
-                <Ionicons
-                  name={
-                    group.manager.signed
-                      ? "checkmark-circle"
-                      : "close-circle"
-                  }
-                  size={22}
-                  color={
-                    group.manager.signed
-                      ? "#15803d"
-                      : "#c62828"
-                  }
-                />
-
-                <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text style={styles.personName}>
-                    {group.manager.name}
-                  </Text>
-
-                  <Text style={styles.personRole}>
-                    All-Star Manager
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {group.players.map((player: any) => (
-              <View
-                key={player.id}
-                style={styles.personRow}
-              >
-                <Ionicons
-                  name={
-                    player.signed
-                      ? "checkmark-circle"
-                      : "close-circle"
-                  }
-                  size={22}
-                  color={
-                    player.signed
-                      ? "#15803d"
-                      : "#c62828"
-                  }
-                />
-
-                <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text style={styles.personName}>
-                    {player.name}
-                  </Text>
-
-                  <Text style={styles.personRole}>
-                    {player.teamName}
-                  </Text>
-                </View>
+                </Pressable>
               </View>
             ))}
           </View>
-        );
-      })}
-    </View>
-  ))}
-</View>
-            </>
-          )}
+
+          <Text style={styles.versionFooter}>NTABL All-Star App • Version 1.0</Text>
         </ScrollView>
       </View>
     </>
@@ -245,25 +122,28 @@ const styles = StyleSheet.create({
 
   backButtonText: {
     color: "#ffffff",
-    fontWeight: "800",
     fontSize: 14,
+    fontWeight: "800",
   },
 
   heroCard: {
     backgroundColor: "#ffffff",
     borderRadius: 20,
-    paddingVertical: 22,
+    paddingVertical: 20,
     paddingHorizontal: 20,
-    marginBottom: 18,
-    alignItems: "center",
+    marginBottom: 20,
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 10,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     elevation: 6,
+  },
+
+  logo: {
+    width: 150,
+    height: 150,
+    alignSelf: "center",
+    marginBottom: 8,
   },
 
   title: {
@@ -281,125 +161,90 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  sectionCard: {
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+
+  gameTile: {
+    width: "48%",
     backgroundColor: "#ffffff",
     borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
+    marginBottom: 18,
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 10,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
 
-  sectionHeader: {
-    fontSize: 20,
-    fontWeight: "900",
-    color: "#1f4e9e",
-    marginBottom: 14,
-    textAlign: "center",
-  },
-
-  loadingText: {
-    color: "#6b7280",
-    fontSize: 15,
-    fontWeight: "800",
-    textAlign: "center",
-    marginTop: 10,
-  },
-
-  infoRow: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+  gameHeader: {
+    backgroundColor: "#660000",
     paddingVertical: 10,
+    paddingHorizontal: 8,
   },
 
-  infoLabel: {
-    color: "#6b7280",
-    fontSize: 13,
-    fontWeight: "800",
-    textTransform: "uppercase",
-  },
-
-  infoValue: {
-    color: "#111827",
-    fontSize: 16,
+  gameLabel: {
+    color: "#ffffff",
+    fontSize: 18,
     fontWeight: "900",
-    marginTop: 3,
+    textAlign: "center",
   },
 
-  statusBadgeRow: {
+  gameTitle: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "800",
+    textAlign: "center",
+    marginTop: 2,
+    minHeight: 32,
+  },
+
+  logoBox: {
+    height: 92,
     alignItems: "center",
-    marginTop: 14,
+    justifyContent: "center",
+    paddingHorizontal: 8,
+    paddingTop: 8,
   },
 
-  statusBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 7,
-    borderRadius: 999,
+  divisionLogo: {
+    width: 112,
+    height: 76,
   },
 
-  statusBadgeText: {
+  dualLogoRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  dualDivisionLogo: {
+    width: 68,
+    height: 58,
+    marginHorizontal: 3,
+  },
+
+  selectButton: {
+    backgroundColor: "#15803d",
+    borderRadius: 12,
+    paddingVertical: 12,
+    marginHorizontal: 12,
+    marginBottom: 14,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 5,
+  },
+
+  selectButtonText: {
     color: "#ffffff",
     fontSize: 14,
     fontWeight: "900",
-  },
-
-  bigCount: {
-    fontSize: 48,
-    fontWeight: "900",
-    color: "#660000",
-    textAlign: "center",
-  },
-
-  countLabel: {
-    color: "#6b7280",
-    fontSize: 14,
-    fontWeight: "800",
-    textAlign: "center",
-    marginBottom: 12,
-  },
-
-  emptyText: {
-    color: "#6b7280",
-    fontSize: 15,
-    fontWeight: "700",
-    textAlign: "center",
-    lineHeight: 21,
-    marginTop: 8,
-  },
-
-  waiverRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderTopWidth: 1,
-    borderTopColor: "#e5e7eb",
-    paddingVertical: 12,
-  },
-
-  waiverName: {
-    fontSize: 16,
-    fontWeight: "900",
-    color: "#111827",
-  },
-
-  waiverMeta: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#4b5563",
-    marginTop: 2,
-    textTransform: "capitalize",
-  },
-
-  waiverDate: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#6b7280",
-    marginTop: 2,
   },
 
   buttonContentRow: {
@@ -408,59 +253,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  logo: {
-  width: 150,
-  height: 150,
-  alignSelf: "center",
-  marginBottom: 8,
-},
-
-divisionCard: {
-  backgroundColor: "#eef4fb",
-  borderRadius: 14,
-  padding: 14,
-  marginBottom: 16,
-},
-
-divisionTitle: {
-  fontSize: 18,
-  fontWeight: "900",
-  color: "#1f4e9e",
-  marginBottom: 12,
-  textAlign: "center",
-},
-
-squadCard: {
-  backgroundColor: "#ffffff",
-  borderRadius: 12,
-  padding: 12,
-  marginBottom: 12,
-},
-
-squadTitle: {
-  fontSize: 16,
-  fontWeight: "900",
-  color: "#660000",
-  marginBottom: 10,
-},
-
-personRow: {
-  flexDirection: "row",
-  alignItems: "center",
-  paddingVertical: 8,
-  borderBottomWidth: 1,
-  borderBottomColor: "#eeeeee",
-},
-
-personName: {
-  fontSize: 15,
-  fontWeight: "800",
-  color: "#111827",
-},
-
-personRole: {
-  fontSize: 12,
-  fontWeight: "700",
-  color: "#6b7280",
-},
+  versionFooter: {
+    color: "#6b7280",
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "center",
+    marginTop: 20,
+  },
 });
