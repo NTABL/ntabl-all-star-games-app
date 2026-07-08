@@ -269,6 +269,24 @@ function getRole() {
 <Text style={styles.infoValue}>
   {managerData?.age || "Not Listed"}
 </Text>
+<Text style={styles.infoLabel}>Age</Text>
+<Text style={styles.infoValue}>
+  {managerData?.age || "Not Listed"}
+</Text>
+
+<Text style={styles.infoLabel}>Address</Text>
+<Text style={styles.infoValue}>
+  {managerData?.address
+    ? `${managerData.address}, ${managerData.city || ""} ${
+        managerData.state || ""
+      } ${managerData.zip || ""}`.trim()
+    : "Not Listed"}
+</Text>
+
+<Text style={styles.infoLabel}>Phone</Text>
+<Text style={styles.infoValue}>
+  {managerData?.phone || "Not Listed"}
+</Text>
       <Text style={styles.infoLabel}>Team</Text>
       <Text style={styles.infoValue}>
         {managerData?.teamName || "Not Listed"}
@@ -315,10 +333,15 @@ function getRole() {
 ) : (
   <>
                 <View style={styles.infoBox}>
-                  <Text style={styles.infoLabel}>Participant</Text>
-                  <Text style={styles.infoValue}>{getParticipantName()}</Text>
+<Text style={styles.infoLabel}>Participant</Text>
+<Text style={styles.infoValue}>{getParticipantName()}</Text>
 
-                  <Text style={styles.infoLabel}>Team</Text>
+<Text style={styles.infoLabel}>Age</Text>
+<Text style={styles.infoValue}>
+  {managerData?.age || "Not Listed"}
+</Text>
+
+<Text style={styles.infoLabel}>Team</Text>
                   <Text style={styles.infoValue}>
                     {managerData?.teamName || "Not Listed"}
                   </Text>
