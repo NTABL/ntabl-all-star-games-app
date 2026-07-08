@@ -140,7 +140,16 @@ return (
       <View style={styles.squadCard}>
         <View style={[styles.squadHeader, squad === "East" ? styles.eastHeader : styles.westHeader]}>
           <Text style={styles.squadHeaderText}>{squad} All-Stars</Text>
-          <Text style={styles.squadHeaderSubText}>{signedCount} / {totalCount} Complete</Text>
+          <View
+  style={[
+    styles.completeBadge,
+    totalCount > 0 && signedCount === totalCount && styles.completeBadgeDone,
+  ]}
+>
+  <Text style={styles.completeBadgeText}>
+    {signedCount} / {totalCount} Complete
+  </Text>
+</View>
         </View>
 
         <View style={styles.squadContent}>
@@ -505,5 +514,27 @@ secondaryButtonText: {
   color: "#ffffff",
   fontSize: 16,
   fontWeight: "900",
+},
+
+completeBadge: {
+  alignSelf: "center",
+  backgroundColor: "rgba(255,255,255,0.22)",
+  borderRadius: 999,
+  paddingVertical: 5,
+  paddingHorizontal: 12,
+  marginTop: 6,
+},
+
+completeBadgeDone: {
+  backgroundColor: "#15803d",
+  borderWidth: 2,
+  borderColor: "#ffffff",
+},
+
+completeBadgeText: {
+  color: "#ffffff",
+  fontSize: 13,
+  fontWeight: "900",
+  textAlign: "center",
 },
 });
