@@ -1245,21 +1245,20 @@ modalCard: {
     zIndex: 99999,
   },
 
-  saveToast: {
-    backgroundColor: "#15803d",
-    borderRadius: 20,
-    paddingVertical: 22,
-    paddingHorizontal: 34,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 10,
-  },
+saveToast: {
+  ...modalStyles.card,
+  backgroundColor: "#ffffff",
+  alignItems: "center",
+  justifyContent: "center",
+  elevation: 12,
+},
 
-  saveToastText: {
-    color: "#ffffff",
-    fontSize: 26,
-    fontWeight: "900",
-  },
+saveToastText: {
+  color: "#15803d",
+  fontSize: 26,
+  fontWeight: "900",
+  textAlign: "center",
+},
 
   versionFooter: {
     color: "#6b7280",
