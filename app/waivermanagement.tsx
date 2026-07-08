@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   },
 
   gameHeader: {
-    backgroundColor: "#660000",
+    backgroundColor: "#1d4ed8",
     paddingVertical: 10,
     paddingHorizontal: 8,
   },
