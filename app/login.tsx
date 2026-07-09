@@ -45,6 +45,7 @@ export default function Login() {
   const [helpMessage, setHelpMessage] = useState("");
   const [helpEmail, setHelpEmail] = useState("");
   const [helpSending, setHelpSending] = useState(false);
+
   const { width, height } = useWindowDimensions();
   const isTabletLayout = width >= 700;
   const isShortScreen = height < 760;

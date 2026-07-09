@@ -135,7 +135,25 @@ export default function AdminScreen() {
               Manage app data, manager access, divisions, and announcer settings.
             </Text>
           </View>
+<View style={styles.sectionCard}>
+  <Text style={styles.sectionHeader}>System Diagnostics</Text>
 
+  <TouchableOpacity
+    style={styles.diagnosticsButton}
+    onPress={() => router.push("/diagnostics")}
+  >
+    <View style={styles.buttonContentRow}>
+      <Ionicons
+        name="pulse-outline"
+        size={22}
+        color="#ffffff"
+        style={{ marginRight: 8 }}
+      />
+
+      <Text style={styles.buttonText}>Open Diagnostics</Text>
+    </View>
+  </TouchableOpacity>
+</View>
           <View style={styles.sectionCard}>
             <Text style={styles.sectionHeader}>Refresh Back End Data</Text>
 
@@ -621,6 +639,15 @@ saveToast: {
 
 waiverManagementButton: {
   backgroundColor: "#660000",
+  borderRadius: 12,
+  paddingVertical: 16,
+  paddingHorizontal: 18,
+  alignItems: "center",
+  justifyContent: "center",
+},
+
+diagnosticsButton: {
+  backgroundColor: "#1f4e9e",
   borderRadius: 12,
   paddingVertical: 16,
   paddingHorizontal: 18,
