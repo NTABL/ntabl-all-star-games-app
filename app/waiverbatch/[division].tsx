@@ -205,14 +205,30 @@ function exportCsvReport() {
   URL.revokeObjectURL(url);
 }
 
-function printPage() {
+async function printPage() {
   if (Platform.OS !== "web" || typeof window === "undefined") return;
 
-  const url = `${API_BASE}/api/admin/waivers/batch/${encodeURIComponent(
-    divisionId
-  )}/print`;
+  const response = await adminFetch(
+    `${API_BASE}/api/admin/waivers/batch/${encodeURIComponent(
+      divisionId
+    )}/print`
+  );
+
+  const html = await response.text();
+
+  if (!response.ok) {
+    window.alert("Batch print page could not be loaded.");
+    return;
+  }
+
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
 
   window.open(url, "_blank", "noopener,noreferrer");
+
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 60000);
 }
 
   function openSingleWaiver(waiver: WaiverRecord) {
