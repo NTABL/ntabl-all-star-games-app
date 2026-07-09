@@ -19,6 +19,8 @@ import { modalStyles } from "../utils/modalStyles";
 type ManagerData = {
   role?: string;
   isAllStarManager?: boolean;
+  isSelectedAllStar?: boolean;
+  selectedAllStarIds?: string[];
   email?: string;
   managerEmail?: string;
   managerName?: string;
@@ -120,6 +122,8 @@ export default function Dashboard() {
   const isShortScreen = height < 760;
   const isPlayer =
     String(managerData?.role || "").trim().toLowerCase() === "player";
+  const shouldShowWaiver =
+    !!managerData?.isAllStarManager || !!managerData?.isSelectedAllStar;
   const isShawn =
     String(managerData?.email || managerData?.managerEmail || "")
       .trim()
@@ -169,13 +173,13 @@ async function checkWaiverStatus(manager: any) {
 
     setWaiverSigned(false);
 
-    if (manager?.isAllStarManager || manager?.role === "player") {
+    if (manager?.isAllStarManager || manager?.isSelectedAllStar) {
       setShowWaiverPrompt(true);
     }
 } catch (e) {
   console.log(e);
 
-  if (manager?.isAllStarManager || manager?.role === "player") {
+  if (manager?.isAllStarManager || manager?.isSelectedAllStar) {
     setWaiverSigned(false);
     setShowWaiverPrompt(true);
   }
@@ -414,18 +418,24 @@ async function handleLogout() {
 
 <Text style={styles.label}>PLAYER ALL-STAR WAIVER STATUS</Text>
 
-<View
-  style={[
-    styles.statusBadge,
-    {
-      backgroundColor: waiverSigned ? "#15803d" : "#c62828",
-    },
-  ]}
->
-  <Text style={styles.statusBadgeText}>
-    {waiverSigned ? "Complete" : "Incomplete"}
-  </Text>
-</View>
+{shouldShowWaiver && (
+  <>
+    <Text style={styles.label}>PLAYER ALL-STAR WAIVER STATUS</Text>
+
+    <View
+      style={[
+        styles.statusBadge,
+        {
+          backgroundColor: waiverSigned ? "#15803d" : "#c62828",
+        },
+      ]}
+    >
+      <Text style={styles.statusBadgeText}>
+        {waiverSigned ? "Complete" : "Incomplete"}
+      </Text>
+    </View>
+  </>
+)}
 </View>
 
               <View style={styles.teamLogoWrap}>
@@ -496,26 +506,28 @@ async function handleLogout() {
             </View>
           </View>
 
-<Pressable
-  style={[
-    styles.waiverButton,
-    waiverSigned && styles.waiverButtonComplete,
-  ]}
-  onPress={() => router.push("/waiver")}
->
-  <View style={styles.buttonContentRow}>
-    <Ionicons
-      name={waiverSigned ? "checkmark-circle" : "document-text-outline"}
-      size={22}
-      color="#ffffff"
-      style={{ marginRight: 8 }}
-    />
+{shouldShowWaiver && (
+  <Pressable
+    style={[
+      styles.waiverButton,
+      waiverSigned && styles.waiverButtonComplete,
+    ]}
+    onPress={() => router.push("/waiver")}
+  >
+    <View style={styles.buttonContentRow}>
+      <Ionicons
+        name={waiverSigned ? "checkmark-circle" : "document-text-outline"}
+        size={22}
+        color="#ffffff"
+        style={{ marginRight: 8 }}
+      />
 
-    <Text style={styles.waiverButtonText}>
-  {waiverSigned ? "Waiver Completed" : "Complete Waiver"}
-</Text>
-  </View>
-</Pressable>
+      <Text style={styles.waiverButtonText}>
+        {waiverSigned ? "Waiver Completed" : "Complete Waiver"}
+      </Text>
+    </View>
+  </Pressable>
+)}
 
           <Pressable style={styles.primaryButton} onPress={handleOpenSelections}>
             <View style={styles.buttonContentRow}>
