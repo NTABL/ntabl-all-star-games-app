@@ -43,6 +43,7 @@ export default function Login() {
   const [pendingPassword, setPendingPassword] = useState("");
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [helpMessage, setHelpMessage] = useState("");
+  const [helpEmail, setHelpEmail] = useState("");
   const [helpSending, setHelpSending] = useState(false);
   const { width, height } = useWindowDimensions();
   const isTabletLayout = width >= 700;
@@ -132,9 +133,10 @@ export default function Login() {
   }
 
   async function sendHelpRequest() {
+  const cleanEmail = helpEmail.trim();
   const cleanMessage = helpMessage.trim();
 
-  if (!cleanMessage) return;
+  if (!cleanEmail || !cleanMessage) return;
 
   try {
     setHelpSending(true);
@@ -146,7 +148,7 @@ export default function Login() {
       },
       body: JSON.stringify({
         name: "Login Screen User",
-        email: email.trim(),
+        email: cleanEmail,
         role: "Not Logged In",
         team: "",
         division: "",
@@ -159,16 +161,28 @@ export default function Login() {
     const json = await response.json();
 
     if (!response.ok || !json?.ok) {
-      showMessage("error", "Help Request Failed", json?.message || "Help request could not be sent.");
+      showMessage(
+  "error",
+  "Help Request Failed",
+  json?.message || "Help request could not be sent."
+);
       return;
     }
 
     setHelpMessage("");
     setShowHelpModal(false);
-    showMessage("success", "Help Request Sent", "Your message has been sent to NTABL support.");
+    showMessage(
+  "success",
+  "Help Request Sent",
+  "Thank you! Your request has been sent to NTABL Support."
+);
   } catch (e) {
     console.log(e);
-    showMessage("error", "Help Request Failed", "Help request could not be sent.");
+    showMessage(
+  "error",
+  "Help Request Failed",
+  "Help request could not be sent."
+);
   } finally {
     setHelpSending(false);
   }
@@ -467,7 +481,10 @@ export default function Login() {
           </Pressable>
 <Pressable
   style={styles.helpButton}
-  onPress={() => setShowHelpModal(true)}
+  onPress={() => {
+  setHelpEmail(email.trim());
+  setShowHelpModal(true);
+}}
   disabled={loading}
 >
   <View style={styles.buttonContentRow}>
@@ -478,7 +495,7 @@ export default function Login() {
       style={{ marginRight: 8 }}
     />
 
-    <Text style={styles.helpButtonText}>Need Help?</Text>
+    <Text style={styles.helpButtonText}>Need Login Assistance?</Text>
   </View>
 </Pressable>
           <View style={styles.footer}>
@@ -601,7 +618,80 @@ export default function Login() {
           </View>
         </View>
       </Modal>
-      From: {email.trim() || "Not entered yet"}
+      <Modal
+        visible={showHelpModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowHelpModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.messageModal}>
+            <Ionicons
+              name="help-circle-outline"
+              size={54}
+              color="#1d4ed8"
+              style={{ marginBottom: 10 }}
+            />
+
+            <Text style={[styles.messageTitle, styles.choiceText]}>
+              Need Login Assistance?
+            </Text>
+
+            <Text style={styles.helpFieldLabel}>Email Address</Text>
+
+            <TextInput
+              style={styles.helpEmailInput}
+              value={helpEmail}
+              onChangeText={setHelpEmail}
+              placeholder="Enter your email address"
+              placeholderTextColor="#9ca3af"
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+
+            <Text style={styles.helpFieldLabel}>Message</Text>
+
+            <TextInput
+              style={styles.helpMessageInput}
+              multiline
+              maxLength={500}
+              value={helpMessage}
+              onChangeText={setHelpMessage}
+              placeholder="Tell us what you need help with..."
+              placeholderTextColor="#9ca3af"
+            />
+
+            <Text style={styles.helpCounter}>{helpMessage.length}/500</Text>
+
+            <View style={styles.choiceButtonRow}>
+              <Pressable
+                style={styles.notNowButton}
+                onPress={() => {
+                  setShowHelpModal(false);
+                  setHelpMessage("");
+                }}
+              >
+                <Text style={styles.choiceButtonText}>Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                style={[
+                  styles.enableButton,
+                  (!helpEmail.trim() || !helpMessage.trim() || helpSending) && {
+                    opacity: 0.5,
+                  },
+                ]}
+                onPress={sendHelpRequest}
+                disabled={!helpEmail.trim() || !helpMessage.trim() || helpSending}
+              >
+                <Text style={styles.choiceButtonText}>
+                  {helpSending ? "Sending..." : "Send"}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -924,6 +1014,51 @@ helpButtonText: {
   color: "#111827",
   fontSize: 16,
   fontWeight: "900",
+},
+
+helpFieldLabel: {
+  alignSelf: "flex-start",
+  color: "#6b7280",
+  fontSize: 12,
+  fontWeight: "900",
+  textTransform: "uppercase",
+  marginTop: 10,
+  marginBottom: 4,
+},
+
+helpEmailInput: {
+  width: "100%",
+  borderWidth: 1,
+  borderColor: "#d1d5db",
+  borderRadius: 12,
+  padding: 12,
+  color: "#111827",
+  fontSize: 15,
+  fontWeight: "700",
+  backgroundColor: "#ffffff",
+  marginBottom: 8,
+},
+
+helpMessageInput: {
+  width: "100%",
+  minHeight: 120,
+  borderWidth: 1,
+  borderColor: "#d1d5db",
+  borderRadius: 12,
+  padding: 12,
+  color: "#111827",
+  fontSize: 15,
+  fontWeight: "700",
+  textAlignVertical: "top",
+  backgroundColor: "#ffffff",
+},
+
+helpCounter: {
+  alignSelf: "flex-end",
+  color: "#6b7280",
+  fontSize: 12,
+  fontWeight: "800",
+  marginTop: 6,
 },
 
 });

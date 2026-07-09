@@ -118,6 +118,10 @@ export default function Dashboard() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [helpMessage, setHelpMessage] = useState("");
   const [helpSending, setHelpSending] = useState(false);
+  const [supportModalVisible, setSupportModalVisible] = useState(false);
+  const [supportModalType, setSupportModalType] = useState<"success" | "error">("success");
+  const [supportModalTitle, setSupportModalTitle] = useState("");
+  const [supportModalMessage, setSupportModalMessage] = useState("");
   const isTabletLayout = width >= 700;
   const isShortScreen = height < 760;
   const isPlayer =
@@ -261,6 +265,17 @@ async function handleLogout() {
     router.push("/roster");
   }
 
+  function showSupportMessage(
+  type: "success" | "error",
+  title: string,
+  message: string
+) {
+  setSupportModalType(type);
+  setSupportModalTitle(title);
+  setSupportModalMessage(message);
+  setSupportModalVisible(true);
+}
+
   function handleAllStarManagerAccess() {
     const access = managerData?.allStarManagerAccess;
     if (!access) return;
@@ -276,7 +291,7 @@ async function handleLogout() {
     });
   }
 
-  async function sendHelpRequest() {
+async function sendHelpRequest() {
   const cleanMessage = helpMessage.trim();
 
   if (!cleanMessage) return;
@@ -304,16 +319,30 @@ async function handleLogout() {
     const json = await response.json();
 
     if (!response.ok || !json?.ok) {
-      alert(json?.message || "Help request could not be sent.");
+      showSupportMessage(
+        "error",
+        "Help Request Failed",
+        json?.message || "Help request could not be sent."
+      );
       return;
     }
 
     setHelpMessage("");
     setShowHelpModal(false);
-    alert("Help request sent successfully.");
+
+    showSupportMessage(
+      "success",
+      "Help Request Sent",
+      "Thank you! Your request has been sent to NTABL Support."
+    );
   } catch (e) {
     console.log(e);
-    alert("Help request could not be sent.");
+
+    showSupportMessage(
+      "error",
+      "Help Request Failed",
+      "Help request could not be sent."
+    );
   } finally {
     setHelpSending(false);
   }
@@ -619,7 +648,7 @@ async function handleLogout() {
       />
 
       <Text style={styles.helpButtonText}>
-        Help
+        Contact Support
       </Text>
     </View>
   </Pressable>
@@ -704,15 +733,22 @@ async function handleLogout() {
         style={{ marginBottom: 8 }}
       />
 
-      <Text style={styles.helpTitle}>Need Help?</Text>
+<Text style={styles.helpTitle}>Need Assistance?</Text>
 
-      <Text style={styles.helpEmail}>
-        From: {managerData?.email || managerData?.managerEmail || "Not Listed"}
-      </Text>
+<Text style={styles.helpFieldLabel}>Name</Text>
+<Text style={styles.helpDisplayValue}>
+  {managerData?.managerName || "Not Listed"}
+</Text>
 
-      <Text style={styles.helpSubject}>
-        Subject: NTABL App Assistance
-      </Text>
+<Text style={styles.helpFieldLabel}>Email</Text>
+<Text style={styles.helpDisplayValue}>
+  {managerData?.email || managerData?.managerEmail || "Not Listed"}
+</Text>
+
+<Text style={styles.helpFieldLabel}>Subject</Text>
+<Text style={styles.helpDisplayValue}>NTABL App Assistance</Text>
+
+<Text style={styles.helpFieldLabel}>How can we help you?</Text>
 
       <TextInput
         style={styles.helpInput}
@@ -750,6 +786,59 @@ async function handleLogout() {
           </Text>
         </Pressable>
       </View>
+    </View>
+  </View>
+</Modal>
+
+<Modal
+  visible={supportModalVisible}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setSupportModalVisible(false)}
+>
+  <View style={styles.modalOverlay}>
+    <View
+      style={[
+        styles.helpModal,
+        supportModalType === "error" && styles.supportErrorModal,
+      ]}
+    >
+      <Ionicons
+        name={supportModalType === "error" ? "alert-circle" : "checkmark-circle"}
+        size={54}
+        color={supportModalType === "error" ? "#c62828" : "#15803d"}
+        style={{ marginBottom: 10 }}
+      />
+
+      <Text
+        style={[
+          styles.helpTitle,
+          supportModalType === "error" && styles.supportErrorText,
+        ]}
+      >
+        {supportModalTitle}
+      </Text>
+
+      <Text style={styles.waiverPromptMessage}>{supportModalMessage}</Text>
+
+      <Pressable
+        style={[
+          styles.modalOkButton,
+          supportModalType === "error" && styles.supportErrorButton,
+        ]}
+        onPress={() => setSupportModalVisible(false)}
+      >
+        <View style={styles.buttonContentRow}>
+          <Ionicons
+            name="checkmark-circle-outline"
+            size={20}
+            color="#ffffff"
+            style={{ marginRight: 6 }}
+          />
+
+          <Text style={styles.waiverPromptButtonText}>OK</Text>
+        </View>
+      </Pressable>
     </View>
   </View>
 </Modal>
@@ -1216,5 +1305,45 @@ helpSendButton: {
   paddingVertical: 12,
   alignItems: "center",
   marginLeft: 8,
+},
+
+helpFieldLabel: {
+  alignSelf: "flex-start",
+  color: "#6b7280",
+  fontSize: 12,
+  fontWeight: "900",
+  textTransform: "uppercase",
+  marginTop: 10,
+  marginBottom: 4,
+},
+
+helpDisplayValue: {
+  alignSelf: "flex-start",
+  color: "#111827",
+  fontSize: 15,
+  fontWeight: "800",
+  marginBottom: 4,
+},
+
+modalOkButton: {
+  marginTop: 18,
+  backgroundColor: "#15803d",
+  borderRadius: 10,
+  paddingVertical: 12,
+  paddingHorizontal: 28,
+  alignItems: "center",
+},
+
+supportErrorModal: {
+  borderWidth: 3,
+  borderColor: "#c62828",
+},
+
+supportErrorText: {
+  color: "#c62828",
+},
+
+supportErrorButton: {
+  backgroundColor: "#c62828",
 },
 });
