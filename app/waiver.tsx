@@ -33,13 +33,14 @@ function formatPhone(phone?: string) {
 }
 
 export default function WaiverScreen() {
-  const { participantId, readonly } = useLocalSearchParams<{
-    participantId?: string;
-    readonly?: string;
-  }>();
+  const { participantId, readonly, print } = useLocalSearchParams<{
+  participantId?: string;
+  readonly?: string;
+  print?: string;
+}>();
 
   const isReadOnly = readonly === "true";
-
+  const isPrintView = print === "true";
   const [agreementAccepted, setAgreementAccepted] = useState(false);
   const [typedSignature, setTypedSignature] = useState("");
   const [saving, setSaving] = useState(false);
@@ -294,17 +295,11 @@ export default function WaiverScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView contentContainerStyle={styles.content}>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <View style={styles.buttonContentRow}>
-              <Ionicons
-                name="chevron-back-outline"
-                size={16}
-                color="#ffffff"
-                style={{ marginRight: 3 }}
-              />
-              <Text style={styles.backButtonText}>Back</Text>
-            </View>
-          </Pressable>
+{!isPrintView ? (
+  <Pressable style={styles.backButton} onPress={() => router.back()}>
+    ...
+  </Pressable>
+) : null}
 
           <View style={styles.card}>
             <Image
@@ -318,7 +313,11 @@ export default function WaiverScreen() {
             </Text>
 
             <Text style={styles.subtitle}>Agreement & Release of Liability</Text>
-
+            {isPrintView ? (
+  <Text style={styles.printNotice}>
+    Printable Waiver Record
+  </Text>
+) : null}
             {signedAt ? (
               <>
                 <View style={styles.completeBox}>
@@ -866,4 +865,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "900",
   },
+
+  printNotice: {
+  fontSize: 16,
+  fontWeight: "900",
+  color: "#15803d",
+  textAlign: "center",
+  marginBottom: 18,
+},
 });

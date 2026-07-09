@@ -310,12 +310,28 @@ onPress={() => {
     </View>
   </Pressable>
 
-  <Pressable
-    style={styles.secondaryButton}
-    onPress={() => {
-      // Placeholder
-    }}
-  >
+<Pressable
+  style={[
+    styles.secondaryButton,
+    !selectedPerson?.signed && styles.disabledPrintButton,
+  ]}
+  onPress={() => {
+    if (!selectedPerson?.signed) {
+      return;
+    }
+
+    setSelectedPerson(null);
+
+    router.push({
+      pathname: "/waiver",
+      params: {
+        participantId: selectedPerson?.id,
+        readonly: "true",
+        print: "true",
+      },
+    });
+  }}
+>
     <View style={styles.buttonContentRow}>
       <Ionicons
         name="print-outline"
@@ -514,6 +530,10 @@ secondaryButtonText: {
   color: "#ffffff",
   fontSize: 16,
   fontWeight: "900",
+},
+
+disabledPrintButton: {
+  opacity: 0.45,
 },
 
 completeBadge: {
