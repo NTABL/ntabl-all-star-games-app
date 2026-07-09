@@ -586,9 +586,8 @@ async function handleLogout() {
       <Text style={styles.waiverPromptTitle}>Waiver Required</Text>
 
       <Text style={styles.waiverPromptMessage}>
-        Please complete your Frisco RoughRiders Agreement and Release of
-        Liability Waiver before participating in the NTABL Charity All-Star
-        Games.
+        Please complete your Frisco RoughRiders Agreement and Release of Liability Waiver
+        before participating in the NTABL Charity All-Star Games.
       </Text>
 
       <View style={styles.waiverPromptButtonRow}>
