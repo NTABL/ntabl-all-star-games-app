@@ -418,24 +418,26 @@ async function handleLogout() {
 
 <Text style={styles.label}>PLAYER ALL-STAR WAIVER STATUS</Text>
 
-{shouldShowWaiver && (
-  <>
-    <Text style={styles.label}>PLAYER ALL-STAR WAIVER STATUS</Text>
-
-    <View
-      style={[
-        styles.statusBadge,
-        {
-          backgroundColor: waiverSigned ? "#15803d" : "#c62828",
-        },
-      ]}
-    >
-      <Text style={styles.statusBadgeText}>
-        {waiverSigned ? "Complete" : "Incomplete"}
-      </Text>
-    </View>
-  </>
-)}
+<View
+  style={[
+    styles.statusBadge,
+    {
+      backgroundColor: !shouldShowWaiver
+        ? "#6b7280"
+        : waiverSigned
+        ? "#15803d"
+        : "#c62828",
+    },
+  ]}
+>
+  <Text style={styles.statusBadgeText}>
+    {!shouldShowWaiver
+      ? "Not Selected"
+      : waiverSigned
+      ? "Complete"
+      : "Incomplete"}
+  </Text>
+</View>
 </View>
 
               <View style={styles.teamLogoWrap}>
