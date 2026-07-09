@@ -208,228 +208,11 @@ function exportCsvReport() {
 function printPage() {
   if (Platform.OS !== "web" || typeof window === "undefined") return;
 
-  const logoUri =
-    Image.resolveAssetSource(
-      require("../../assets/Frisco-RoughRiders-Logo.png")
-    )?.uri || "";
+  const url = `${API_BASE}/api/admin/waivers/batch/${encodeURIComponent(
+    divisionId
+  )}/print`;
 
-  const waiverPages = waivers
-    .map((waiver) => {
-      return `
-        <section class="waiver-page">
-          <div class="print-header">
-            <img src="${logoUri}" class="rr-logo" />
-            <h1>${config?.waiverYear || "2026"} NTABL Charity All-Star Games</h1>
-            <h2>Agreement & Release of Liability</h2>
-            <p class="version">Version: ${config?.waiverVersion || "Not Listed"}</p>
-          </div>
-
-          <div class="info-box">
-            <div><label>Participant</label><strong>${waiver.name || "Participant"}</strong></div>
-            <div><label>Age</label><strong>${waiver.age || "Not Listed"}</strong></div>
-            <div><label>Address</label><strong>${formatAddress(waiver)}</strong></div>
-            <div><label>Phone</label><strong>${formatPhone(waiver.phone)}</strong></div>
-            <div><label>Team</label><strong>${waiver.teamName || "Not Listed"}</strong></div>
-            <div><label>Division</label><strong>${divisionName || game?.title || divisionId}</strong></div>
-            <div><label>Squad</label><strong>${waiver.squad || "Not Listed"}</strong></div>
-            <div><label>Role</label><strong>${formatRole(waiver.role)}</strong></div>
-          </div>
-
-          <div class="waiver-text">
-            <h3>Agreement and Release of Liability Waiver</h3>
-
-            <p>
-              I, as the participant, parent, or legal guardian of the participant,
-              hereby acknowledge and am aware that participant is being permitted
-              to use the facilities at Dr Pepper Ballpark / Riders Field by the
-              Frisco RoughRiders Baseball Team, the City of Frisco, Frisco
-              RoughRiders LP, and/or its affiliated entities.
-            </p>
-
-            <p>
-              On my own behalf or on behalf of participant, I agree that neither I
-              nor the participant nor any of our respective heirs, distributees,
-              guardians, legal representatives and/or assigns will make any actions,
-              suits, claims against, or attachment of the property of, or prosecute
-              any of the released parties or any of their respective employees,
-              agents, officers, directors, assigns, and affiliated organizations,
-              for injury or damage to person or property resulting from use of the
-              facility, including injury or damage caused by the negligent acts or
-              intentional misconduct of any person or entity.
-            </p>
-
-            <p>
-              By signing below, I acknowledge release and waiver of any and all
-              potential claims against the released parties and their respective
-              employees, agents, officers, directors, assigns, and affiliated
-              organizations.
-            </p>
-
-            <p class="bold">
-              I have carefully read this agreement and fully understand its
-              contents. I am aware that this is a release of liability and a
-              contract between myself, the released parties and their respective
-              employees, agents, officers, directors, assigns and affiliated
-              organizations and sign it of my own free will.
-            </p>
-          </div>
-
-          <div class="signature-box">
-            <div>
-              <label>Typed Signature</label>
-              <strong>${waiver.typedSignature || "Not Listed"}</strong>
-            </div>
-
-            <div>
-              <label>Signed Date / Time</label>
-              <strong>${waiver.signedAt ? new Date(waiver.signedAt).toLocaleString() : "Not Listed"}</strong>
-            </div>
-          </div>
-        </section>
-      `;
-    })
-    .join("");
-
-  const html = `
-    <!doctype html>
-    <html>
-      <head>
-        <title>${divisionName || game?.title || divisionId} Signed Waivers</title>
-        <style>
-          @page {
-            size: letter portrait;
-            margin: 0.35in;
-          }
-
-          * {
-            box-sizing: border-box;
-          }
-
-          body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            color: #111827;
-            background: #ffffff;
-          }
-
-          .waiver-page {
-            page-break-after: always;
-            break-after: page;
-            min-height: 10.25in;
-            padding: 0.1in;
-            overflow: hidden;
-          }
-
-          .waiver-page:last-child {
-            page-break-after: auto;
-            break-after: auto;
-          }
-
-          .print-header {
-            text-align: center;
-            margin-bottom: 14px;
-          }
-
-          .rr-logo {
-            width: 95px;
-            height: auto;
-            margin-bottom: 4px;
-          }
-
-          h1 {
-            font-size: 20px;
-            margin: 4px 0;
-          }
-
-          h2 {
-            font-size: 15px;
-            color: #c62828;
-            margin: 4px 0;
-          }
-
-          .version {
-            font-size: 10px;
-            margin: 2px 0;
-            color: #555;
-          }
-
-          .info-box {
-            background: #eef4fb;
-            border-radius: 12px;
-            padding: 12px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px 14px;
-            margin-bottom: 12px;
-          }
-
-          label {
-            display: block;
-            text-transform: uppercase;
-            font-size: 9px;
-            font-weight: 700;
-            color: #5c6b7a;
-            margin-bottom: 2px;
-          }
-
-          strong {
-            display: block;
-            font-size: 12px;
-          }
-
-          .waiver-text {
-            border: 1px solid #cbd5e1;
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 12px;
-          }
-
-          h3 {
-            text-align: center;
-            text-decoration: underline;
-            font-size: 15px;
-            margin: 0 0 10px;
-          }
-
-          p {
-            font-size: 11px;
-            line-height: 1.35;
-            margin: 0 0 8px;
-          }
-
-          .bold {
-            font-weight: 700;
-          }
-
-          .signature-box {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            border-top: 2px solid #111827;
-            padding-top: 10px;
-          }
-        </style>
-      </head>
-
-      <body>
-        ${waiverPages}
-        <script>
-          window.onload = function() {
-            window.focus();
-            window.print();
-          };
-        </script>
-      </body>
-    </html>
-  `;
-
-  const printWindow = window.open("", "_blank");
-
-  if (!printWindow) return;
-
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
+  window.open(url, "_blank", "noopener,noreferrer");
 }
 
   function openSingleWaiver(waiver: WaiverRecord) {
@@ -706,7 +489,7 @@ headerRow: {
   subtitle: {
     fontSize: 15,
     fontWeight: "800",
-    color: "#660000",
+    color: "#c62828",
     textAlign: "center",
     marginTop: 10,
   },
@@ -948,7 +731,7 @@ headerRow: {
   },
 
   reportButton: {
-  backgroundColor: "#660000",
+  backgroundColor: "#c62828",
   borderRadius: 9,
   paddingVertical: 7,
   paddingHorizontal: 13,
