@@ -39,8 +39,8 @@ export default function WaiverScreen() {
   print?: string;
 }>();
 
-  const isReadOnly = readonly === "true" || !!participantId || isPrintView;
   const isPrintView = print === "true";
+  const isReadOnly = readonly === "true" || !!participantId || isPrintView;
   const [agreementAccepted, setAgreementAccepted] = useState(false);
   const [typedSignature, setTypedSignature] = useState("");
   const [saving, setSaving] = useState(false);
