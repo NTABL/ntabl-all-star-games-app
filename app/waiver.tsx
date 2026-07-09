@@ -39,7 +39,7 @@ export default function WaiverScreen() {
   print?: string;
 }>();
 
-  const isReadOnly = readonly === "true";
+  const isReadOnly = readonly === "true" || !!participantId || isPrintView;
   const isPrintView = print === "true";
   const [agreementAccepted, setAgreementAccepted] = useState(false);
   const [typedSignature, setTypedSignature] = useState("");
@@ -297,7 +297,15 @@ export default function WaiverScreen() {
         <ScrollView contentContainerStyle={styles.content}>
 {!isPrintView ? (
   <Pressable style={styles.backButton} onPress={() => router.back()}>
-    ...
+    <View style={styles.buttonContentRow}>
+      <Ionicons
+        name="chevron-back-outline"
+        size={16}
+        color="#ffffff"
+        style={{ marginRight: 3 }}
+      />
+      <Text style={styles.backButtonText}>Back</Text>
+    </View>
   </Pressable>
 ) : null}
 
