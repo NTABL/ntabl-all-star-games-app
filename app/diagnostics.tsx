@@ -2,12 +2,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { API_BASE } from "../utils/appconfig";
 
@@ -35,14 +35,6 @@ export default function DiagnosticsScreen() {
     }
   }
 
-  function statusIcon(ok: boolean) {
-    return ok ? "checkmark-circle" : "alert-circle";
-  }
-
-  function statusColor(ok: boolean) {
-    return ok ? "#15803d" : "#c62828";
-  }
-
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -61,40 +53,60 @@ export default function DiagnosticsScreen() {
               <ActivityIndicator size="large" color="#1d4ed8" />
             ) : (
               <>
-                <View style={styles.row}>
-                  <Ionicons
-                    name={statusIcon(!!data?.ok)}
-                    size={26}
-                    color={statusColor(!!data?.ok)}
-                  />
-                  <Text style={styles.rowText}>
-                    Backend: {data?.backend || "unknown"}
-                  </Text>
+                <View style={styles.grid}>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statLabel}>Backend</Text>
+                    <View style={styles.statusRow}>
+                      <Ionicons
+                        name={data?.ok ? "checkmark-circle" : "alert-circle"}
+                        size={22}
+                        color={data?.ok ? "#15803d" : "#c62828"}
+                        style={{ marginRight: 6 }}
+                      />
+                      <Text style={styles.statValue}>
+                        {data?.backend || "Unknown"}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.statCard}>
+                    <Text style={styles.statLabel}>App Version</Text>
+                    <Text style={styles.statValue}>{data?.version || "1.0"}</Text>
+                  </View>
+
+                  <View style={styles.statCard}>
+                    <Text style={styles.statLabel}>Roster Cache</Text>
+                    <Text style={styles.statValue}>
+                      {data?.rosterCache?.available ? "Available" : "Not Available"}
+                    </Text>
+                  </View>
+
+                  <View style={styles.statCard}>
+                    <Text style={styles.statLabel}>Signed Waivers</Text>
+                    <Text style={styles.statValue}>
+                      {data?.waivers?.signedCount ?? 0}
+                    </Text>
+                  </View>
+
+                  <View style={styles.statCard}>
+                    <Text style={styles.statLabel}>Cached Players</Text>
+                    <Text style={styles.statValue}>
+                      {data?.rosterCache?.rosterCount ?? 0}
+                    </Text>
+                  </View>
+
+                  <View style={styles.statCard}>
+                    <Text style={styles.statLabel}>LeagueApps Records</Text>
+                    <Text style={styles.statValue}>
+                      {data?.rosterCache?.rawRecordCount ?? 0}
+                    </Text>
+                  </View>
                 </View>
 
-                <Text style={styles.label}>App Version</Text>
-                <Text style={styles.value}>{data?.version || "1.0"}</Text>
-
-                <Text style={styles.label}>Server Time</Text>
-                <Text style={styles.value}>{data?.serverTime || "Not Loaded"}</Text>
-
-                <Text style={styles.label}>Roster Cache</Text>
-                <Text style={styles.value}>
-                  {data?.rosterCache?.available ? "Available" : "Not Available"}
+                <Text style={styles.serverTimeLabel}>Server Time</Text>
+                <Text style={styles.serverTimeValue}>
+                  {data?.serverTime || "Unknown"}
                 </Text>
-
-                <Text style={styles.label}>Roster Count</Text>
-                <Text style={styles.value}>
-                  {data?.rosterCache?.rosterCount ?? 0}
-                </Text>
-
-                <Text style={styles.label}>Raw LeagueApps Records</Text>
-                <Text style={styles.value}>
-                  {data?.rosterCache?.rawRecordCount ?? 0}
-                </Text>
-
-                <Text style={styles.label}>Signed Waivers</Text>
-                <Text style={styles.value}>{data?.waivers?.signedCount ?? 0}</Text>
 
                 {!data?.ok && (
                   <Text style={styles.errorText}>
@@ -145,25 +157,52 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 18,
   },
-  row: { flexDirection: "row", alignItems: "center", marginBottom: 14 },
-  rowText: {
-    marginLeft: 8,
-    fontSize: 17,
-    fontWeight: "900",
-    color: "#111827",
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginTop: 4,
   },
-  label: {
-    marginTop: 12,
+  statCard: {
+    width: "48%",
+    backgroundColor: "#f4f8fd",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#dbe5f1",
+  },
+  statLabel: {
     color: "#6b7280",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "900",
     textTransform: "uppercase",
+    marginBottom: 6,
   },
-  value: {
-    color: "#111827",
-    fontSize: 17,
+  statValue: {
+    color: "#1f2937",
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  statusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  serverTimeLabel: {
+    marginTop: 6,
+    color: "#6b7280",
+    fontSize: 11,
+    fontWeight: "900",
+    textTransform: "uppercase",
+    textAlign: "center",
+  },
+  serverTimeValue: {
+    textAlign: "center",
+    color: "#1f2937",
+    fontSize: 15,
     fontWeight: "800",
-    marginTop: 2,
+    marginTop: 3,
+    marginBottom: 12,
   },
   errorText: {
     color: "#c62828",
@@ -172,7 +211,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   refreshButton: {
-    marginTop: 22,
+    marginTop: 12,
     backgroundColor: "#15803d",
     borderRadius: 12,
     paddingVertical: 13,
