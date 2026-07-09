@@ -41,6 +41,9 @@ export default function Login() {
   const [modalMessage, setModalMessage] = useState("");
   const [pendingEmail, setPendingEmail] = useState("");
   const [pendingPassword, setPendingPassword] = useState("");
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [helpMessage, setHelpMessage] = useState("");
+  const [helpSending, setHelpSending] = useState(false);
   const { width, height } = useWindowDimensions();
   const isTabletLayout = width >= 700;
   const isShortScreen = height < 760;
@@ -127,6 +130,49 @@ export default function Login() {
     setPendingPassword("");
     router.replace("/dashboard");
   }
+
+  async function sendHelpRequest() {
+  const cleanMessage = helpMessage.trim();
+
+  if (!cleanMessage) return;
+
+  try {
+    setHelpSending(true);
+
+    const response = await fetch(`${API_BASE}/api/help-request`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "Login Screen User",
+        email: email.trim(),
+        role: "Not Logged In",
+        team: "",
+        division: "",
+        appVersion: "1.0",
+        platform: Platform.OS,
+        message: cleanMessage,
+      }),
+    });
+
+    const json = await response.json();
+
+    if (!response.ok || !json?.ok) {
+      showMessage("error", "Help Request Failed", json?.message || "Help request could not be sent.");
+      return;
+    }
+
+    setHelpMessage("");
+    setShowHelpModal(false);
+    showMessage("success", "Help Request Sent", "Your message has been sent to NTABL support.");
+  } catch (e) {
+    console.log(e);
+    showMessage("error", "Help Request Failed", "Help request could not be sent.");
+  } finally {
+    setHelpSending(false);
+  }
+}
 
   async function handleLogin(
     isAuto = false,
@@ -419,7 +465,22 @@ export default function Login() {
               <Text style={styles.buttonText}>Announcer Login</Text>
             </View>
           </Pressable>
+<Pressable
+  style={styles.helpButton}
+  onPress={() => setShowHelpModal(true)}
+  disabled={loading}
+>
+  <View style={styles.buttonContentRow}>
+    <Ionicons
+      name="help-circle-outline"
+      size={22}
+      color="#111827"
+      style={{ marginRight: 8 }}
+    />
 
+    <Text style={styles.helpButtonText}>Need Help?</Text>
+  </View>
+</Pressable>
           <View style={styles.footer}>
             <Text style={styles.footerText}>
               © 2026 North Texas Adult Baseball League
@@ -540,6 +601,7 @@ export default function Login() {
           </View>
         </View>
       </Modal>
+      From: {email.trim() || "Not entered yet"}
     </>
   );
 }
@@ -848,6 +910,20 @@ cardTablet: {
 
 cardShort: {
   paddingVertical: 18,
+},
+
+helpButton: {
+  marginTop: 12,
+  backgroundColor: "#d1d5db",
+  borderRadius: 12,
+  paddingVertical: 14,
+  alignItems: "center",
+},
+
+helpButtonText: {
+  color: "#111827",
+  fontSize: 16,
+  fontWeight: "900",
 },
 
 });
