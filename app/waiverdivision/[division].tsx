@@ -202,6 +202,20 @@ return (
                 <Text style={styles.backButtonText}>Back</Text>
               </View>
             </Pressable>
+            <Pressable
+  style={styles.batchPrintButton}
+  onPress={() => router.push(`/waiverbatch/${divisionId}`)}
+>
+  <View style={styles.buttonContentRow}>
+    <Ionicons
+      name="print-outline"
+      size={16}
+      color="#ffffff"
+      style={{ marginRight: 5 }}
+    />
+    <Text style={styles.batchPrintButtonText}>Batch Print</Text>
+  </View>
+</Pressable>
           </View>
 
           <View style={styles.heroCard}>
@@ -403,9 +417,26 @@ onPress={() => {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#eef2f7" },
   container: { flexGrow: 1, paddingHorizontal: 20, paddingTop: 50, paddingBottom: 70 },
-  headerRow: { flexDirection: "row", justifyContent: "flex-start", marginBottom: 10 },
+  headerRow: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 10,
+},
   backButton: { backgroundColor: "#1d4ed8", borderRadius: 9, paddingVertical: 7, paddingHorizontal: 13 },
   backButtonText: { color: "#ffffff", fontSize: 14, fontWeight: "800" },
+  batchPrintButton: {
+  backgroundColor: "#15803d",
+  borderRadius: 9,
+  paddingVertical: 7,
+  paddingHorizontal: 13,
+},
+
+batchPrintButtonText: {
+  color: "#ffffff",
+  fontSize: 14,
+  fontWeight: "900",
+},
   buttonContentRow: { flexDirection: "row", alignItems: "center", justifyContent: "center" },
   heroCard: {
     backgroundColor: "#ffffff",
