@@ -73,13 +73,24 @@ export default function WaiverDivisionScreen() {
   const [loading, setLoading] = useState(true);
   const [divisionData, setDivisionData] = useState<any>(null);
   const [config, setConfig] = useState<any>(null);
+  const [lastUpdated, setLastUpdated] = useState("");
   const [selectedPerson, setSelectedPerson] = useState<any>(null);
   const { width } = useWindowDimensions();
   const isWideScreen = width >= 900;
 
-  useEffect(() => {
+useEffect(() => {
+  loadWaiverDivision();
+
+  if (selectedPerson) {
+    return;
+  }
+
+  const timer = setInterval(() => {
     loadWaiverDivision();
-  }, [divisionId]);
+  }, 10000);
+
+  return () => clearInterval(timer);
+}, [divisionId, selectedPerson]);
 
   async function loadWaiverDivision() {
     try {
@@ -96,6 +107,13 @@ export default function WaiverDivisionScreen() {
           : null;
 
         setDivisionData(foundDivision || null);
+        setLastUpdated(
+  new Date().toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  })
+);
       }
     } catch (e) {
       console.log("WAIVER DIVISION LOAD ERROR:", e);
@@ -191,6 +209,16 @@ return (
             <Text style={styles.title}>{game.title}</Text>
             <View style={styles.logoWrapper}>{renderGameLogo(game.divisionId)}</View>
             <Text style={styles.subtitle}>Waiver Status • {config?.waiverYear || "2026"}</Text>
+            <Text
+  style={{
+    color: "#6b7280",
+    fontWeight: "700",
+    fontSize: 12,
+    marginTop: 6,
+  }}
+>
+  Last Updated: {lastUpdated || "--"}
+</Text>
           </View>
 
           {loading ? (
@@ -221,7 +249,10 @@ return (
   visible={!!selectedPerson}
   transparent
   animationType="fade"
-  onRequestClose={() => setSelectedPerson(null)}
+  onRequestClose={() => {
+  setSelectedPerson(null);
+  loadWaiverDivision();
+}}
 >
   <View style={styles.modalOverlay}>
     <View style={styles.personModalCard}>
@@ -347,7 +378,10 @@ onPress={() => {
 </View>
       <Pressable
         style={styles.closeButton}
-        onPress={() => setSelectedPerson(null)}
+        onPress={() => {
+  setSelectedPerson(null);
+  loadWaiverDivision();
+}}
       >
         <View style={styles.buttonContentRow}>
           <Ionicons
