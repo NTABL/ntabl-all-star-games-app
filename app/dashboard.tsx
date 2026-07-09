@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -112,7 +113,9 @@ export default function Dashboard() {
   const [waiverSigned, setWaiverSigned] = useState(false);
   const [showWaiverPrompt, setShowWaiverPrompt] = useState(false);
   const { width, height } = useWindowDimensions();
-
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [helpMessage, setHelpMessage] = useState("");
+  const [helpSending, setHelpSending] = useState(false);
   const isTabletLayout = width >= 700;
   const isShortScreen = height < 760;
   const isPlayer =
@@ -269,6 +272,49 @@ async function handleLogout() {
     });
   }
 
+  async function sendHelpRequest() {
+  const cleanMessage = helpMessage.trim();
+
+  if (!cleanMessage) return;
+
+  try {
+    setHelpSending(true);
+
+    const response = await fetch(`${API_BASE}/api/help-request`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: managerData?.managerName || "",
+        email: managerData?.email || managerData?.managerEmail || "",
+        role: managerData?.role || "",
+        team: managerData?.teamName || "",
+        division: managerData?.division || "",
+        appVersion: "1.0",
+        platform: "web/app",
+        message: cleanMessage,
+      }),
+    });
+
+    const json = await response.json();
+
+    if (!response.ok || !json?.ok) {
+      alert(json?.message || "Help request could not be sent.");
+      return;
+    }
+
+    setHelpMessage("");
+    setShowHelpModal(false);
+    alert("Help request sent successfully.");
+  } catch (e) {
+    console.log(e);
+    alert("Help request could not be sent.");
+  } finally {
+    setHelpSending(false);
+  }
+}
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -366,7 +412,7 @@ async function handleLogout() {
   <Text style={styles.statusBadgeText}>{status}</Text>
 </View>
 
-<Text style={styles.label}>PLAYER WAIVER STATUS</Text>
+<Text style={styles.label}>PLAYER ALL-STAR WAIVER STATUS</Text>
 
 <View
   style={[
@@ -545,7 +591,25 @@ async function handleLogout() {
               </View>
             </Pressable>
           )}
+{managerData && (
+  <Pressable
+    style={styles.helpButton}
+    onPress={() => setShowHelpModal(true)}
+  >
+    <View style={styles.buttonContentRow}>
+      <Ionicons
+        name="help-circle-outline"
+        size={22}
+        color="#111827"
+        style={{ marginRight: 8 }}
+      />
 
+      <Text style={styles.helpButtonText}>
+        Help
+      </Text>
+    </View>
+  </Pressable>
+)}
           {isShawn && (
             <Pressable
               style={styles.adminButton}
@@ -606,6 +670,70 @@ async function handleLogout() {
           }}
         >
           <Text style={styles.waiverPromptButtonText}>Continue</Text>
+        </Pressable>
+      </View>
+    </View>
+  </View>
+</Modal>
+<Modal
+  visible={showHelpModal}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setShowHelpModal(false)}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.helpModal}>
+      <Ionicons
+        name="help-circle-outline"
+        size={50}
+        color="#1d4ed8"
+        style={{ marginBottom: 8 }}
+      />
+
+      <Text style={styles.helpTitle}>Need Help?</Text>
+
+      <Text style={styles.helpEmail}>
+        From: {managerData?.email || managerData?.managerEmail || "Not Listed"}
+      </Text>
+
+      <Text style={styles.helpSubject}>
+        Subject: NTABL App Assistance
+      </Text>
+
+      <TextInput
+        style={styles.helpInput}
+        multiline
+        maxLength={500}
+        value={helpMessage}
+        onChangeText={setHelpMessage}
+        placeholder="Tell us what you need help with..."
+        placeholderTextColor="#9ca3af"
+      />
+
+      <Text style={styles.helpCounter}>{helpMessage.length}/500</Text>
+
+      <View style={styles.waiverPromptButtonRow}>
+        <Pressable
+          style={styles.waiverPromptLaterButton}
+          onPress={() => {
+            setShowHelpModal(false);
+            setHelpMessage("");
+          }}
+        >
+          <Text style={styles.waiverPromptButtonText}>Cancel</Text>
+        </Pressable>
+
+        <Pressable
+          style={[
+            styles.helpSendButton,
+            (!helpMessage.trim() || helpSending) && { opacity: 0.5 },
+          ]}
+          onPress={sendHelpRequest}
+          disabled={!helpMessage.trim() || helpSending}
+        >
+          <Text style={styles.waiverPromptButtonText}>
+            {helpSending ? "Sending..." : "Send"}
+          </Text>
         </Pressable>
       </View>
     </View>
@@ -824,6 +952,20 @@ primaryButton: {
     fontWeight: "700",
   },
 
+  helpButton: {
+  marginTop: 12,
+  backgroundColor: "#d1d5db",
+  borderRadius: 12,
+  paddingVertical: 14,
+  alignItems: "center",
+},
+
+helpButtonText: {
+  color: "#111827",
+  fontSize: 16,
+  fontWeight: "800",
+},
+
   changePasswordButton: {
     marginTop: 12,
     backgroundColor: "#c62828",
@@ -1000,5 +1142,65 @@ waiverPromptButtonText: {
 
 waiverButtonComplete: {
   backgroundColor: "#6b7280",
+},
+
+helpModal: {
+  ...modalStyles.card,
+  alignItems: "center",
+},
+
+helpTitle: {
+  color: "#1d4ed8",
+  fontSize: 24,
+  fontWeight: "900",
+  textAlign: "center",
+},
+
+helpEmail: {
+  color: "#111827",
+  fontSize: 14,
+  fontWeight: "800",
+  marginTop: 8,
+  textAlign: "center",
+},
+
+helpSubject: {
+  color: "#6b7280",
+  fontSize: 13,
+  fontWeight: "800",
+  marginTop: 4,
+  marginBottom: 10,
+  textAlign: "center",
+},
+
+helpInput: {
+  width: "100%",
+  minHeight: 120,
+  borderWidth: 1,
+  borderColor: "#d1d5db",
+  borderRadius: 12,
+  padding: 12,
+  color: "#111827",
+  fontSize: 15,
+  fontWeight: "700",
+  textAlignVertical: "top",
+  backgroundColor: "#ffffff",
+},
+
+helpCounter: {
+  alignSelf: "flex-end",
+  color: "#6b7280",
+  fontSize: 12,
+  fontWeight: "800",
+  marginTop: 6,
+},
+
+helpSendButton: {
+  flex: 1,
+  backgroundColor: "#15803d",
+  borderRadius: 10,
+  paddingVertical: 12,
+  alignItems: "center",
+  marginLeft: 8,
 },
 });
