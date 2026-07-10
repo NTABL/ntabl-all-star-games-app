@@ -118,7 +118,7 @@ export default function WaiverManagementScreen() {
       <View style={styles.screen}>
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
           <View style={styles.headerRow}>
-            <Pressable style={styles.backButton} onPress={() => router.replace("/admin")}>
+            <Pressable style={styles.backButton} onPress={() => router.replace("/diagnostics")}>
               <View style={styles.buttonContentRow}>
                 <Ionicons name="chevron-back-outline" size={16} color="#ffffff" style={{ marginRight: 3 }} />
                 <Text style={styles.backButtonText}>Back</Text>
