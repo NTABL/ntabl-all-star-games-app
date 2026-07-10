@@ -136,7 +136,7 @@ export default function AdminScreen() {
             </Text>
           </View>
 <View style={styles.sectionCard}>
-  <Text style={styles.sectionHeader}>System Diagnostics</Text>
+  <Text style={styles.sectionHeader}>Operations Center</Text>
 
   <TouchableOpacity
     style={styles.diagnosticsButton}
@@ -144,13 +144,13 @@ export default function AdminScreen() {
   >
     <View style={styles.buttonContentRow}>
       <Ionicons
-        name="pulse-outline"
+        name="settings-outline"
         size={22}
         color="#ffffff"
         style={{ marginRight: 8 }}
       />
 
-      <Text style={styles.buttonText}>Open Diagnostics</Text>
+      <Text style={styles.buttonText}>Open Operations Center</Text>
     </View>
   </TouchableOpacity>
 </View>
