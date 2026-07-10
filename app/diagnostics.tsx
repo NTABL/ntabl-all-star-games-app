@@ -81,13 +81,13 @@ export default function DiagnosticsScreen() {
       return () => {
         active = false;
       };
-    }, [])
+    }, []),
   );
 
   function showModal(
     message: string,
     detail: string,
-    type: ModalType = "info"
+    type: ModalType = "info",
   ) {
     setModalMessage(message);
     setModalDetail(detail);
@@ -99,12 +99,14 @@ export default function DiagnosticsScreen() {
       if (showLoader) setLoading(true);
 
       const response = await adminFetch(
-        `${API_BASE}/api/admin/operations-center`
+        `${API_BASE}/api/admin/operations-center`,
       );
       const json = await response.json();
 
       if (!response.ok || !json?.ok) {
-        throw new Error(json?.message || "Operations Center could not be loaded.");
+        throw new Error(
+          json?.message || "Operations Center could not be loaded.",
+        );
       }
 
       setData(json);
@@ -128,7 +130,7 @@ export default function DiagnosticsScreen() {
 
       const response = await adminFetch(
         `${API_BASE}/api/admin/refresh-roster-cache`,
-        { method: "POST" }
+        { method: "POST" },
       );
       const json = await response.json();
 
@@ -143,7 +145,7 @@ export default function DiagnosticsScreen() {
         `${json.rosterCount ?? 0} players and ${
           json.rawRecordCount ?? 0
         } LeagueApps records were loaded.`,
-        "success"
+        "success",
       );
     } catch (error) {
       showModal(
@@ -151,7 +153,7 @@ export default function DiagnosticsScreen() {
         error instanceof Error
           ? error.message
           : "LeagueApps data could not be refreshed.",
-        "error"
+        "error",
       );
     } finally {
       setRefreshingRoster(false);
@@ -162,7 +164,7 @@ export default function DiagnosticsScreen() {
     showModal(
       `${feature} Coming Soon`,
       "This control is reserved for a future Version 1.1 operations phase.",
-      "info"
+      "info",
     );
   }
 
@@ -210,7 +212,9 @@ export default function DiagnosticsScreen() {
           {loading ? (
             <View style={styles.loadingCard}>
               <ActivityIndicator size="large" color="#1d4ed8" />
-              <Text style={styles.loadingText}>Loading Operations Center...</Text>
+              <Text style={styles.loadingText}>
+                Loading Operations Center...
+              </Text>
             </View>
           ) : (
             <>
@@ -255,42 +259,6 @@ export default function DiagnosticsScreen() {
                 ) : null}
               </SectionCard>
 
-              <SectionCard title="Tournament Operations">
-                <ActionButton
-                  label={
-                    refreshingRoster
-                      ? "Refreshing LeagueApps Data..."
-                      : "Refresh LeagueApps Data"
-                  }
-                  icon="refresh"
-                  backgroundColor="#15803d"
-                  disabled={refreshingRoster}
-                  loading={refreshingRoster}
-                  onPress={refreshLeagueAppsData}
-                />
-
-                <ActionButton
-                  label="Reload Division Configuration"
-                  icon="baseball-outline"
-                  backgroundColor="#c62828"
-                  onPress={() => router.push("/divisionconfig")}
-                />
-
-                <ActionButton
-                  label="Refresh Waiver Counts"
-                  icon="document-text-outline"
-                  backgroundColor="#660000"
-                  onPress={() => loadOperationsData()}
-                />
-
-                <ActionButton
-                  label="Clear Roster Cache"
-                  icon="trash-outline"
-                  backgroundColor="#6b7280"
-                  onPress={() => showComingSoon("Clear Roster Cache")}
-                />
-              </SectionCard>
-
               <SectionCard title="Statistics">
                 <View style={styles.metricGrid}>
                   <MetricCard
@@ -304,9 +272,9 @@ export default function DiagnosticsScreen() {
                     icon="people-outline"
                   />
                   <MetricCard
-                    label="LeagueApps Records"
-                    value={String(data?.rosterCache?.rawRecordCount ?? 0)}
-                    icon="server-outline"
+                    label="Divisions"
+                    value={String(data?.tournament?.divisionCount ?? 0)}
+                    icon="apps-outline"
                   />
                   <MetricCard
                     label="Managers Assigned"
@@ -316,7 +284,11 @@ export default function DiagnosticsScreen() {
                 </View>
 
                 <Text style={styles.detailText}>
-                  Last LeagueApps refresh: {formatDateTime(data?.rosterCache?.refreshedAt)}
+                  LeagueApps records: {data?.rosterCache?.rawRecordCount ?? 0}
+                </Text>
+                <Text style={styles.detailText}>
+                  Last LeagueApps refresh:{" "}
+                  {formatDateTime(data?.rosterCache?.refreshedAt)}
                 </Text>
               </SectionCard>
 
@@ -334,7 +306,7 @@ export default function DiagnosticsScreen() {
                   onPress={() => router.push("/submissionstatus")}
                 />
                 <ActionButton
-                  label="CSV Export"
+                  label="Waiver Reports & CSV Export"
                   icon="download-outline"
                   backgroundColor="#1d4ed8"
                   onPress={() => router.push("/waivermanagement")}
@@ -344,6 +316,35 @@ export default function DiagnosticsScreen() {
                   icon="list-outline"
                   backgroundColor="#6b7280"
                   onPress={() => showComingSoon("Player Selection Report")}
+                />
+              </SectionCard>
+
+              <SectionCard title="Tournament Operations">
+                <ActionButton
+                  label={
+                    refreshingRoster
+                      ? "Refreshing LeagueApps Data..."
+                      : "Refresh LeagueApps Data"
+                  }
+                  icon="refresh"
+                  backgroundColor="#15803d"
+                  disabled={refreshingRoster}
+                  loading={refreshingRoster}
+                  onPress={refreshLeagueAppsData}
+                />
+
+                <ActionButton
+                  label="Refresh Operations Data"
+                  icon="sync-outline"
+                  backgroundColor="#1d4ed8"
+                  onPress={() => loadOperationsData()}
+                />
+
+                <ActionButton
+                  label="Clear Roster Cache"
+                  icon="trash-outline"
+                  backgroundColor="#6b7280"
+                  onPress={() => showComingSoon("Clear Roster Cache")}
                 />
               </SectionCard>
 
@@ -392,9 +393,9 @@ export default function DiagnosticsScreen() {
                     icon="globe-outline"
                   />
                   <MetricCard
-                    label="Divisions"
-                    value={String(data?.tournament?.divisionCount ?? 0)}
-                    icon="apps-outline"
+                    label="Backend Started"
+                    value={formatDateTime(data?.startedAt)}
+                    icon="time-outline"
                   />
                 </View>
 
@@ -419,7 +420,10 @@ export default function DiagnosticsScreen() {
                 />
               </SectionCard>
 
-              <Pressable style={styles.refreshButton} onPress={() => loadOperationsData()}>
+              <Pressable
+                style={styles.refreshButton}
+                onPress={() => loadOperationsData()}
+              >
                 <View style={styles.buttonContentRow}>
                   <Ionicons
                     name="refresh-outline"
@@ -427,7 +431,9 @@ export default function DiagnosticsScreen() {
                     color="#ffffff"
                     style={{ marginRight: 7 }}
                   />
-                  <Text style={styles.refreshButtonText}>Refresh Operations Center</Text>
+                  <Text style={styles.refreshButtonText}>
+                    Refresh Operations Center
+                  </Text>
                 </View>
               </Pressable>
             </>
@@ -457,16 +463,16 @@ export default function DiagnosticsScreen() {
                 modalType === "success"
                   ? "checkmark-circle"
                   : modalType === "error"
-                  ? "alert-circle"
-                  : "information-circle"
+                    ? "alert-circle"
+                    : "information-circle"
               }
               size={54}
               color={
                 modalType === "success"
                   ? "#15803d"
                   : modalType === "error"
-                  ? "#c62828"
-                  : "#1d4ed8"
+                    ? "#c62828"
+                    : "#1d4ed8"
               }
               style={{ marginBottom: 10 }}
             />
@@ -539,10 +545,10 @@ function MetricCard({
     status === "good"
       ? "#15803d"
       : status === "warning"
-      ? "#b45309"
-      : status === "bad"
-      ? "#c62828"
-      : "#1f4e9e";
+        ? "#b45309"
+        : status === "bad"
+          ? "#c62828"
+          : "#1f4e9e";
 
   return (
     <View style={styles.metricCard}>
