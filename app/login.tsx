@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import Constants from "expo-constants";
 import { router, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -28,6 +29,32 @@ import {
 import { modalStyles } from "../utils/modalStyles";
 
 type MessageType = "success" | "error" | "warning" | "choice";
+type ServerStatus = "checking" | "ready" | "unavailable";
+
+const NETWORK_TIMEOUT_MS = 30000;
+const HEALTH_TIMEOUT_MS = 12000;
+
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeoutMs = NETWORK_TIMEOUT_MS,
+) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === "AbortError";
+}
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -45,6 +72,8 @@ export default function Login() {
   const [helpMessage, setHelpMessage] = useState("");
   const [helpEmail, setHelpEmail] = useState("");
   const [helpSending, setHelpSending] = useState(false);
+  const [serverStatus, setServerStatus] = useState<ServerStatus>("checking");
+  const [checkingServer, setCheckingServer] = useState(false);
 
   const { width, height } = useWindowDimensions();
   const isTabletLayout = width >= 700;
@@ -52,7 +81,33 @@ export default function Login() {
 
   useEffect(() => {
     checkBiometricAvailability();
+    checkServerAvailability();
   }, []);
+
+  async function checkServerAvailability() {
+    try {
+      setCheckingServer(true);
+      setServerStatus("checking");
+
+      const response = await fetchWithTimeout(
+        `${API_BASE}/health`,
+        { method: "GET" },
+        HEALTH_TIMEOUT_MS,
+      );
+
+      if (!response.ok) {
+        throw new Error("Server health check failed.");
+      }
+
+      const json = await response.json();
+      setServerStatus(json?.ok ? "ready" : "unavailable");
+    } catch (error) {
+      console.log("SERVER HEALTH CHECK ERROR:", error);
+      setServerStatus("unavailable");
+    } finally {
+      setCheckingServer(false);
+    }
+  }
 
   async function checkBiometricAvailability() {
     const biometricsAvailable = await canUseBiometrics();
@@ -85,7 +140,7 @@ export default function Login() {
       showMessage(
         "warning",
         "No Saved Login",
-        "Please log in once with your email and password first."
+        "Please log in once with your email and password first.",
       );
       return;
     }
@@ -98,7 +153,7 @@ export default function Login() {
 
   async function askToEnableBiometricLogin(
     emailValue: string,
-    passwordValue: string
+    passwordValue: string,
   ) {
     const biometricsAvailable = await canUseBiometrics();
 
@@ -113,7 +168,7 @@ export default function Login() {
     showMessage(
       "choice",
       "Enable Fingerprint / Face ID?",
-      "Would you like to use fingerprint or Face ID to log in faster on this device?"
+      "Would you like to use fingerprint or Face ID to log in faster on this device?",
     );
   }
 
@@ -134,65 +189,71 @@ export default function Login() {
   }
 
   async function sendHelpRequest() {
-  const cleanEmail = helpEmail.trim();
-  const cleanMessage = helpMessage.trim();
+    const cleanEmail = helpEmail.trim();
+    const cleanMessage = helpMessage.trim();
 
-  if (!cleanEmail || !cleanMessage) return;
+    if (!cleanEmail || !cleanMessage) return;
 
-  try {
-    setHelpSending(true);
+    try {
+      setHelpSending(true);
 
-    const response = await fetch(`${API_BASE}/api/help-request`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: "Login Screen User",
-        email: cleanEmail,
-        role: "Not Logged In",
-        team: "",
-        division: "",
-        appVersion: "1.0",
-        platform: Platform.OS,
-        message: cleanMessage,
-      }),
-    });
+      const response = await fetchWithTimeout(
+        `${API_BASE}/api/help-request`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: "Login Screen User",
+            email: cleanEmail,
+            role: "Not Logged In",
+            team: "",
+            division: "",
+            appVersion: "1.0",
+            platform: Platform.OS,
+            message: cleanMessage,
+          }),
+        },
+        NETWORK_TIMEOUT_MS,
+      );
 
-    const json = await response.json();
+      const json = await response.json();
 
-    if (!response.ok || !json?.ok) {
+      if (!response.ok || !json?.ok) {
+        showMessage(
+          "error",
+          "Help Request Failed",
+          json?.message || "Help request could not be sent.",
+        );
+        return;
+      }
+
+      setHelpMessage("");
+      setShowHelpModal(false);
       showMessage(
-  "error",
-  "Help Request Failed",
-  json?.message || "Help request could not be sent."
-);
-      return;
+        "success",
+        "Help Request Sent",
+        "Thank you! Your request has been sent to NTABL Support.",
+      );
+    } catch (e) {
+      console.log(e);
+      showMessage(
+        "error",
+        isAbortError(e) ? "Request Timed Out" : "Help Request Failed",
+        isAbortError(e)
+          ? "The request took too long. Please check your internet connection and try again."
+          : "The help request could not be sent. Please check your internet connection and try again.",
+      );
+    } finally {
+      setHelpSending(false);
     }
-
-    setHelpMessage("");
-    setShowHelpModal(false);
-    showMessage(
-  "success",
-  "Help Request Sent",
-  "Thank you! Your request has been sent to NTABL Support."
-);
-  } catch (e) {
-    console.log(e);
-    showMessage(
-  "error",
-  "Help Request Failed",
-  "Help request could not be sent."
-);
-  } finally {
-    setHelpSending(false);
   }
-}
 
   async function handleLogin(
     isAuto = false,
     overrideEmail?: string,
-    overridePassword?: string
+    overridePassword?: string,
   ) {
     const cleanEmail = (overrideEmail || email).trim();
     const cleanPassword = (overridePassword || password).trim();
@@ -202,7 +263,7 @@ export default function Login() {
         showMessage(
           "warning",
           "Missing Info",
-          "Please enter your email and password."
+          "Please enter your email and password.",
         );
       }
 
@@ -213,16 +274,20 @@ export default function Login() {
       Keyboard.dismiss();
       setLoading(true);
 
-      const response = await fetch(`${API_BASE}/api/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetchWithTimeout(
+        `${API_BASE}/api/auth/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: cleanEmail,
+            password: cleanPassword,
+          }),
         },
-        body: JSON.stringify({
-          email: cleanEmail,
-          password: cleanPassword,
-        }),
-      });
+        NETWORK_TIMEOUT_MS,
+      );
 
       const data = await response.json();
 
@@ -230,7 +295,7 @@ export default function Login() {
         showMessage(
           "error",
           "Login Failed",
-          data.message || "Unable to log in."
+          data.message || "Unable to log in.",
         );
         return;
       }
@@ -253,9 +318,12 @@ export default function Login() {
       console.log(error);
       showMessage(
         "error",
-        "Connection Error",
-        "Could not reach the backend. Make sure your backend is running and your phone is on the same Wi-Fi."
+        isAbortError(error) ? "Login Timed Out" : "Connection Error",
+        isAbortError(error)
+          ? "The NTABL server took too long to respond. Please wait a moment and try again."
+          : "Unable to connect to NTABL servers. Please check your internet connection and try again. If the problem continues, try again in a few minutes or contact NTABL Support.",
       );
+      setServerStatus("unavailable");
     } finally {
       setLoading(false);
     }
@@ -269,7 +337,7 @@ export default function Login() {
       showMessage(
         "warning",
         "Missing Info",
-        "Please enter the announcer username and password."
+        "Please enter the announcer username and password.",
       );
       return;
     }
@@ -278,16 +346,20 @@ export default function Login() {
       Keyboard.dismiss();
       setLoading(true);
 
-      const response = await fetch(`${API_BASE}/api/auth/announcer-login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetchWithTimeout(
+        `${API_BASE}/api/auth/announcer-login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: cleanUsername,
+            password: cleanPassword,
+          }),
         },
-        body: JSON.stringify({
-          username: cleanUsername,
-          password: cleanPassword,
-        }),
-      });
+        NETWORK_TIMEOUT_MS,
+      );
 
       const data = await response.json();
 
@@ -295,7 +367,7 @@ export default function Login() {
         showMessage(
           "error",
           "Announcer Login Failed",
-          data.message || "Unable to Log In as Announcer."
+          data.message || "Unable to Log In as Announcer.",
         );
         return;
       }
@@ -306,17 +378,22 @@ export default function Login() {
       console.log(error);
       showMessage(
         "error",
-        "Connection Error",
-        "Could Not Reach the Backend. Make Sure Your Backend is Running and Your Phone is on the Same Wi-Fi."
+        isAbortError(error) ? "Login Timed Out" : "Connection Error",
+        isAbortError(error)
+          ? "The NTABL server took too long to respond. Please wait a moment and try again."
+          : "Unable to connect to NTABL servers. Please check your internet connection and try again. If the problem continues, try again in a few minutes or contact NTABL Support.",
       );
+      setServerStatus("unavailable");
     } finally {
       setLoading(false);
     }
   }
 
-    const isError = modalType === "error";
+  const isError = modalType === "error";
   const isWarning = modalType === "warning";
   const isChoice = modalType === "choice";
+  const appVersion = Constants.expoConfig?.version || "1.0.0";
+  const buildNumber = Constants.expoConfig?.ios?.buildNumber || "2";
 
   return (
     <>
@@ -326,189 +403,265 @@ export default function Login() {
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-<ScrollView
-  contentContainerStyle={[
-    styles.scrollContent,
-    isTabletLayout && styles.scrollContentTablet,
-  ]}
-  showsVerticalScrollIndicator={false}
-  keyboardShouldPersistTaps="handled"
->
-<View
-  style={[
-    styles.card,
-    isTabletLayout && styles.cardTablet,
-    isShortScreen && styles.cardShort,
-  ]}
->
-          <Image
-            source={require("../assets/NTABL-Logo.png")}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-
-          <Text style={styles.mainTitle}>NTABL</Text>
-          <Text style={styles.eventTitle}>Charity</Text>
-          <Text style={styles.eventTitle}>All-Star Games</Text>
-
-                    <Text style={styles.benefitText}>
-            Benefiting Texas Scottish Rite for Children
-          </Text>
-          <Text style={styles.versionText}>Version 1.0</Text>
-
-          <View style={styles.formSection}>
-            <TextInput
-              style={styles.input}
-              placeholder="Email / Username"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              autoComplete="email"
-              textContentType="emailAddress"
-              editable={!loading}
-              returnKeyType="next"
-              placeholderTextColor="#9ca3af"
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            isTabletLayout && styles.scrollContentTablet,
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View
+            style={[
+              styles.card,
+              isTabletLayout && styles.cardTablet,
+              isShortScreen && styles.cardShort,
+            ]}
+          >
+            <Image
+              source={require("../assets/NTABL-Logo.png")}
+              style={styles.logo}
+              resizeMode="contain"
             />
 
-            <View style={styles.passwordContainer}>
+            <Text style={styles.mainTitle}>NTABL</Text>
+            <Text style={styles.eventTitle}>Charity</Text>
+            <Text style={styles.eventTitle}>All-Star Games</Text>
+
+            <Text style={styles.benefitText}>
+              Benefiting Texas Scottish Rite for Children
+            </Text>
+            <Text style={styles.versionText}>
+              Version {appVersion} • Build {buildNumber}
+            </Text>
+
+            <View
+              style={[
+                styles.serverStatusBox,
+                serverStatus === "ready" && styles.serverReadyBox,
+                serverStatus === "unavailable" && styles.serverUnavailableBox,
+              ]}
+            >
+              {serverStatus === "checking" ? (
+                <>
+                  <ActivityIndicator size="small" color="#1d4ed8" />
+                  <View style={styles.serverStatusTextWrap}>
+                    <Text style={styles.serverStatusTitle}>
+                      Connecting to NTABL Servers...
+                    </Text>
+                    <Text style={styles.serverStatusMessage}>
+                      This may take a few moments on first launch.
+                    </Text>
+                  </View>
+                </>
+              ) : serverStatus === "ready" ? (
+                <>
+                  <Ionicons name="checkmark-circle" size={22} color="#15803d" />
+                  <View style={styles.serverStatusTextWrap}>
+                    <Text
+                      style={[styles.serverStatusTitle, styles.serverReadyText]}
+                    >
+                      NTABL Servers Ready
+                    </Text>
+                    <Text style={styles.serverStatusMessage}>
+                      You may sign in.
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Ionicons
+                    name="cloud-offline-outline"
+                    size={22}
+                    color="#c62828"
+                  />
+                  <View style={styles.serverStatusTextWrap}>
+                    <Text
+                      style={[
+                        styles.serverStatusTitle,
+                        styles.serverUnavailableText,
+                      ]}
+                    >
+                      Server Connection Delayed
+                    </Text>
+                    <Text style={styles.serverStatusMessage}>
+                      You may still try to sign in, or tap Retry.
+                    </Text>
+                  </View>
+                  <Pressable
+                    style={styles.retryServerButton}
+                    onPress={checkServerAvailability}
+                    disabled={checkingServer}
+                  >
+                    <Text style={styles.retryServerButtonText}>Retry</Text>
+                  </Pressable>
+                </>
+              )}
+            </View>
+
+            <View style={styles.formSection}>
               <TextInput
-                style={styles.passwordInput}
-                placeholder="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
+                style={styles.input}
+                placeholder="Email / Username"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                autoComplete="email"
+                textContentType="emailAddress"
                 editable={!loading}
-                autoComplete="password"
-                textContentType="password"
-                returnKeyType="done"
-                onSubmitEditing={() => handleLogin()}
+                returnKeyType="next"
                 placeholderTextColor="#9ca3af"
               />
 
-              <Pressable
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeButton}
-              >
-                <Ionicons
-                  name={showPassword ? "eye-off-outline" : "eye-outline"}
-                  size={22}
-                  color="#6b7280"
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Password"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  editable={!loading}
+                  autoComplete="password"
+                  textContentType="password"
+                  returnKeyType="done"
+                  onSubmitEditing={() => handleLogin()}
+                  placeholderTextColor="#9ca3af"
                 />
+
+                <Pressable
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeButton}
+                >
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={22}
+                    color="#6b7280"
+                  />
+                </Pressable>
+              </View>
+
+              <Pressable
+                onPress={() => router.push("/forgotpassword")}
+                disabled={loading}
+                style={styles.forgotPasswordButton}
+              >
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
               </Pressable>
             </View>
 
             <Pressable
-              onPress={() => router.push("/forgotpassword")}
+              style={styles.managerLoginButton}
+              onPress={() => handleLogin()}
               disabled={loading}
-              style={styles.forgotPasswordButton}
             >
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              {loading ? (
+                <View style={styles.buttonContentRow}>
+                  <ActivityIndicator
+                    color="#ffffff"
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text style={styles.buttonText}>Signing In...</Text>
+                </View>
+              ) : (
+                <View style={styles.buttonContentRow}>
+                  <Ionicons
+                    name="baseball-outline"
+                    size={22}
+                    color="#ffffff"
+                    style={{ marginRight: 8 }}
+                  />
+
+                  <Text style={styles.buttonText}>Manager & Player Login</Text>
+                </View>
+              )}
             </Pressable>
-          </View>
 
-          <Pressable
-            style={styles.managerLoginButton}
-            onPress={() => handleLogin()}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <View style={styles.buttonContentRow}>
-                <Ionicons
-                  name="baseball-outline"
-                  size={22}
-                  color="#ffffff"
-                  style={{ marginRight: 8 }}
-                />
+            {showBiometricLogin && (
+              <Pressable
+                style={styles.biometricButton}
+                onPress={handleBiometricLogin}
+                disabled={loading}
+              >
+                <View style={styles.buttonContentRow}>
+                  <Ionicons
+                    name="finger-print-outline"
+                    size={22}
+                    color="#ffffff"
+                    style={{ marginRight: 8 }}
+                  />
 
-                <Text style={styles.buttonText}>Manager & Player Login</Text>
-              </View>
+                  <Text style={styles.buttonText}>
+                    Use Fingerprint / Face ID
+                  </Text>
+                </View>
+              </Pressable>
             )}
-          </Pressable>
 
-          {showBiometricLogin && (
             <Pressable
-              style={styles.biometricButton}
-              onPress={handleBiometricLogin}
+              style={styles.donateButton}
+              onPress={() => router.push("/donate")}
               disabled={loading}
             >
               <View style={styles.buttonContentRow}>
                 <Ionicons
-                  name="finger-print-outline"
+                  name="heart"
                   size={22}
                   color="#ffffff"
                   style={{ marginRight: 8 }}
                 />
 
-                <Text style={styles.buttonText}>Use Fingerprint / Face ID</Text>
+                <Text style={styles.buttonText}>Donate</Text>
               </View>
             </Pressable>
-          )}
 
-          <Pressable
-            style={styles.donateButton}
-            onPress={() => router.push("/donate")}
-            disabled={loading}
-          >
-            <View style={styles.buttonContentRow}>
-              <Ionicons
-                name="heart"
-                size={22}
-                color="#ffffff"
-                style={{ marginRight: 8 }}
-              />
+            <Pressable
+              style={styles.announcerButton}
+              onPress={handleAnnouncerLogin}
+              disabled={loading}
+            >
+              <View style={styles.buttonContentRow}>
+                <Ionicons
+                  name="mic-outline"
+                  size={22}
+                  color="#ffffff"
+                  style={{ marginRight: 8 }}
+                />
 
-              <Text style={styles.buttonText}>Donate</Text>
+                <Text style={styles.buttonText}>Announcer Login</Text>
+              </View>
+            </Pressable>
+            <Pressable
+              style={styles.helpButton}
+              onPress={() => {
+                setHelpEmail(email.trim());
+                setShowHelpModal(true);
+              }}
+              disabled={loading}
+            >
+              <View style={styles.buttonContentRow}>
+                <Ionicons
+                  name="help-circle-outline"
+                  size={22}
+                  color="#111827"
+                  style={{ marginRight: 8 }}
+                />
+
+                <Text style={styles.helpButtonText}>
+                  Need Login Assistance?
+                </Text>
+              </View>
+            </Pressable>
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>
+                © 2026 North Texas Adult Baseball League
+              </Text>
+              <Text style={styles.footerSubText}>
+                Designed & Developed by Shawn Lee
+              </Text>
             </View>
-          </Pressable>
-
-          <Pressable
-            style={styles.announcerButton}
-            onPress={handleAnnouncerLogin}
-            disabled={loading}
-          >
-            <View style={styles.buttonContentRow}>
-              <Ionicons
-                name="mic-outline"
-                size={22}
-                color="#ffffff"
-                style={{ marginRight: 8 }}
-              />
-
-              <Text style={styles.buttonText}>Announcer Login</Text>
-            </View>
-          </Pressable>
-<Pressable
-  style={styles.helpButton}
-  onPress={() => {
-  setHelpEmail(email.trim());
-  setShowHelpModal(true);
-}}
-  disabled={loading}
->
-  <View style={styles.buttonContentRow}>
-    <Ionicons
-      name="help-circle-outline"
-      size={22}
-      color="#111827"
-      style={{ marginRight: 8 }}
-    />
-
-    <Text style={styles.helpButtonText}>Need Login Assistance?</Text>
-  </View>
-</Pressable>
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>
-              © 2026 North Texas Adult Baseball League
-            </Text>
-            <Text style={styles.footerSubText}>
-              Designed & Developed by Shawn Lee
-            </Text>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
       </KeyboardAvoidingView>
       <Modal
         visible={modalVisible}
@@ -530,20 +683,20 @@ export default function Login() {
                 isError
                   ? "alert-circle"
                   : isWarning
-                  ? "warning"
-                  : isChoice
-                  ? "finger-print-outline"
-                  : "checkmark-circle"
+                    ? "warning"
+                    : isChoice
+                      ? "finger-print-outline"
+                      : "checkmark-circle"
               }
               size={54}
               color={
                 isError
                   ? "#c62828"
                   : isWarning
-                  ? "#f97316"
-                  : isChoice
-                  ? "#1d4ed8"
-                  : "#15803d"
+                    ? "#f97316"
+                    : isChoice
+                      ? "#1d4ed8"
+                      : "#15803d"
               }
               style={{ marginBottom: 10 }}
             />
@@ -683,7 +836,9 @@ export default function Login() {
                   },
                 ]}
                 onPress={sendHelpRequest}
-                disabled={!helpEmail.trim() || !helpMessage.trim() || helpSending}
+                disabled={
+                  !helpEmail.trim() || !helpMessage.trim() || helpSending
+                }
               >
                 <Text style={styles.choiceButtonText}>
                   {helpSending ? "Sending..." : "Send"}
@@ -698,33 +853,33 @@ export default function Login() {
 }
 
 const styles = StyleSheet.create({
-container: {
-  flex: 1,
-  backgroundColor: "#eef2f7",
-},
-
-scrollContent: {
-  flexGrow: 1,
-  justifyContent: "flex-start",
-  paddingHorizontal: 20,
-  paddingTop: 40,
-  paddingBottom: 60,
-},
-
-card: {
-  backgroundColor: "#ffffff",
-  borderRadius: 20,
-  padding: 22,
-
-  shadowColor: "#000000",
-  shadowOpacity: 0.12,
-  shadowRadius: 12,
-  shadowOffset: {
-    width: 0,
-    height: 6,
+  container: {
+    flex: 1,
+    backgroundColor: "#eef2f7",
   },
-  elevation: 8,
-},
+
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "flex-start",
+    paddingHorizontal: 20,
+    paddingTop: 40,
+    paddingBottom: 60,
+  },
+
+  card: {
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 22,
+
+    shadowColor: "#000000",
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    elevation: 8,
+  },
 
   logo: {
     width: 150,
@@ -733,39 +888,101 @@ card: {
     marginBottom: 8,
   },
 
-mainTitle: {
-  fontSize: 34,
-  fontWeight: "900",
-  color: "#1f4e9e",
-  textAlign: "center",
-  marginBottom: 2,
-},
+  mainTitle: {
+    fontSize: 34,
+    fontWeight: "900",
+    color: "#1f4e9e",
+    textAlign: "center",
+    marginBottom: 2,
+  },
 
-eventTitle: {
-  fontSize: 28,
-  fontWeight: "800",
-  color: "#1f4e9e",
-  textAlign: "center",
-  lineHeight: 30,
-},
+  eventTitle: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#1f4e9e",
+    textAlign: "center",
+    lineHeight: 30,
+  },
 
-versionText: {
-  color: "#1f4e9e",
-  fontSize: 13,
-  fontWeight: "800",
-  textAlign: "center",
-  marginTop: 2,
-  marginBottom: 8,
-},
+  versionText: {
+    color: "#1f4e9e",
+    fontSize: 13,
+    fontWeight: "800",
+    textAlign: "center",
+    marginTop: 2,
+    marginBottom: 8,
+  },
 
-benefitText: {
-  color: "#6b7280",
-  fontSize: 13,
-  fontWeight: "700",
-  textAlign: "center",
-  marginTop: 4,
-  marginBottom: 2,
-},
+  benefitText: {
+    color: "#6b7280",
+    fontSize: 13,
+    fontWeight: "700",
+    textAlign: "center",
+    marginTop: 4,
+    marginBottom: 2,
+  },
+
+  serverStatusBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#eef4fb",
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+  },
+
+  serverReadyBox: {
+    backgroundColor: "#f0fdf4",
+    borderColor: "#bbf7d0",
+  },
+
+  serverUnavailableBox: {
+    backgroundColor: "#fef2f2",
+    borderColor: "#fecaca",
+  },
+
+  serverStatusTextWrap: {
+    flex: 1,
+    marginLeft: 9,
+  },
+
+  serverStatusTitle: {
+    color: "#1f4e9e",
+    fontSize: 13,
+    fontWeight: "900",
+  },
+
+  serverReadyText: {
+    color: "#15803d",
+  },
+
+  serverUnavailableText: {
+    color: "#c62828",
+  },
+
+  serverStatusMessage: {
+    color: "#6b7280",
+    fontSize: 11,
+    fontWeight: "700",
+    marginTop: 2,
+  },
+
+  retryServerButton: {
+    backgroundColor: "#c62828",
+    borderRadius: 9,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginLeft: 8,
+  },
+
+  retryServerButtonText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "900",
+  },
 
   formSection: {
     marginTop: 2,
@@ -883,15 +1100,15 @@ benefitText: {
     marginTop: 2,
   },
 
-modalOverlay: {
-  ...modalStyles.overlay,
-},
+  modalOverlay: {
+    ...modalStyles.overlay,
+  },
 
-messageModal: {
-  ...modalStyles.card,
-  alignItems: "center",
-  elevation: 12,
-},
+  messageModal: {
+    ...modalStyles.card,
+    alignItems: "center",
+    elevation: 12,
+  },
 
   errorModal: {
     borderWidth: 3,
@@ -990,76 +1207,75 @@ messageModal: {
   },
 
   scrollContentTablet: {
-  paddingTop: 28,
-  paddingBottom: 28,
-},
+    paddingTop: 28,
+    paddingBottom: 28,
+  },
 
-cardTablet: {
-  minHeight: "94%",
-  justifyContent: "center",
-},
+  cardTablet: {
+    minHeight: "94%",
+    justifyContent: "center",
+  },
 
-cardShort: {
-  paddingVertical: 18,
-},
+  cardShort: {
+    paddingVertical: 18,
+  },
 
-helpButton: {
-  marginTop: 12,
-  backgroundColor: "#d1d5db",
-  borderRadius: 12,
-  paddingVertical: 14,
-  alignItems: "center",
-},
+  helpButton: {
+    marginTop: 12,
+    backgroundColor: "#d1d5db",
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
 
-helpButtonText: {
-  color: "#111827",
-  fontSize: 16,
-  fontWeight: "900",
-},
+  helpButtonText: {
+    color: "#111827",
+    fontSize: 16,
+    fontWeight: "900",
+  },
 
-helpFieldLabel: {
-  alignSelf: "flex-start",
-  color: "#6b7280",
-  fontSize: 12,
-  fontWeight: "900",
-  textTransform: "uppercase",
-  marginTop: 10,
-  marginBottom: 4,
-},
+  helpFieldLabel: {
+    alignSelf: "flex-start",
+    color: "#6b7280",
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase",
+    marginTop: 10,
+    marginBottom: 4,
+  },
 
-helpEmailInput: {
-  width: "100%",
-  borderWidth: 1,
-  borderColor: "#d1d5db",
-  borderRadius: 12,
-  padding: 12,
-  color: "#111827",
-  fontSize: 15,
-  fontWeight: "700",
-  backgroundColor: "#ffffff",
-  marginBottom: 8,
-},
+  helpEmailInput: {
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 12,
+    padding: 12,
+    color: "#111827",
+    fontSize: 15,
+    fontWeight: "700",
+    backgroundColor: "#ffffff",
+    marginBottom: 8,
+  },
 
-helpMessageInput: {
-  width: "100%",
-  minHeight: 120,
-  borderWidth: 1,
-  borderColor: "#d1d5db",
-  borderRadius: 12,
-  padding: 12,
-  color: "#111827",
-  fontSize: 15,
-  fontWeight: "700",
-  textAlignVertical: "top",
-  backgroundColor: "#ffffff",
-},
+  helpMessageInput: {
+    width: "100%",
+    minHeight: 120,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 12,
+    padding: 12,
+    color: "#111827",
+    fontSize: 15,
+    fontWeight: "700",
+    textAlignVertical: "top",
+    backgroundColor: "#ffffff",
+  },
 
-helpCounter: {
-  alignSelf: "flex-end",
-  color: "#6b7280",
-  fontSize: 12,
-  fontWeight: "800",
-  marginTop: 6,
-},
-
+  helpCounter: {
+    alignSelf: "flex-end",
+    color: "#6b7280",
+    fontSize: 12,
+    fontWeight: "800",
+    marginTop: 6,
+  },
 });
