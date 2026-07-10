@@ -29,6 +29,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.ntabl.allstargames",
+      "buildNumber": "2",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
