@@ -11,6 +11,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   useWindowDimensions,
   View,
@@ -19,6 +20,12 @@ import { clearAdminLogin, isAdminLoggedIn } from "../stores/adminstore";
 import { adminFetch, API_BASE } from "../utils/appconfig";
 import { modalStyles } from "../utils/modalStyles";
 
+type LeagueAppsSource = {
+  id: string;
+  name: string;
+  enabled: boolean;
+};
+
 type Division = {
   id: string;
   name: string;
@@ -26,6 +33,7 @@ type Division = {
   maxPitchers: number;
   maxPositionPlayers: number;
   isLocked: boolean;
+  leagueAppsSources?: LeagueAppsSource[];
 };
 
 type Team = {
@@ -67,6 +75,12 @@ export default function DivisionConfigScreen() {
 
   const [showPosModal, setShowPosModal] = useState(false);
   const [showPitModal, setShowPitModal] = useState(false);
+  const [showLeagueSourceModal, setShowLeagueSourceModal] = useState(false);
+  const [editingLeagueSourceIndex, setEditingLeagueSourceIndex] = useState<number | null>(null);
+  const [leagueSourceName, setLeagueSourceName] = useState("");
+  const [leagueSourceId, setLeagueSourceId] = useState("");
+  const [leagueSourceEnabled, setLeagueSourceEnabled] = useState(false);
+  const [savingLeagueSources, setSavingLeagueSources] = useState(false);
 
   const { width, height } = useWindowDimensions();
   const isTabletLayout = width >= 700;
@@ -286,6 +300,111 @@ export default function DivisionConfigScreen() {
       console.log("SAVE LIMITS ERROR:", e);
       showToast("Save Failed");
     }
+  }
+
+  function getLeagueSources(division: Division | null) {
+    return Array.isArray(division?.leagueAppsSources)
+      ? division!.leagueAppsSources!
+      : [];
+  }
+
+  function openLeagueSourceModal(source?: LeagueAppsSource, index?: number) {
+    setEditingLeagueSourceIndex(typeof index === "number" ? index : null);
+    setLeagueSourceName(source?.name || "");
+    setLeagueSourceId(source?.id || "");
+    setLeagueSourceEnabled(source?.enabled === true);
+    setShowLeagueSourceModal(true);
+  }
+
+  function closeLeagueSourceModal() {
+    setShowLeagueSourceModal(false);
+    setEditingLeagueSourceIndex(null);
+    setLeagueSourceName("");
+    setLeagueSourceId("");
+    setLeagueSourceEnabled(false);
+  }
+
+  async function persistLeagueSources(nextSources: LeagueAppsSource[]) {
+    if (!selectedDivision) return false;
+
+    try {
+      setSavingLeagueSources(true);
+      const response = await adminFetch(
+        `${API_BASE}/api/admin/divisions/${selectedDivision.id}/league-sources`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sources: nextSources }),
+        }
+      );
+      const json = await response.json();
+
+      if (!response.ok || !json?.ok) {
+        throw new Error(json?.message || "LeagueApps sources could not be saved.");
+      }
+
+      const updatedDivision = json.division as Division;
+      setSelectedDivision(updatedDivision);
+      setDivisions((current) =>
+        current.map((division) =>
+          division.id === updatedDivision.id ? updatedDivision : division
+        )
+      );
+      setTeams([]);
+      await loadTeams(updatedDivision);
+      showToast("League Sources Saved!");
+      return true;
+    } catch (e) {
+      console.log("SAVE LEAGUE SOURCES ERROR:", e);
+      showToast("League Source Save Failed");
+      return false;
+    } finally {
+      setSavingLeagueSources(false);
+    }
+  }
+
+  async function saveLeagueSource() {
+    const cleanName = leagueSourceName.trim();
+    const cleanId = leagueSourceId.trim();
+
+    if (!cleanName || !/^\d+$/.test(cleanId)) {
+      showToast("Enter a Name and Numeric League ID");
+      return;
+    }
+
+    const current = [...getLeagueSources(selectedDivision)];
+    const duplicateIndex = current.findIndex((source) => source.id === cleanId);
+
+    if (duplicateIndex >= 0 && duplicateIndex !== editingLeagueSourceIndex) {
+      showToast("That League ID Already Exists");
+      return;
+    }
+
+    const nextSource = {
+      id: cleanId,
+      name: cleanName,
+      enabled: leagueSourceEnabled,
+    };
+
+    if (editingLeagueSourceIndex === null) current.push(nextSource);
+    else current[editingLeagueSourceIndex] = nextSource;
+
+    if (await persistLeagueSources(current)) closeLeagueSourceModal();
+  }
+
+  async function removeLeagueSource() {
+    if (editingLeagueSourceIndex === null) return;
+    const current = getLeagueSources(selectedDivision).filter(
+      (_, index) => index !== editingLeagueSourceIndex
+    );
+    if (await persistLeagueSources(current)) closeLeagueSourceModal();
+  }
+
+  async function toggleLeagueSource(index: number) {
+    const current = getLeagueSources(selectedDivision).map((source, sourceIndex) =>
+      sourceIndex === index ? { ...source, enabled: !source.enabled } : source
+    );
+    await persistLeagueSources(current);
   }
 
   function renderDivisionList() {
@@ -576,6 +695,64 @@ export default function DivisionConfigScreen() {
           </View>
         </View>
 
+        <View style={styles.leagueSourcesCard}>
+          <Text style={styles.leagueSourcesTitle}>LeagueApps Sources</Text>
+          <Text style={styles.leagueSourcesHelp}>
+            Only enabled leagues appear for managers, rosters, submissions, waivers, and reports.
+          </Text>
+
+          {getLeagueSources(selectedDivision).map((source, index) => (
+            <View key={`${source.id}-${index}`} style={styles.leagueSourceRow}>
+              <View style={styles.leagueSourceText}>
+                <Text style={styles.leagueSourceName}>{source.name}</Text>
+                <Text style={styles.leagueSourceId}>League ID: {source.id}</Text>
+                <Text
+                  style={[
+                    styles.leagueSourceStatus,
+                    source.enabled ? styles.sourceEnabledText : styles.sourceDisabledText,
+                  ]}
+                >
+                  {source.enabled ? "INCLUDED IN ALL-STAR APP" : "EXCLUDED FROM ALL-STAR APP"}
+                </Text>
+              </View>
+
+              <View style={styles.leagueSourceActions}>
+                <TouchableOpacity
+                  style={[
+                    styles.sourceToggleButton,
+                    source.enabled ? styles.sourceDisableButton : styles.sourceEnableButton,
+                  ]}
+                  onPress={() => toggleLeagueSource(index)}
+                  disabled={savingLeagueSources}
+                >
+                  <Text style={styles.sourceActionText}>
+                    {source.enabled ? "Disable" : "Enable"}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.sourceEditButton}
+                  onPress={() => openLeagueSourceModal(source, index)}
+                  disabled={savingLeagueSources}
+                >
+                  <Text style={styles.sourceActionText}>Edit</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+
+          <TouchableOpacity
+            style={styles.addLeagueSourceButton}
+            onPress={() => openLeagueSourceModal()}
+            disabled={savingLeagueSources}
+          >
+            <View style={styles.buttonContentRow}>
+              <Ionicons name="add-circle-outline" size={20} color="#ffffff" style={{ marginRight: 7 }} />
+              <Text style={styles.addLeagueSourceText}>Add League Source</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
         {loadingTeams ? (
           <View style={styles.loadingCard}>
             <ActivityIndicator size="small" color="#1d4ed8" />
@@ -701,6 +878,82 @@ export default function DivisionConfigScreen() {
                 <Text style={styles.modalOptionText}>{i}</Text>
               </TouchableOpacity>
             ))}
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showLeagueSourceModal}
+        transparent
+        animationType="fade"
+        onRequestClose={closeLeagueSourceModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.leagueSourceModalCard}>
+            <Ionicons name="cloud-outline" size={48} color="#1d4ed8" style={{ marginBottom: 8 }} />
+            <Text style={styles.modalTitle}>LeagueApps Source</Text>
+
+            <Text style={styles.sourceFieldLabel}>Display Name</Text>
+            <TextInput
+              style={styles.sourceInput}
+              value={leagueSourceName}
+              onChangeText={setLeagueSourceName}
+              placeholder="Example: 2026 Summer Rookie"
+              placeholderTextColor="#9ca3af"
+            />
+
+            <Text style={styles.sourceFieldLabel}>LeagueApps League ID</Text>
+            <TextInput
+              style={styles.sourceInput}
+              value={leagueSourceId}
+              onChangeText={setLeagueSourceId}
+              keyboardType="numeric"
+              placeholder="Example: 5009019"
+              placeholderTextColor="#9ca3af"
+            />
+
+            <TouchableOpacity
+              style={[
+                styles.sourceModalToggle,
+                leagueSourceEnabled ? styles.sourceModalEnabled : styles.sourceModalDisabled,
+              ]}
+              onPress={() => setLeagueSourceEnabled((current) => !current)}
+            >
+              <Ionicons
+                name={leagueSourceEnabled ? "checkmark-circle" : "close-circle"}
+                size={22}
+                color="#ffffff"
+                style={{ marginRight: 7 }}
+              />
+              <Text style={styles.sourceModalToggleText}>
+                {leagueSourceEnabled ? "Included in All-Star App" : "Excluded from All-Star App"}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.sourceModalButtonRow}>
+              <TouchableOpacity style={styles.sourceCancelButton} onPress={closeLeagueSourceModal}>
+                <Text style={styles.sourceActionText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.sourceSaveButton}
+                onPress={saveLeagueSource}
+                disabled={savingLeagueSources}
+              >
+                <Text style={styles.sourceActionText}>
+                  {savingLeagueSources ? "Saving..." : "Save"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {editingLeagueSourceIndex !== null && (
+              <TouchableOpacity
+                style={styles.sourceRemoveButton}
+                onPress={removeLeagueSource}
+                disabled={savingLeagueSources}
+              >
+                <Text style={styles.sourceActionText}>Remove League Source</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </Modal>
@@ -1259,6 +1512,66 @@ saveToastText: {
   fontWeight: "900",
   textAlign: "center",
 },
+
+  leagueSourcesCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 14,
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  leagueSourcesTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: "#1f4e9e",
+    textAlign: "center",
+  },
+  leagueSourcesHelp: {
+    color: "#6b7280",
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "center",
+    lineHeight: 17,
+    marginTop: 5,
+    marginBottom: 12,
+  },
+  leagueSourceRow: {
+    borderWidth: 1,
+    borderColor: "#dbe5f1",
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 10,
+    backgroundColor: "#f8fafc",
+  },
+  leagueSourceText: { marginBottom: 10 },
+  leagueSourceName: { fontSize: 16, fontWeight: "900", color: "#111827" },
+  leagueSourceId: { color: "#6b7280", fontWeight: "800", marginTop: 3 },
+  leagueSourceStatus: { fontSize: 11, fontWeight: "900", marginTop: 6 },
+  sourceEnabledText: { color: "#15803d" },
+  sourceDisabledText: { color: "#c62828" },
+  leagueSourceActions: { flexDirection: "row" },
+  sourceToggleButton: { flex: 1, borderRadius: 10, paddingVertical: 10, alignItems: "center", marginRight: 5 },
+  sourceEnableButton: { backgroundColor: "#15803d" },
+  sourceDisableButton: { backgroundColor: "#c62828" },
+  sourceEditButton: { flex: 1, backgroundColor: "#1d4ed8", borderRadius: 10, paddingVertical: 10, alignItems: "center", marginLeft: 5 },
+  sourceActionText: { color: "#ffffff", fontWeight: "900", fontSize: 14 },
+  addLeagueSourceButton: { backgroundColor: "#1f4e9e", borderRadius: 12, paddingVertical: 13, alignItems: "center", marginTop: 2 },
+  addLeagueSourceText: { color: "#ffffff", fontSize: 15, fontWeight: "900" },
+  leagueSourceModalCard: { ...modalStyles.card, alignItems: "center" },
+  sourceFieldLabel: { alignSelf: "flex-start", color: "#6b7280", fontSize: 12, fontWeight: "900", textTransform: "uppercase", marginTop: 8, marginBottom: 4 },
+  sourceInput: { width: "100%", borderWidth: 1, borderColor: "#d1d5db", borderRadius: 12, paddingVertical: 12, paddingHorizontal: 12, color: "#111827", fontSize: 15, fontWeight: "700", backgroundColor: "#ffffff" },
+  sourceModalToggle: { width: "100%", flexDirection: "row", justifyContent: "center", alignItems: "center", borderRadius: 12, paddingVertical: 12, marginTop: 14 },
+  sourceModalEnabled: { backgroundColor: "#15803d" },
+  sourceModalDisabled: { backgroundColor: "#c62828" },
+  sourceModalToggleText: { color: "#ffffff", fontSize: 15, fontWeight: "900" },
+  sourceModalButtonRow: { flexDirection: "row", width: "100%", marginTop: 16 },
+  sourceCancelButton: { flex: 1, backgroundColor: "#6b7280", borderRadius: 10, paddingVertical: 12, alignItems: "center", marginRight: 6 },
+  sourceSaveButton: { flex: 1, backgroundColor: "#1d4ed8", borderRadius: 10, paddingVertical: 12, alignItems: "center", marginLeft: 6 },
+  sourceRemoveButton: { width: "100%", backgroundColor: "#c62828", borderRadius: 10, paddingVertical: 12, alignItems: "center", marginTop: 10 },
 
   versionFooter: {
     color: "#6b7280",
