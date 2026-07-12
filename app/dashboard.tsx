@@ -12,7 +12,11 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { clearManagerContext, getManagerContext } from "../stores/store";
+import {
+  clearManagerContext,
+  getManagerContext,
+  switchManagerAssignment,
+} from "../stores/store";
 import { API_BASE } from "../utils/appconfig";
 import { modalStyles } from "../utils/modalStyles";
 
@@ -38,6 +42,9 @@ type ManagerData = {
     squad: string;
     divisionIds: string[];
   };
+  assignmentKey?: string;
+  activeAssignmentKey?: string;
+  assignments?: ManagerData[];
 };
 
 const teamLogoImages: Record<string, any> = {
@@ -122,6 +129,8 @@ export default function Dashboard() {
   const [supportModalType, setSupportModalType] = useState<"success" | "error">("success");
   const [supportModalTitle, setSupportModalTitle] = useState("");
   const [supportModalMessage, setSupportModalMessage] = useState("");
+  const [showTeamSwitcher, setShowTeamSwitcher] = useState(false);
+  const [switchingTeam, setSwitchingTeam] = useState(false);
   const isTabletLayout = width >= 700;
   const isShortScreen = height < 760;
   const isPlayer =
@@ -243,6 +252,39 @@ async function handleLogout() {
     router.replace("/login");
   } catch (e) {
     console.log(e);
+  }
+}
+
+
+async function handleSwitchTeam(assignmentKey: string) {
+  try {
+    setSwitchingTeam(true);
+    const nextManager = await switchManagerAssignment(assignmentKey);
+
+    if (!nextManager) {
+      showSupportMessage(
+        "error",
+        "Team Switch Failed",
+        "That team assignment could not be loaded. Please log out and try again."
+      );
+      return;
+    }
+
+    setShowTeamSwitcher(false);
+    setManagerData(nextManager);
+    setStatus("Not Submitted");
+    setWaiverSigned(false);
+    setShowWaiverPrompt(false);
+    await loadScreen();
+  } catch (e) {
+    console.log(e);
+    showSupportMessage(
+      "error",
+      "Team Switch Failed",
+      "The selected team could not be loaded. Please try again."
+    );
+  } finally {
+    setSwitchingTeam(false);
   }
 }
 
@@ -411,6 +453,36 @@ async function sendHelpRequest() {
               </View>
             </View>
           </View>
+
+{Array.isArray(managerData?.assignments) && managerData.assignments.length > 1 && (
+  <View
+    style={[
+      styles.teamSwitcherCard,
+      isTabletLayout && styles.cardTablet,
+    ]}
+  >
+    <View style={styles.teamSwitcherTextWrap}>
+      <Text style={styles.teamSwitcherLabel}>CURRENT TEAM ASSIGNMENT</Text>
+      <Text style={styles.teamSwitcherTeam}>{managerData?.teamName || ""}</Text>
+      <Text style={styles.teamSwitcherDivision}>{managerData?.division || ""}</Text>
+    </View>
+
+    <Pressable
+      style={styles.switchTeamButton}
+      onPress={() => setShowTeamSwitcher(true)}
+    >
+      <View style={styles.buttonContentRow}>
+        <Ionicons
+          name="swap-horizontal-outline"
+          size={20}
+          color="#ffffff"
+          style={{ marginRight: 6 }}
+        />
+        <Text style={styles.switchTeamButtonText}>Switch Team</Text>
+      </View>
+    </Pressable>
+  </View>
+)}
 
           <View
   style={[
@@ -675,6 +747,79 @@ async function sendHelpRequest() {
 </Text>
         </ScrollView>
       </View>
+      <Modal
+  visible={showTeamSwitcher}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setShowTeamSwitcher(false)}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.teamSwitcherModal}>
+      <Ionicons
+        name="swap-horizontal-outline"
+        size={52}
+        color="#1d4ed8"
+        style={{ marginBottom: 8 }}
+      />
+
+      <Text style={styles.teamSwitcherTitle}>Select Team</Text>
+      <Text style={styles.teamSwitcherMessage}>
+        Choose the team and division you want to manage.
+      </Text>
+
+      <View style={styles.assignmentList}>
+        {(managerData?.assignments || []).map((assignment) => {
+          const isActive =
+            assignment.assignmentKey === managerData?.activeAssignmentKey ||
+            (assignment.teamName === managerData?.teamName &&
+              assignment.division === managerData?.division);
+
+          return (
+            <Pressable
+              key={assignment.assignmentKey || `${assignment.division}-${assignment.teamName}`}
+              style={[
+                styles.assignmentOption,
+                isActive && styles.assignmentOptionActive,
+              ]}
+              disabled={switchingTeam || isActive}
+              onPress={() =>
+                handleSwitchTeam(
+                  assignment.assignmentKey || `${assignment.division}::${assignment.teamName}`
+                )
+              }
+            >
+              <View style={styles.assignmentOptionText}>
+                <Text style={styles.assignmentTeamName}>
+                  {assignment.teamName || "Team"}
+                </Text>
+                <Text style={styles.assignmentDivisionName}>
+                  {assignment.division || "Division not listed"}
+                </Text>
+              </View>
+
+              <Ionicons
+                name={isActive ? "checkmark-circle" : "chevron-forward-circle-outline"}
+                size={25}
+                color={isActive ? "#15803d" : "#1d4ed8"}
+              />
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Pressable
+        style={styles.teamSwitcherCancelButton}
+        onPress={() => setShowTeamSwitcher(false)}
+        disabled={switchingTeam}
+      >
+        <Text style={styles.teamSwitcherCancelText}>
+          {switchingTeam ? "Switching..." : "Cancel"}
+        </Text>
+      </Pressable>
+    </View>
+  </View>
+</Modal>
+
       <Modal
   visible={showWaiverPrompt}
   transparent
@@ -1345,5 +1490,139 @@ supportErrorText: {
 
 supportErrorButton: {
   backgroundColor: "#c62828",
+},
+
+
+teamSwitcherCard: {
+  backgroundColor: "#ffffff",
+  borderRadius: 20,
+  padding: 16,
+  marginBottom: 18,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  shadowColor: "#000",
+  shadowOpacity: 0.08,
+  shadowRadius: 10,
+  shadowOffset: { width: 0, height: 4 },
+  elevation: 6,
+},
+
+teamSwitcherTextWrap: {
+  flex: 1,
+  paddingRight: 12,
+},
+
+teamSwitcherLabel: {
+  color: "#6b7280",
+  fontSize: 11,
+  fontWeight: "900",
+  textTransform: "uppercase",
+  marginBottom: 4,
+},
+
+teamSwitcherTeam: {
+  color: "#111827",
+  fontSize: 18,
+  fontWeight: "900",
+},
+
+teamSwitcherDivision: {
+  color: "#4b5563",
+  fontSize: 13,
+  fontWeight: "700",
+  marginTop: 2,
+},
+
+switchTeamButton: {
+  backgroundColor: "#1d4ed8",
+  borderRadius: 11,
+  paddingVertical: 11,
+  paddingHorizontal: 14,
+  alignItems: "center",
+},
+
+switchTeamButtonText: {
+  color: "#ffffff",
+  fontSize: 14,
+  fontWeight: "900",
+},
+
+teamSwitcherModal: {
+  ...modalStyles.card,
+  alignItems: "center",
+},
+
+teamSwitcherTitle: {
+  color: "#1d4ed8",
+  fontSize: 25,
+  fontWeight: "900",
+  textAlign: "center",
+},
+
+teamSwitcherMessage: {
+  color: "#555555",
+  fontSize: 14,
+  fontWeight: "700",
+  textAlign: "center",
+  marginTop: 5,
+  marginBottom: 14,
+},
+
+assignmentList: {
+  width: "100%",
+},
+
+assignmentOption: {
+  width: "100%",
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  backgroundColor: "#f4f8fd",
+  borderWidth: 1,
+  borderColor: "#dbe5f1",
+  borderRadius: 14,
+  paddingVertical: 13,
+  paddingHorizontal: 14,
+  marginBottom: 10,
+},
+
+assignmentOptionActive: {
+  backgroundColor: "#ecfdf3",
+  borderColor: "#15803d",
+  borderWidth: 2,
+},
+
+assignmentOptionText: {
+  flex: 1,
+  paddingRight: 10,
+},
+
+assignmentTeamName: {
+  color: "#111827",
+  fontSize: 16,
+  fontWeight: "900",
+},
+
+assignmentDivisionName: {
+  color: "#6b7280",
+  fontSize: 13,
+  fontWeight: "700",
+  marginTop: 2,
+},
+
+teamSwitcherCancelButton: {
+  marginTop: 8,
+  backgroundColor: "#6b7280",
+  borderRadius: 11,
+  paddingVertical: 12,
+  paddingHorizontal: 24,
+  alignItems: "center",
+},
+
+teamSwitcherCancelText: {
+  color: "#ffffff",
+  fontSize: 15,
+  fontWeight: "900",
 },
 });

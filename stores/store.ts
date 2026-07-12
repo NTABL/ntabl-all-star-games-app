@@ -23,3 +23,25 @@ export async function clearManagerContext() {
   managerCache = null;
   await AsyncStorage.removeItem(MANAGER_KEY);
 }
+
+export async function switchManagerAssignment(assignmentKey: string) {
+  const current = await getManagerContext();
+  const assignments = Array.isArray(current?.assignments)
+    ? current.assignments
+    : [];
+
+  const selected = assignments.find(
+    (assignment: any) => assignment?.assignmentKey === assignmentKey
+  );
+
+  if (!selected) return null;
+
+  const nextContext = {
+    ...selected,
+    assignments,
+    activeAssignmentKey: assignmentKey,
+  };
+
+  await setManagerContext(nextContext);
+  return nextContext;
+}
