@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { isAdminLoggedIn } from "../stores/adminstore";
+import { getManagerContext } from "../stores/store";
 import { adminFetch, API_BASE } from "../utils/appconfig";
 import { modalStyles } from "../utils/modalStyles";
 
@@ -30,6 +31,15 @@ type OperationsData = {
   storage?: {
     available?: boolean;
     status?: string;
+    dataDirectory?: string;
+    persistent?: boolean;
+  };
+  build?: {
+    commit?: string;
+    serviceId?: string;
+    serviceName?: string;
+    deployId?: string;
+    nodeVersion?: string;
   };
   rosterCache?: {
     available?: boolean;
@@ -49,6 +59,39 @@ type OperationsData = {
     activeAdminSessions?: number;
     activeAnnouncerSessions?: number;
   };
+  divisionConfig?: Array<{
+    id?: string;
+    name?: string;
+    maxTotal?: number;
+    maxPitchers?: number;
+    maxPositionPlayers?: number;
+    isLocked?: boolean;
+    leagueAppsSources?: Array<{
+      id?: string;
+      name?: string;
+      enabled?: boolean;
+    }>;
+  }>;
+};
+
+type ManagerContextData = {
+  managerName?: string;
+  email?: string;
+  managerEmail?: string;
+  role?: string;
+  teamName?: string;
+  division?: string;
+  divisionId?: string;
+  league?: string;
+  leagueAppsSourceId?: string;
+  programId?: string;
+  rules?: {
+    maxTotal?: number;
+    maxPitchers?: number;
+    maxPositionPlayers?: number;
+  };
+  assignments?: any[];
+  selectedAllStarIds?: string[];
 };
 
 export default function DiagnosticsScreen() {
@@ -58,6 +101,8 @@ export default function DiagnosticsScreen() {
   const [modalMessage, setModalMessage] = useState("");
   const [modalDetail, setModalDetail] = useState("");
   const [modalType, setModalType] = useState<ModalType>("info");
+  const [managerContext, setManagerContextData] =
+    useState<ManagerContextData | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -72,7 +117,7 @@ export default function DiagnosticsScreen() {
         }
 
         if (active) {
-          await loadOperationsData();
+          await Promise.all([loadOperationsData(), loadManagerContextData()]);
         }
       }
 
@@ -121,6 +166,89 @@ export default function DiagnosticsScreen() {
       });
     } finally {
       if (showLoader) setLoading(false);
+    }
+  }
+
+  async function loadManagerContextData() {
+    try {
+      const manager = await getManagerContext();
+      setManagerContextData(manager || null);
+    } catch (error) {
+      console.log("MANAGER CONTEXT DIAGNOSTICS ERROR:", error);
+      setManagerContextData(null);
+    }
+  }
+
+  function buildDiagnosticsReport() {
+    const lines = [
+      "NTABL OPERATIONS CENTER DIAGNOSTICS",
+      `Generated: ${new Date().toLocaleString()}`,
+      "",
+      `Frontend Version: ${appVersion}`,
+      `Backend Version: ${data?.backendVersion || "Not Available"}`,
+      `Backend Commit: ${shortCommit(data?.build?.commit)}`,
+      `Backend Started: ${formatDateTime(data?.startedAt)}`,
+      `Environment: ${formatEnvironment(data?.environment)}`,
+      `Persistent Storage: ${data?.storage?.persistent ? "Yes" : "No"}`,
+      `Storage Directory: ${data?.storage?.dataDirectory || "Not Available"}`,
+      "",
+      "CURRENT MANAGER CONTEXT",
+      `Manager: ${managerContext?.managerName || "Not Available"}`,
+      `Email: ${managerContext?.email || managerContext?.managerEmail || "Not Available"}`,
+      `Role: ${managerContext?.role || "Not Available"}`,
+      `Team: ${managerContext?.teamName || "Not Available"}`,
+      `Division: ${managerContext?.division || "Not Available"}`,
+      `LeagueApps Source: ${getManagerSourceId(managerContext)}`,
+      `Rules: Total ${managerContext?.rules?.maxTotal ?? "N/A"}, Pitchers ${managerContext?.rules?.maxPitchers ?? "N/A"}, Position Players ${managerContext?.rules?.maxPositionPlayers ?? "N/A"}`,
+      `Assignments: ${Array.isArray(managerContext?.assignments) ? managerContext.assignments.length : managerContext ? 1 : 0}`,
+      "",
+      `Cached Players: ${data?.rosterCache?.rosterCount ?? 0}`,
+      `LeagueApps Records: ${data?.rosterCache?.rawRecordCount ?? 0}`,
+      `Last Cache Refresh: ${formatDateTime(data?.rosterCache?.refreshedAt)}`,
+      "",
+      "DIVISION CONFIGURATION",
+      ...(data?.divisionConfig || []).map(
+        (division) =>
+          `${division.name || division.id}: Total ${division.maxTotal ?? 0}, Pitchers ${division.maxPitchers ?? 0}, Position Players ${division.maxPositionPlayers ?? 0}, ${division.isLocked ? "LOCKED" : "OPEN"}`,
+      ),
+      "",
+      "LEAGUEAPPS SOURCES",
+      ...(data?.divisionConfig || []).flatMap((division) =>
+        (division.leagueAppsSources || []).map(
+          (source) =>
+            `${division.name || division.id}: ${source.enabled ? "ENABLED" : "DISABLED"} - ${source.name || "League"} (${source.id || "No ID"})`,
+        ),
+      ),
+    ];
+
+    return lines.join("\n");
+  }
+
+  async function copyDiagnostics() {
+    try {
+      const report = buildDiagnosticsReport();
+
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(report);
+        showModal(
+          "Diagnostics Copied!",
+          "The Operations Center report has been copied to your clipboard.",
+          "success",
+        );
+        return;
+      }
+
+      showModal(
+        "Copy Not Available",
+        "Clipboard access is not available in this browser. Use the displayed Operations Center values instead.",
+        "info",
+      );
+    } catch (error) {
+      showModal(
+        "Copy Failed",
+        error instanceof Error ? error.message : "Diagnostics could not be copied.",
+        "error",
+      );
     }
   }
 
@@ -292,7 +420,161 @@ export default function DiagnosticsScreen() {
                 </Text>
               </SectionCard>
 
-              <SectionCard title="Reports">
+              <SectionCard title="Current Manager Context" defaultExpanded={false}>
+                {managerContext ? (
+                  <>
+                    <View style={styles.metricGrid}>
+                      <MetricCard
+                        label="Manager"
+                        value={managerContext.managerName || "Not Available"}
+                        icon="person-outline"
+                      />
+                      <MetricCard
+                        label="Role"
+                        value={formatRole(managerContext.role)}
+                        icon="id-card-outline"
+                      />
+                      <MetricCard
+                        label="Current Team"
+                        value={managerContext.teamName || "Not Available"}
+                        icon="baseball-outline"
+                      />
+                      <MetricCard
+                        label="Division"
+                        value={managerContext.division || "Not Available"}
+                        icon="apps-outline"
+                      />
+                      <MetricCard
+                        label="Total Players"
+                        value={String(managerContext.rules?.maxTotal ?? "N/A")}
+                        icon="people-outline"
+                      />
+                      <MetricCard
+                        label="Pitchers"
+                        value={String(managerContext.rules?.maxPitchers ?? "N/A")}
+                        icon="hand-left-outline"
+                      />
+                      <MetricCard
+                        label="Position Players"
+                        value={String(
+                          managerContext.rules?.maxPositionPlayers ?? "N/A",
+                        )}
+                        icon="person-add-outline"
+                      />
+                      <MetricCard
+                        label="Assignments"
+                        value={String(
+                          Array.isArray(managerContext.assignments)
+                            ? managerContext.assignments.length
+                            : 1,
+                        )}
+                        icon="swap-horizontal-outline"
+                      />
+                    </View>
+                    <View style={styles.apiBox}>
+                      <Text style={styles.apiLabel}>LeagueApps Source</Text>
+                      <Text style={styles.apiValue}>
+                        {getManagerSourceId(managerContext)}
+                      </Text>
+                    </View>
+                    <Text style={styles.detailText}>
+                      {managerContext.email ||
+                        managerContext.managerEmail ||
+                        "Email not available"}
+                    </Text>
+                    <ActionButton
+                      label="Refresh Manager Context"
+                      icon="refresh-outline"
+                      backgroundColor="#1d4ed8"
+                      onPress={loadManagerContextData}
+                    />
+                  </>
+                ) : (
+                  <Text style={styles.emptyText}>
+                    No manager context is stored in this browser. Log in as a
+                    manager, then return to the Operations Center.
+                  </Text>
+                )}
+              </SectionCard>
+
+              <SectionCard title="Backend Configuration" defaultExpanded={false}>
+                {(data?.divisionConfig || []).map((division) => (
+                  <View key={division.id || division.name} style={styles.configRow}>
+                    <View style={styles.configHeaderRow}>
+                      <Text style={styles.configName}>
+                        {division.name || division.id}
+                      </Text>
+                      <View
+                        style={[
+                          styles.configStatusBadge,
+                          division.isLocked
+                            ? styles.lockedBadge
+                            : styles.openBadge,
+                        ]}
+                      >
+                        <Text style={styles.configStatusText}>
+                          {division.isLocked ? "LOCKED" : "OPEN"}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.configDetail}>
+                      Total: {division.maxTotal ?? 0} • Pitchers:{" "}
+                      {division.maxPitchers ?? 0} • Position Players:{" "}
+                      {division.maxPositionPlayers ?? 0}
+                    </Text>
+                  </View>
+                ))}
+              </SectionCard>
+
+              <SectionCard title="LeagueApps Sources" defaultExpanded={false}>
+                {(data?.divisionConfig || []).map((division) => (
+                  <View key={division.id || division.name} style={styles.sourceDivision}>
+                    <Text style={styles.sourceDivisionName}>
+                      {division.name || division.id}
+                    </Text>
+                    {(division.leagueAppsSources || []).length ? (
+                      (division.leagueAppsSources || []).map((source) => (
+                        <View
+                          key={`${division.id}-${source.id}`}
+                          style={styles.sourceRow}
+                        >
+                          <Ionicons
+                            name={
+                              source.enabled
+                                ? "checkmark-circle"
+                                : "remove-circle-outline"
+                            }
+                            size={21}
+                            color={source.enabled ? "#15803d" : "#6b7280"}
+                          />
+                          <View style={styles.sourceTextWrap}>
+                            <Text style={styles.sourceName}>
+                              {source.name || "LeagueApps League"}
+                            </Text>
+                            <Text style={styles.sourceId}>
+                              League ID: {source.id || "Not Available"}
+                            </Text>
+                          </View>
+                          <Text
+                            style={[
+                              styles.sourceState,
+                              source.enabled
+                                ? styles.sourceEnabled
+                                : styles.sourceDisabled,
+                            ]}
+                          >
+                            {source.enabled ? "ENABLED" : "DISABLED"}
+                          </Text>
+                        </View>
+                      ))
+                    ) : (
+                      <Text style={styles.emptyText}>No sources configured.</Text>
+                    )}
+                  </View>
+                ))}
+              </SectionCard>
+
+              <SectionCard title="Reports" defaultExpanded={false}>
                 <ActionButton
                   label="Waiver Management"
                   icon="document-text-outline"
@@ -319,7 +601,7 @@ export default function DiagnosticsScreen() {
                 />
               </SectionCard>
 
-              <SectionCard title="Tournament Operations">
+              <SectionCard title="Tournament Operations" defaultExpanded={false}>
                 <ActionButton
                   label={
                     refreshingRoster
@@ -337,7 +619,14 @@ export default function DiagnosticsScreen() {
                   label="Refresh Operations Data"
                   icon="sync-outline"
                   backgroundColor="#1d4ed8"
-                  onPress={() => loadOperationsData()}
+                  onPress={() => Promise.all([loadOperationsData(), loadManagerContextData()])}
+                />
+
+                <ActionButton
+                  label="Copy Diagnostics"
+                  icon="copy-outline"
+                  backgroundColor="#111827"
+                  onPress={copyDiagnostics}
                 />
 
                 <ActionButton
@@ -348,7 +637,7 @@ export default function DiagnosticsScreen() {
                 />
               </SectionCard>
 
-              <SectionCard title="Security">
+              <SectionCard title="Security" defaultExpanded={false}>
                 <View style={styles.metricGrid}>
                   <MetricCard
                     label="Admin Sessions"
@@ -375,7 +664,7 @@ export default function DiagnosticsScreen() {
                 </View>
               </SectionCard>
 
-              <SectionCard title="Application">
+              <SectionCard title="Application" defaultExpanded={false}>
                 <View style={styles.metricGrid}>
                   <MetricCard
                     label="App Version"
@@ -397,6 +686,27 @@ export default function DiagnosticsScreen() {
                     value={formatDateTime(data?.startedAt)}
                     icon="time-outline"
                   />
+                  <MetricCard
+                    label="Backend Commit"
+                    value={shortCommit(data?.build?.commit)}
+                    icon="git-commit-outline"
+                  />
+                  <MetricCard
+                    label="Node Version"
+                    value={data?.build?.nodeVersion || "Not Available"}
+                    icon="terminal-outline"
+                  />
+                  <MetricCard
+                    label="Persistent Storage"
+                    value={data?.storage?.persistent ? "Confirmed" : "Not Confirmed"}
+                    icon="save-outline"
+                    status={data?.storage?.persistent ? "good" : "warning"}
+                  />
+                  <MetricCard
+                    label="Render Service"
+                    value={data?.build?.serviceName || "Not Available"}
+                    icon="server-outline"
+                  />
                 </View>
 
                 <View style={styles.apiBox}>
@@ -405,7 +715,7 @@ export default function DiagnosticsScreen() {
                 </View>
               </SectionCard>
 
-              <SectionCard title="Future Operations">
+              <SectionCard title="Future Operations" defaultExpanded={false}>
                 <ActionButton
                   label="Event Log"
                   icon="list-circle-outline"
@@ -422,7 +732,7 @@ export default function DiagnosticsScreen() {
 
               <Pressable
                 style={styles.refreshButton}
-                onPress={() => loadOperationsData()}
+                onPress={() => Promise.all([loadOperationsData(), loadManagerContextData()])}
               >
                 <View style={styles.buttonContentRow}>
                   <Ionicons
@@ -518,14 +828,28 @@ export default function DiagnosticsScreen() {
 function SectionCard({
   title,
   children,
+  defaultExpanded = true,
 }: {
   title: string;
   children: ReactNode;
+  defaultExpanded?: boolean;
 }) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+
   return (
     <View style={styles.sectionCard}>
-      <Text style={styles.sectionHeader}>{title}</Text>
-      {children}
+      <Pressable
+        style={styles.sectionHeaderButton}
+        onPress={() => setExpanded((current) => !current)}
+      >
+        <Text style={styles.sectionHeader}>{title}</Text>
+        <Ionicons
+          name={expanded ? "chevron-up-outline" : "chevron-down-outline"}
+          size={21}
+          color="#1f4e9e"
+        />
+      </Pressable>
+      {expanded ? children : null}
     </View>
   );
 }
@@ -603,6 +927,44 @@ function ActionButton({
       )}
     </Pressable>
   );
+}
+
+function getManagerSourceId(manager?: ManagerContextData | null) {
+  if (!manager) return "Not Available";
+
+  const direct =
+    manager.leagueAppsSourceId || manager.programId || manager.divisionId;
+
+  if (direct) return String(direct);
+
+  const assignment = Array.isArray(manager.assignments)
+    ? manager.assignments.find(
+        (item: any) =>
+          item?.teamName === manager.teamName &&
+          item?.division === manager.division,
+      )
+    : null;
+
+  return String(
+    assignment?.leagueAppsSourceId ||
+      assignment?.programId ||
+      assignment?.leagueId ||
+      "Not Available",
+  );
+}
+
+function shortCommit(value?: string) {
+  if (!value) return "Not Available";
+  return String(value).slice(0, 8);
+}
+
+function formatRole(value?: string) {
+  if (!value) return "Not Available";
+  return value
+    .split(/[-_ ]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function formatDateTime(value?: string) {
@@ -707,12 +1069,19 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
+  sectionHeaderButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
   sectionHeader: {
+    flex: 1,
     fontSize: 18,
     fontWeight: "900",
     color: "#1f4e9e",
-    marginBottom: 12,
     textAlign: "center",
+    marginLeft: 21,
   },
   metricGrid: {
     flexDirection: "row",
@@ -827,6 +1196,100 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "900",
+  },
+  emptyText: {
+    color: "#6b7280",
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 20,
+    textAlign: "center",
+    paddingVertical: 10,
+  },
+  configRow: {
+    backgroundColor: "#f4f8fd",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#dbe5f1",
+  },
+  configHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  configName: {
+    flex: 1,
+    color: "#111827",
+    fontSize: 14,
+    fontWeight: "900",
+    paddingRight: 8,
+  },
+  configDetail: {
+    color: "#4b5563",
+    fontSize: 12,
+    fontWeight: "700",
+    marginTop: 7,
+  },
+  configStatusBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  lockedBadge: {
+    backgroundColor: "#fee2e2",
+  },
+  openBadge: {
+    backgroundColor: "#dcfce7",
+  },
+  configStatusText: {
+    color: "#111827",
+    fontSize: 10,
+    fontWeight: "900",
+  },
+  sourceDivision: {
+    marginBottom: 14,
+  },
+  sourceDivisionName: {
+    color: "#1f4e9e",
+    fontSize: 15,
+    fontWeight: "900",
+    marginBottom: 7,
+  },
+  sourceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f8fafc",
+    borderRadius: 11,
+    padding: 10,
+    marginBottom: 7,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  sourceTextWrap: {
+    flex: 1,
+    paddingHorizontal: 9,
+  },
+  sourceName: {
+    color: "#111827",
+    fontSize: 13,
+    fontWeight: "900",
+  },
+  sourceId: {
+    color: "#6b7280",
+    fontSize: 11,
+    fontWeight: "700",
+    marginTop: 2,
+  },
+  sourceState: {
+    fontSize: 9,
+    fontWeight: "900",
+  },
+  sourceEnabled: {
+    color: "#15803d",
+  },
+  sourceDisabled: {
+    color: "#6b7280",
   },
   versionFooter: {
     color: "#6b7280",
