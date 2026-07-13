@@ -139,11 +139,13 @@ export default function RosterScreen() {
   const { width, height } = useWindowDimensions();
   const isTabletLayout = width >= 700;
   const isShortScreen = height < 760;
-  const maxPositionPlayers =
-  Number(managerData?.rules?.maxPositionPlayers) || DEFAULT_MAX_POSITION_PLAYERS;
+  const maxPositionPlayers = Number(
+    managerData?.rules?.maxPositionPlayers ?? DEFAULT_MAX_POSITION_PLAYERS
+  );
 
-const maxPitchers =
-  Number(managerData?.rules?.maxPitchers) || DEFAULT_MAX_PITCHERS;
+  const maxPitchers = Number(
+    managerData?.rules?.maxPitchers ?? DEFAULT_MAX_PITCHERS
+  );
 
 const maxTotal = maxPositionPlayers + maxPitchers;
 
