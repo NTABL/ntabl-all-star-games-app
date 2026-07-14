@@ -466,17 +466,14 @@ export default function DivisionConfigScreen() {
 
   function renderDivisionList() {
     return (
-      <View style={styles.detailScreen}>
-        <ScrollView
-          style={styles.detailScroll}
-          contentContainerStyle={[
-            styles.scrollContent,
-            styles.detailScrollContent,
-            isTabletLayout && styles.scrollContentTablet,
-            isShortScreen && styles.scrollContentShort,
-          ]}
-          showsVerticalScrollIndicator={false}
-        >
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          isTabletLayout && styles.scrollContentTablet,
+          isShortScreen && styles.scrollContentShort,
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.headerRow}>
           <Pressable
             style={styles.backButton}
@@ -573,14 +570,17 @@ export default function DivisionConfigScreen() {
     const currentSubmissionStatus = submissionStatus[selectedDivision.id];
 
     return (
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          isTabletLayout && styles.scrollContentTablet,
-          isShortScreen && styles.scrollContentShort,
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={styles.detailScreen}>
+        <ScrollView
+          style={styles.detailScroll}
+          contentContainerStyle={[
+            styles.scrollContent,
+            styles.detailScrollContent,
+            isTabletLayout && styles.scrollContentTablet,
+            isShortScreen && styles.scrollContentShort,
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
         <View style={styles.teamScreenHeader}>
           <Pressable
             style={styles.backButton}
