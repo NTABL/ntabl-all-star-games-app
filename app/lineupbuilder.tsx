@@ -443,9 +443,10 @@ const cardContent = (
 
               {battingOrder ? (
 <Pressable
-  onPressIn={drag}
+  onLongPress={drag}
+  delayLongPress={140}
   disabled={!drag}
-  hitSlop={10}
+  hitSlop={8}
   style={({ pressed }) => [
     styles.dragHandle,
     isBatting
@@ -748,9 +749,9 @@ function leaveWithoutSaving() {
           <NestableDraggableFlatList
             data={battingLineup}
             keyExtractor={(item) => item.id}
-            activationDistance={0}
-            autoscrollThreshold={70}
-            autoscrollSpeed={180}
+            activationDistance={14}
+            autoscrollThreshold={46}
+            autoscrollSpeed={42}
             onDragEnd={({ data }) => {
               setBattingOrderIds(data.map((player) => player.id));
               markLineupChanged();
@@ -1638,8 +1639,8 @@ const styles = StyleSheet.create({
   },
 
   dragHandlePressed: {
-    opacity: 0.72,
-    transform: [{ scale: 0.96 }],
+    opacity: 0.84,
+    transform: [{ scale: 0.98 }],
   },
 
   viewOnlyBadge: {
