@@ -539,27 +539,6 @@ export default function DivisionConfigScreen() {
               <Text style={styles.backButtonText}>Back</Text>
             </View>
           </Pressable>
-
-          <TouchableOpacity
-            disabled={selectedDivision.isLocked}
-            onPress={() =>
-              saveDivisionLimits(positionPlayersLimit, pitchersLimit)
-            }
-            style={[
-              styles.saveLimitsButton,
-              selectedDivision.isLocked && styles.disabledButton,
-            ]}
-          >
-            <View style={styles.buttonContentRow}>
-              <Ionicons
-                name="save-outline"
-                size={18}
-                color="#ffffff"
-                style={{ marginRight: 6 }}
-              />
-              <Text style={styles.saveLimitsButtonText}>Save</Text>
-            </View>
-          </TouchableOpacity>
         </View>
 
         <View style={styles.heroCard}>
@@ -795,6 +774,29 @@ export default function DivisionConfigScreen() {
             </View>
           ))
         )}
+
+        <TouchableOpacity
+          disabled={selectedDivision.isLocked}
+          onPress={() =>
+            saveDivisionLimits(positionPlayersLimit, pitchersLimit)
+          }
+          style={[
+            styles.bottomSaveButton,
+            selectedDivision.isLocked && styles.disabledButton,
+          ]}
+        >
+          <View style={styles.buttonContentRow}>
+            <Ionicons
+              name="save-outline"
+              size={22}
+              color="#ffffff"
+              style={{ marginRight: 8 }}
+            />
+            <Text style={styles.bottomSaveButtonText}>
+              Save Division Configuration
+            </Text>
+          </View>
+        </TouchableOpacity>
 
         <Text style={styles.versionFooter}>
           NTABL All-Star App • Version 1.0
@@ -1318,6 +1320,22 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontWeight: "800",
     fontSize: 14,
+  },
+
+  bottomSaveButton: {
+    backgroundColor: "#15803d",
+    borderRadius: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 18,
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 6,
+  },
+
+  bottomSaveButtonText: {
+    color: "#ffffff",
+    fontWeight: "900",
+    fontSize: 16,
   },
 
   clearButton: {
