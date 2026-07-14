@@ -325,20 +325,16 @@ function toggleBatting(playerId: string, value: boolean) {
     [playerId]: value,
   }));
 
-  setSaveStatus("Updating lineup...");
+  setBattingOrderIds((current) => {
+    if (value) {
+      if (current.includes(playerId)) return current;
+      return [...current, playerId];
+    }
 
-  setTimeout(() => {
-    setBattingOrderIds((current) => {
-      if (value) {
-        if (current.includes(playerId)) return current;
-        return [...current, playerId];
-      }
+    return current.filter((id) => id !== playerId);
+  });
 
-      return current.filter((id) => id !== playerId);
-    });
-
-    markLineupChanged();
-  }, 650);
+  markLineupChanged();
 }
 
 function renderPlayer(
@@ -351,7 +347,7 @@ function renderPlayer(
     const isBatting = battingPlayers[player.id] ?? true;
 
 const cardContent = (
-  <Pressable
+  <View
     key={`${player.id}-${battingOrder || "sub"}`}
     style={[
       styles.playerCard,
@@ -438,15 +434,14 @@ const cardContent = (
 <Switch
   value={isBatting}
   onValueChange={(value) => toggleBatting(player.id, value)}
-  disabled={saveStatus === "Updating lineup..."}
 />
               </View>
 
               {battingOrder ? (
 <Pressable
   onLongPress={drag}
-  delayLongPress={180}
   disabled={!drag}
+  hitSlop={8}
   style={[
     styles.dragHandle,
     isBatting
@@ -468,7 +463,7 @@ const cardContent = (
             </View>
           )}
         </View>
-</Pressable>
+</View>
 );
 
 if (drag) {
@@ -878,10 +873,15 @@ if (!json?.ok) {
           keyboardShouldPersistTaps="handled"
           directionalLockEnabled
           scrollEventThrottle={16}
+          stickyHeaderIndices={activeTab === "manager" ? [2] : []}
         >
           {renderTopControls()}
 
           {renderHeroCard()}
+
+          <View style={styles.floatingSaveWrapper}>
+            {!loading && activeTab === "manager" ? renderSavePanel() : null}
+          </View>
 
           <View style={styles.mainCard}>
             {loading ? (
@@ -892,7 +892,6 @@ if (!json?.ok) {
             ) : (
               <>
                 {renderTabs()}
-                {renderSavePanel()}
 
                 {activeTab === "manager"
                   ? renderManagerLineup()
@@ -1399,13 +1398,26 @@ const styles = StyleSheet.create({
     color: "#ffffff",
   },
 
+  floatingSaveWrapper: {
+    backgroundColor: "#eef2f7",
+    paddingTop: 2,
+    paddingBottom: 8,
+    zIndex: 50,
+    elevation: 10,
+  },
+
   savePanel: {
     backgroundColor: "#f9fafb",
     borderRadius: 16,
     padding: 12,
-    marginBottom: 16,
+    marginBottom: 0,
     borderWidth: 1,
     borderColor: "#e5e7eb",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 6,
   },
 
   saveLineupButton: {
