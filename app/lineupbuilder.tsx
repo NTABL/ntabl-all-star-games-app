@@ -353,8 +353,6 @@ function renderPlayer(
 const cardContent = (
   <Pressable
     key={`${player.id}-${battingOrder || "sub"}`}
-    onLongPress={drag}
-    disabled={!drag}
     style={[
       styles.playerCard,
       editable
@@ -445,7 +443,10 @@ const cardContent = (
               </View>
 
               {battingOrder ? (
-<View
+<Pressable
+  onLongPress={drag}
+  delayLongPress={180}
+  disabled={!drag}
   style={[
     styles.dragHandle,
     isBatting
@@ -458,7 +459,7 @@ const cardContent = (
                     size={24}
                     color="#111827"
                   />
-                </View>
+                </Pressable>
               ) : null}
             </>
           ) : (
@@ -867,15 +868,16 @@ if (!json?.ok) {
       <Stack.Screen options={{ headerShown: false }} />
 
       <GestureHandlerRootView style={styles.screen}>
-        <View style={styles.screen}>
         <ScrollView
-          style={{flex:1}}
           contentContainerStyle={[
             styles.container,
             isTabletLayout && styles.containerTablet,
             isShortScreen && styles.containerShort,
           ]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          directionalLockEnabled
+          scrollEventThrottle={16}
         >
           {renderTopControls()}
 
@@ -890,6 +892,8 @@ if (!json?.ok) {
             ) : (
               <>
                 {renderTabs()}
+                {renderSavePanel()}
+
                 {activeTab === "manager"
                   ? renderManagerLineup()
                   : renderOpponentLineup()}
@@ -903,8 +907,6 @@ if (!json?.ok) {
             </Text>
           </View>
         </ScrollView>
-        {activeTab === "manager" && <View style={styles.stickySaveBar}>{renderSavePanel()}</View>}
-        </View>
       </GestureHandlerRootView>
 
       <Modal
@@ -1209,12 +1211,13 @@ const styles = StyleSheet.create({
   },
 
   container: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     paddingTop: 50,
     paddingBottom: 70,
   },
 
   containerTablet: {
+    paddingHorizontal: 20,
     paddingTop: 30,
     paddingBottom: 50,
   },
@@ -1890,19 +1893,6 @@ lineupModeBadgeText: {
   color: "#ffffff",
   fontSize: 13,
   fontWeight: "900",
-},
-
-stickySaveBar: {
-  position:"absolute",
-  left:0,
-  right:0,
-  bottom:0,
-  paddingHorizontal:20,
-  paddingTop:8,
-  paddingBottom:12,
-  backgroundColor:"#eef2f7",
-  borderTopWidth:1,
-  borderTopColor:"#d1d5db",
 },
 
 footer: {
