@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  FlatList,
+  ScrollView,
   Image,
   Modal,
   Pressable,
@@ -161,12 +161,13 @@ export default function AppSubmittedScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.screen}>
-        <View
-          style={[
+        <ScrollView
+          contentContainerStyle={[
             styles.container,
             isTabletLayout && styles.containerTablet,
             isShortScreen && styles.containerShort,
           ]}
+          showsVerticalScrollIndicator={false}
         >
           <View style={styles.headerRow}>
             <TouchableOpacity
@@ -180,25 +181,24 @@ export default function AppSubmittedScreen() {
                   color="#ffffff"
                   style={{ marginRight: 3 }}
                 />
-
                 <Text style={styles.backButtonText}>Back</Text>
               </View>
             </TouchableOpacity>
-            <TouchableOpacity
-  onPress={() => setShowInstructions(true)}
-  style={styles.helpButton}
->
-  <View style={styles.smallButtonRow}>
-    <Ionicons
-      name="help-circle-outline"
-      size={17}
-      color="#ffffff"
-      style={{ marginRight: 4 }}
-    />
 
-    <Text style={styles.helpButtonText}>Help</Text>
-  </View>
-</TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setShowInstructions(true)}
+              style={styles.helpButton}
+            >
+              <View style={styles.smallButtonRow}>
+                <Ionicons
+                  name="help-circle-outline"
+                  size={17}
+                  color="#ffffff"
+                  style={{ marginRight: 4 }}
+                />
+                <Text style={styles.helpButtonText}>Help</Text>
+              </View>
+            </TouchableOpacity>
           </View>
 
           <View
@@ -216,17 +216,17 @@ export default function AppSubmittedScreen() {
               resizeMode="contain"
             />
 
-            <Ionicons
-              name="checkmark-circle"
-              size={48}
-              color="#15803d"
-              style={{ marginBottom: 8 }}
-            />
-
-            <Text style={styles.title}>All-Stars Submitted</Text>
+            <View style={styles.submittedTitleRow}>
+              <Ionicons
+                name="checkmark-circle"
+                size={isTabletLayout ? 38 : 42}
+                color="#15803d"
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.title}>All-Stars Submitted</Text>
+            </View>
 
             <Text style={styles.teamName}>{teamName}</Text>
-
             {!!division && <Text style={styles.divisionText}>{division}</Text>}
 
             <View style={styles.successBadge}>
@@ -236,7 +236,6 @@ export default function AppSubmittedScreen() {
                 color="#ffffff"
                 style={{ marginRight: 6 }}
               />
-
               <Text style={styles.successBadgeText}>
                 {players.length} Players Submitted Successfully
               </Text>
@@ -247,67 +246,64 @@ export default function AppSubmittedScreen() {
 
           <Text style={styles.sectionTitle}>Submitted Players</Text>
 
-          <FlatList
-            data={players}
-            keyExtractor={(item) => String(item.id)}
-            contentContainerStyle={[
-              styles.listContent,
-              isTabletLayout && styles.listContentTablet,
-            ]}
-            ListEmptyComponent={
-              <View style={styles.emptyCard}>
-                <Text style={styles.emptyText}>
-                  Submitted roster could not be displayed.
+          {loading ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>Loading submitted players...</Text>
+            </View>
+          ) : players.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>
+                Submitted roster could not be displayed.
+              </Text>
+            </View>
+          ) : (
+            players.map((item, index) => (
+              <View key={String(item.id || index)}>
+                {renderPlayerCard({ item, index })}
+              </View>
+            ))
+          )}
+
+          <View style={styles.buttonArea}>
+            <TouchableOpacity
+              style={styles.editRosterButton}
+              onPress={() => router.replace("/roster")}
+            >
+              <View style={styles.buttonContentRow}>
+                <Ionicons
+                  name="create-outline"
+                  size={22}
+                  color="#ffffff"
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.editRosterButtonText}>
+                  Edit All-Star Roster
                 </Text>
               </View>
-            }
-            renderItem={renderPlayerCard}
-            showsVerticalScrollIndicator={false}
-            ListFooterComponent={
-              <View style={styles.buttonArea}>
-                <TouchableOpacity
-                  style={styles.editRosterButton}
-                  onPress={() => router.replace("/roster")}
-                >
-                  <View style={styles.buttonContentRow}>
-                    <Ionicons
-                      name="create-outline"
-                      size={22}
-                      color="#ffffff"
-                      style={{ marginRight: 8 }}
-                    />
+            </TouchableOpacity>
 
-                    <Text style={styles.editRosterButtonText}>
-                      Edit All-Star Roster
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.dashboardButton}
-                  onPress={() => router.replace("/dashboard")}
-                >
-                  <View style={styles.buttonContentRow}>
-                    <Ionicons
-                      name="home-outline"
-                      size={22}
-                      color="#ffffff"
-                      style={{ marginRight: 8 }}
-                    />
-
-                    <Text style={styles.dashboardButtonText}>
-                      Back to Dashboard
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-
-                <Text style={styles.versionFooter}>
-                  NTABL All-Star App • Version 1.0
+            <TouchableOpacity
+              style={styles.dashboardButton}
+              onPress={() => router.replace("/dashboard")}
+            >
+              <View style={styles.buttonContentRow}>
+                <Ionicons
+                  name="home-outline"
+                  size={22}
+                  color="#ffffff"
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.dashboardButtonText}>
+                  Back to Dashboard
                 </Text>
               </View>
-            }
-          />
-        </View>
+            </TouchableOpacity>
+
+            <Text style={styles.versionFooter}>
+              NTABL All-Star App • Version 1.0
+            </Text>
+          </View>
+        </ScrollView>
 
         <Modal
           visible={showInstructions}
@@ -363,7 +359,7 @@ const styles = StyleSheet.create({
   },
 
   container: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 20,
@@ -422,7 +418,7 @@ headerRow: {
   },
 
   summaryCardTablet: {
-    paddingVertical: 24,
+    paddingVertical: 16,
   },
 
   teamLogo: {
@@ -433,12 +429,19 @@ headerRow: {
   },
 
   teamLogoTablet: {
-    width: 210,
-    height: 135,
+    width: 180,
+    height: 110,
+  },
+
+  submittedTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
   },
 
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "900",
     color: "#1f4e9e",
     textAlign: "center",
