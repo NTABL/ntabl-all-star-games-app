@@ -16,7 +16,11 @@ import {
   useWindowDimensions,
   View
 } from "react-native";
-import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
+import {
+  NestableDraggableFlatList,
+  NestableScrollContainer,
+  ScaleDecorator,
+} from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { API_BASE } from "../utils/appconfig";
 import { modalStyles } from "../utils/modalStyles";
@@ -439,14 +443,15 @@ const cardContent = (
 
               {battingOrder ? (
 <Pressable
-  onLongPress={drag}
+  onPressIn={drag}
   disabled={!drag}
-  hitSlop={8}
-  style={[
+  hitSlop={10}
+  style={({ pressed }) => [
     styles.dragHandle,
     isBatting
       ? styles.dragHandleBatting
       : styles.dragHandleSubstitute,
+    pressed && styles.dragHandlePressed,
   ]}
 >
                   <Ionicons
@@ -740,11 +745,12 @@ function leaveWithoutSaving() {
         </Text>
 
         {battingLineup.length > 0 ? (
-          <DraggableFlatList
+          <NestableDraggableFlatList
             data={battingLineup}
             keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            activationDistance={8}
+            activationDistance={0}
+            autoscrollThreshold={70}
+            autoscrollSpeed={180}
             onDragEnd={({ data }) => {
               setBattingOrderIds(data.map((player) => player.id));
               markLineupChanged();
@@ -863,7 +869,7 @@ if (!json?.ok) {
       <Stack.Screen options={{ headerShown: false }} />
 
       <GestureHandlerRootView style={styles.screen}>
-        <ScrollView
+        <NestableScrollContainer
           contentContainerStyle={[
             styles.container,
             isTabletLayout && styles.containerTablet,
@@ -905,7 +911,7 @@ if (!json?.ok) {
               NTABL All-Star App • Version 1.0
             </Text>
           </View>
-        </ScrollView>
+        </NestableScrollContainer>
       </GestureHandlerRootView>
 
       <Modal
@@ -1629,6 +1635,11 @@ const styles = StyleSheet.create({
   dragHandleSubstitute: {
     backgroundColor: "#f3f4f6",
     borderColor: "#9ca3af",
+  },
+
+  dragHandlePressed: {
+    opacity: 0.72,
+    transform: [{ scale: 0.96 }],
   },
 
   viewOnlyBadge: {
