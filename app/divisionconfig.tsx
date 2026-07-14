@@ -59,6 +59,63 @@ const divisionDetailImages: Record<string, any> = {
   rookie: require("../assets/Rookie.png"),
 };
 
+
+const teamLogoImages: Record<string, any> = {
+  dallasspirits: require("../assets/Spirits.png"),
+  hurricanes: require("../assets/Hurricanes.png"),
+  knights: require("../assets/Knights.png"),
+  northdallasexpos: require("../assets/North_Dallas_Expos.png"),
+  reds: require("../assets/Reds.png"),
+  redsox45: require("../assets/Red_Sox_45.png"),
+  bluejays: require("../assets/Blue_Jays.png"),
+  dallasorioles60: require("../assets/Dallas_Orioles_60.png"),
+  dallasrangers: require("../assets/Dallas_Rangers.png"),
+  redsox60: require("../assets/Red_Sox_60.png"),
+  dentonmeanbears: require("../assets/Denton_Mean_Bears.png"),
+  ntxreapers: require("../assets/NTX_Reapers.png"),
+  pelicans: require("../assets/Pelicans.png"),
+  royals: require("../assets/Royals.png"),
+  thedarkhorse: require("../assets/The_Dark_Horse.png"),
+  dallasmustangs: require("../assets/Dallas_Mustangs.png"),
+  briscoereds: require("../assets/Brisco_Co._Reds.png"),
+  dallasorioles30: require("../assets/Dallas_Orioles.png"),
+  texasdiablos: require("../assets/Texas_Diablos.png"),
+  theoldfashioneds: require("../assets/The_Old_Fashioneds.png"),
+  dallasgiants: require("../assets/Dallas_Giants.png"),
+  dallasmonsters: require("../assets/Dallas_Monsters.png"),
+  gannsbulls: require("../assets/Ganns_Bulls.png"),
+  grandprairieexpos: require("../assets/Grand_Prairie_Expos.png"),
+  uptowngrays: require("../assets/Updown_Grays.png"),
+  victoryparkindians: require("../assets/Victory_Park_Indians.png"),
+};
+
+function normalizeTeamName(value = "") {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function getTeamLogo(teamName = "", division = "") {
+  const key = normalizeTeamName(teamName);
+  const divisionKey = normalizeTeamName(division);
+
+  if (key.includes("dallasorioles") && divisionKey.includes("60")) {
+    return teamLogoImages.dallasorioles60;
+  }
+
+  if (key.includes("dallasorioles")) {
+    return teamLogoImages.dallasorioles30;
+  }
+
+  if (key.includes("redsox") && divisionKey.includes("60")) {
+    return teamLogoImages.redsox60;
+  }
+
+  if (key.includes("redsox")) {
+    return teamLogoImages.redsox45;
+  }
+
+  return teamLogoImages[key] || require("../assets/NTABL-Logo.png");
+}
+
 export default function DivisionConfigScreen() {
   const [loading, setLoading] = useState(true);
   const [divisions, setDivisions] = useState<Division[]>([]);
@@ -409,14 +466,17 @@ export default function DivisionConfigScreen() {
 
   function renderDivisionList() {
     return (
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          isTabletLayout && styles.scrollContentTablet,
-          isShortScreen && styles.scrollContentShort,
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={styles.detailScreen}>
+        <ScrollView
+          style={styles.detailScroll}
+          contentContainerStyle={[
+            styles.scrollContent,
+            styles.detailScrollContent,
+            isTabletLayout && styles.scrollContentTablet,
+            isShortScreen && styles.scrollContentShort,
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
         <View style={styles.headerRow}>
           <Pressable
             style={styles.backButton}
@@ -675,7 +735,19 @@ export default function DivisionConfigScreen() {
         </View>
 
         <View style={styles.leagueSourcesCard}>
-          <Text style={styles.leagueSourcesTitle}>LeagueApps Sources</Text>
+          <View style={styles.leagueSourcesHeader}>
+            <View style={styles.leagueSourcesIconCircle}>
+              <Ionicons name="cloud-outline" size={22} color="#ffffff" />
+            </View>
+
+            <View style={styles.leagueSourcesHeaderText}>
+              <Text style={styles.leagueSourcesTitle}>LeagueApps Sources</Text>
+              <Text style={styles.leagueSourcesSubtitle}>
+                Control which leagues feed this All-Star division
+              </Text>
+            </View>
+          </View>
+
           <Text style={styles.leagueSourcesHelp}>
             Only enabled leagues appear for managers, rosters, submissions, waivers, and reports.
           </Text>
@@ -738,70 +810,100 @@ export default function DivisionConfigScreen() {
             <Text style={styles.loadingText}>Loading teams...</Text>
           </View>
         ) : (
-          teams.map((item) => (
-            <View key={item.id} style={styles.teamCard}>
-              <View style={styles.teamTextBlock}>
-                <Text style={styles.teamName}>{item.name}</Text>
-                <Text style={styles.teamId}>Team ID: {item.id}</Text>
-              </View>
+          <View
+            style={[
+              styles.teamGrid,
+              isTabletLayout && styles.teamGridTablet,
+            ]}
+          >
+            {teams.map((item) => (
+              <View
+                key={item.id}
+                style={[
+                  styles.teamCard,
+                  isTabletLayout && styles.teamCardTablet,
+                ]}
+              >
+                <View style={styles.teamIdentityRow}>
+                  <View style={styles.teamTextBlock}>
+                    <Text style={styles.teamName}>{item.name}</Text>
+                    <Text style={styles.teamId}>Team ID: {item.id}</Text>
+                  </View>
 
-              <View style={styles.squadButtonRow}>
-                <TouchableOpacity
-                  disabled={selectedDivision.isLocked}
-                  onPress={() => assignSquad(item.id, "East")}
-                  style={[
-                    styles.squadButton,
-                    styles.squadButtonMargin,
-                    item.squad === "East" && styles.eastBadge,
-                    selectedDivision.isLocked && styles.disabledButton,
-                  ]}
-                >
-                  <Text style={styles.squadButtonText}>East</Text>
-                </TouchableOpacity>
+                  <Image
+                    source={getTeamLogo(
+                      item.name,
+                      selectedDivision?.name || ""
+                    )}
+                    style={[
+                      styles.teamLogo,
+                      isTabletLayout && styles.teamLogoTablet,
+                    ]}
+                    resizeMode="contain"
+                  />
+                </View>
 
-                <TouchableOpacity
-                  disabled={selectedDivision.isLocked}
-                  onPress={() => assignSquad(item.id, "West")}
-                  style={[
-                    styles.squadButton,
-                    item.squad === "West" && styles.westBadge,
-                    selectedDivision.isLocked && styles.disabledButton,
-                  ]}
-                >
-                  <Text style={styles.squadButtonText}>West</Text>
-                </TouchableOpacity>
+                <View style={styles.squadButtonRow}>
+                  <TouchableOpacity
+                    disabled={selectedDivision.isLocked}
+                    onPress={() => assignSquad(item.id, "East")}
+                    style={[
+                      styles.squadButton,
+                      styles.squadButtonMargin,
+                      item.squad === "East" && styles.eastBadge,
+                      selectedDivision.isLocked && styles.disabledButton,
+                    ]}
+                  >
+                    <Text style={styles.squadButtonText}>East</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    disabled={selectedDivision.isLocked}
+                    onPress={() => assignSquad(item.id, "West")}
+                    style={[
+                      styles.squadButton,
+                      item.squad === "West" && styles.westBadge,
+                      selectedDivision.isLocked && styles.disabledButton,
+                    ]}
+                  >
+                    <Text style={styles.squadButtonText}>West</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          ))
+            ))}
+          </View>
         )}
 
-        <TouchableOpacity
-          disabled={selectedDivision.isLocked}
-          onPress={() =>
-            saveDivisionLimits(positionPlayersLimit, pitchersLimit)
-          }
-          style={[
-            styles.bottomSaveButton,
-            selectedDivision.isLocked && styles.disabledButton,
-          ]}
-        >
-          <View style={styles.buttonContentRow}>
-            <Ionicons
-              name="save-outline"
-              size={22}
-              color="#ffffff"
-              style={{ marginRight: 8 }}
-            />
-            <Text style={styles.bottomSaveButtonText}>
-              Save Division Configuration
-            </Text>
-          </View>
-        </TouchableOpacity>
+          <Text style={styles.versionFooter}>
+            NTABL All-Star App • Version 1.0
+          </Text>
+        </ScrollView>
 
-        <Text style={styles.versionFooter}>
-          NTABL All-Star App • Version 1.0
-        </Text>
-      </ScrollView>
+        <View style={styles.stickySaveBar}>
+          <TouchableOpacity
+            disabled={selectedDivision.isLocked}
+            onPress={() =>
+              saveDivisionLimits(positionPlayersLimit, pitchersLimit)
+            }
+            style={[
+              styles.bottomSaveButton,
+              selectedDivision.isLocked && styles.disabledButton,
+            ]}
+          >
+            <View style={styles.buttonContentRow}>
+              <Ionicons
+                name="save-outline"
+                size={22}
+                color="#ffffff"
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.bottomSaveButtonText}>
+                Save Division Configuration
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </View>
     );
   }
 
@@ -973,6 +1075,26 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 50,
+  },
+
+  detailScreen: {
+    flex: 1,
+  },
+
+  detailScroll: {
+    flex: 1,
+  },
+
+  detailScrollContent: {
+    paddingBottom: 24,
+  },
+
+  stickySaveBar: {
+    backgroundColor: "#eef2f7",
+    borderTopWidth: 1,
+    borderTopColor: "#dbe5f1",
+    paddingTop: 10,
+    paddingBottom: 12,
   },
 
   scrollContent: {
@@ -1328,8 +1450,6 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 18,
     alignItems: "center",
-    marginTop: 8,
-    marginBottom: 6,
   },
 
   bottomSaveButtonText: {
@@ -1405,14 +1525,21 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
 
+  teamGrid: {
+    width: "100%",
+  },
+
+  teamGridTablet: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+
   teamCard: {
     backgroundColor: "#ffffff",
     padding: 16,
     borderRadius: 20,
     marginBottom: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     shadowColor: "#000",
     shadowOpacity: 0.07,
     shadowRadius: 8,
@@ -1423,9 +1550,32 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
 
+  teamCardTablet: {
+    width: "49%",
+  },
+
+  teamIdentityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+
   teamTextBlock: {
     flex: 1,
     paddingRight: 10,
+    minWidth: 0,
+  },
+
+  teamLogo: {
+    width: 58,
+    height: 58,
+    marginLeft: 8,
+  },
+
+  teamLogoTablet: {
+    width: 64,
+    height: 64,
   },
 
   teamName: {
@@ -1442,13 +1592,16 @@ const styles = StyleSheet.create({
 
   squadButtonRow: {
     flexDirection: "row",
+    width: "100%",
   },
 
   squadButton: {
+    flex: 1,
     backgroundColor: "#9ca3af",
-    paddingVertical: 8,
+    paddingVertical: 9,
     paddingHorizontal: 11,
     borderRadius: 999,
+    alignItems: "center",
   },
 
   squadButtonMargin: {
@@ -1542,11 +1695,36 @@ saveToastText: {
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
+  leagueSourcesHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#eef4fb",
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 10,
+  },
+  leagueSourcesIconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    backgroundColor: "#1f4e9e",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 11,
+  },
+  leagueSourcesHeaderText: {
+    flex: 1,
+  },
   leagueSourcesTitle: {
     fontSize: 18,
     fontWeight: "900",
     color: "#1f4e9e",
-    textAlign: "center",
+  },
+  leagueSourcesSubtitle: {
+    color: "#6b7280",
+    fontSize: 12,
+    fontWeight: "700",
+    marginTop: 2,
   },
   leagueSourcesHelp: {
     color: "#6b7280",
