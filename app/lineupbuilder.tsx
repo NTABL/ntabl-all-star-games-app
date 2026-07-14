@@ -867,7 +867,9 @@ if (!json?.ok) {
       <Stack.Screen options={{ headerShown: false }} />
 
       <GestureHandlerRootView style={styles.screen}>
+        <View style={styles.screen}>
         <ScrollView
+          style={{flex:1}}
           contentContainerStyle={[
             styles.container,
             isTabletLayout && styles.containerTablet,
@@ -888,8 +890,6 @@ if (!json?.ok) {
             ) : (
               <>
                 {renderTabs()}
-                {renderSavePanel()}
-
                 {activeTab === "manager"
                   ? renderManagerLineup()
                   : renderOpponentLineup()}
@@ -903,6 +903,8 @@ if (!json?.ok) {
             </Text>
           </View>
         </ScrollView>
+        {activeTab === "manager" && <View style={styles.stickySaveBar}>{renderSavePanel()}</View>}
+        </View>
       </GestureHandlerRootView>
 
       <Modal
@@ -1888,6 +1890,19 @@ lineupModeBadgeText: {
   color: "#ffffff",
   fontSize: 13,
   fontWeight: "900",
+},
+
+stickySaveBar: {
+  position:"absolute",
+  left:0,
+  right:0,
+  bottom:0,
+  paddingHorizontal:20,
+  paddingTop:8,
+  paddingBottom:12,
+  backgroundColor:"#eef2f7",
+  borderTopWidth:1,
+  borderTopColor:"#d1d5db",
 },
 
 footer: {
