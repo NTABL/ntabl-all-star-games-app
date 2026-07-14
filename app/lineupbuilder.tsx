@@ -16,11 +16,7 @@ import {
   useWindowDimensions,
   View
 } from "react-native";
-import {
-  NestableDraggableFlatList,
-  NestableScrollContainer,
-  ScaleDecorator,
-} from "react-native-draggable-flatlist";
+import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { API_BASE } from "../utils/appconfig";
 import { modalStyles } from "../utils/modalStyles";
@@ -444,7 +440,7 @@ const cardContent = (
               {battingOrder ? (
 <Pressable
   onLongPress={drag}
-  delayLongPress={140}
+  delayLongPress={180}
   disabled={!drag}
   hitSlop={8}
   style={({ pressed }) => [
@@ -738,34 +734,9 @@ function leaveWithoutSaving() {
     );
   }
 
-  function renderManagerLineup() {
+  function renderManagerListFooter() {
     return (
       <View style={styles.section}>
-        <Text style={styles.lineupSectionTitle}>
-          Batting Lineup ({battingLineup.length})
-        </Text>
-
-        {battingLineup.length > 0 ? (
-          <NestableDraggableFlatList
-            data={battingLineup}
-            keyExtractor={(item) => item.id}
-            activationDistance={14}
-            autoscrollThreshold={46}
-            autoscrollSpeed={42}
-            onDragEnd={({ data }) => {
-              setBattingOrderIds(data.map((player) => player.id));
-              markLineupChanged();
-            }}
-renderItem={({ item, getIndex, drag, isActive }) => {
-  const index = getIndex() ?? 0;
-
-  return renderPlayer(item, true, index + 1, drag, isActive);
-}}
-          />
-        ) : (
-          <Text style={styles.emptyText}>No Batting Players Selected.</Text>
-        )}
-
         <Text style={styles.lineupSectionTitle}>
           Substitutes ({notBattingPlayers.length})
         </Text>
@@ -775,6 +746,12 @@ renderItem={({ item, getIndex, drag, isActive }) => {
         ) : (
           <Text style={styles.emptyText}>No Players Marked as Not Batting.</Text>
         )}
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            NTABL All-Star App • Version 1.0
+          </Text>
+        </View>
       </View>
     );
   }
@@ -870,27 +847,17 @@ if (!json?.ok) {
       <Stack.Screen options={{ headerShown: false }} />
 
       <GestureHandlerRootView style={styles.screen}>
-        <NestableScrollContainer
-          contentContainerStyle={[
+        <View
+          style={[
             styles.container,
             isTabletLayout && styles.containerTablet,
             isShortScreen && styles.containerShort,
           ]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          directionalLockEnabled
-          scrollEventThrottle={16}
-          stickyHeaderIndices={activeTab === "manager" ? [2] : []}
         >
           {renderTopControls()}
-
           {renderHeroCard()}
 
-          <View style={styles.floatingSaveWrapper}>
-            {!loading && activeTab === "manager" ? renderSavePanel() : null}
-          </View>
-
-          <View style={styles.mainCard}>
+          <View style={[styles.mainCard, styles.mainCardFlexible]}>
             {loading ? (
               <View style={styles.loadingCard}>
                 <ActivityIndicator size="large" color="#1d4ed8" />
@@ -899,20 +866,65 @@ if (!json?.ok) {
             ) : (
               <>
                 {renderTabs()}
+                {renderSavePanel()}
 
-                {activeTab === "manager"
-                  ? renderManagerLineup()
-                  : renderOpponentLineup()}
+                {activeTab === "manager" ? (
+                  <>
+                    <Text style={styles.lineupSectionTitle}>
+                      Batting Lineup ({battingLineup.length})
+                    </Text>
+
+                    <DraggableFlatList
+                      style={styles.lineupList}
+                      contentContainerStyle={styles.lineupListContent}
+                      data={battingLineup}
+                      keyExtractor={(item) => item.id}
+                      activationDistance={10}
+                      autoscrollThreshold={28}
+                      autoscrollSpeed={18}
+                      showsVerticalScrollIndicator={false}
+                      keyboardShouldPersistTaps="handled"
+                      onDragEnd={({ data }) => {
+                        setBattingOrderIds(data.map((player) => player.id));
+                        markLineupChanged();
+                      }}
+                      renderItem={({ item, getIndex, drag, isActive }) => {
+                        const index = getIndex() ?? 0;
+                        return renderPlayer(
+                          item,
+                          true,
+                          index + 1,
+                          drag,
+                          isActive
+                        );
+                      }}
+                      ListEmptyComponent={
+                        <Text style={styles.emptyText}>
+                          No Batting Players Selected.
+                        </Text>
+                      }
+                      ListFooterComponent={renderManagerListFooter}
+                    />
+                  </>
+                ) : (
+                  <ScrollView
+                    style={styles.lineupList}
+                    contentContainerStyle={styles.lineupListContent}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    {renderOpponentLineup()}
+
+                    <View style={styles.footer}>
+                      <Text style={styles.footerText}>
+                        NTABL All-Star App • Version 1.0
+                      </Text>
+                    </View>
+                  </ScrollView>
+                )}
               </>
             )}
           </View>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>
-              NTABL All-Star App • Version 1.0
-            </Text>
-          </View>
-        </NestableScrollContainer>
+        </View>
       </GestureHandlerRootView>
 
       <Modal
@@ -1217,15 +1229,16 @@ const styles = StyleSheet.create({
   },
 
   container: {
+    flex: 1,
     paddingHorizontal: 12,
     paddingTop: 50,
-    paddingBottom: 70,
+    paddingBottom: 12,
   },
 
   containerTablet: {
     paddingHorizontal: 20,
     paddingTop: 30,
-    paddingBottom: 50,
+    paddingBottom: 16,
   },
 
   containerShort: {
@@ -1359,6 +1372,20 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
 
+  mainCardFlexible: {
+    flex: 1,
+    minHeight: 0,
+  },
+
+  lineupList: {
+    flex: 1,
+    minHeight: 0,
+  },
+
+  lineupListContent: {
+    paddingBottom: 24,
+  },
+
   loadingCard: {
     paddingVertical: 30,
     alignItems: "center",
@@ -1405,26 +1432,13 @@ const styles = StyleSheet.create({
     color: "#ffffff",
   },
 
-  floatingSaveWrapper: {
-    backgroundColor: "#eef2f7",
-    paddingTop: 2,
-    paddingBottom: 8,
-    zIndex: 50,
-    elevation: 10,
-  },
-
   savePanel: {
     backgroundColor: "#f9fafb",
     borderRadius: 16,
     padding: 12,
-    marginBottom: 0,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 6,
   },
 
   saveLineupButton: {
@@ -1639,7 +1653,7 @@ const styles = StyleSheet.create({
   },
 
   dragHandlePressed: {
-    opacity: 0.84,
+    opacity: 0.82,
     transform: [{ scale: 0.98 }],
   },
 
