@@ -708,6 +708,26 @@ async function sendHelpRequest() {
             </View>
           </Pressable>
 
+          {managerData?.isAllStarManager && managerData?.allStarManagerAccess && (
+            <Pressable
+              style={styles.allStarManagerButton}
+              onPress={handleAllStarManagerAccess}
+            >
+              <View style={styles.buttonContentRow}>
+                <Ionicons
+                  name="person-outline"
+                  size={22}
+                  color="#ffffff"
+                  style={{ marginRight: 8 }}
+                />
+
+                <Text style={styles.allStarManagerButtonText}>
+                  All-Star Manager Access
+                </Text>
+              </View>
+            </Pressable>
+          )}
+
           {canViewSchedule && (
             <Pressable
               style={styles.scheduleButton}
@@ -725,26 +745,6 @@ async function sendHelpRequest() {
                   {managerData?.isLeagueAppsAdmin
                     ? "View All Game Schedules"
                     : "View Game Schedule"}
-                </Text>
-              </View>
-            </Pressable>
-          )}
-
-          {managerData?.isAllStarManager && managerData?.allStarManagerAccess && (
-            <Pressable
-              style={styles.allStarManagerButton}
-              onPress={handleAllStarManagerAccess}
-            >
-              <View style={styles.buttonContentRow}>
-                <Ionicons
-                  name="person-outline"
-                  size={22}
-                  color="#ffffff"
-                  style={{ marginRight: 8 }}
-                />
-
-                <Text style={styles.allStarManagerButtonText}>
-                  All-Star Manager Access
                 </Text>
               </View>
             </Pressable>
@@ -1370,17 +1370,17 @@ helpButtonText: {
   },
 
   scheduleButton: {
-    backgroundColor: "#0369a1",
+    marginTop: 12,
+    backgroundColor: "#166534",
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
-    marginBottom: 12,
   },
 
   scheduleButtonText: {
     color: "#ffffff",
     fontSize: 16,
-    fontWeight: "900",
+    fontWeight: "700",
   },
 
   allStarManagerButton: {
