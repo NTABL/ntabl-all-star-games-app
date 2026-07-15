@@ -110,7 +110,7 @@ export default function AdminScreen() {
             >
               <View style={styles.buttonContentRow}>
                 <Ionicons
-                  name="person-search-outline"
+                  name="person-circle-outline"
                   size={22}
                   color="#ffffff"
                   style={{ marginRight: 8 }}
@@ -365,7 +365,7 @@ diagnosticsButton: {
   justifyContent: "center",
 },
   memberLookupButton: {
-    backgroundColor: "#7c3aed",
+    backgroundColor: "#15803d",
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
