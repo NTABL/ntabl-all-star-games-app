@@ -102,6 +102,26 @@ export default function AdminScreen() {
   </TouchableOpacity>
 </View>
           <View style={styles.sectionCard}>
+            <Text style={styles.sectionHeader}>Member Support</Text>
+
+            <TouchableOpacity
+              style={styles.memberLookupButton}
+              onPress={() => router.push("/memberlookup")}
+            >
+              <View style={styles.buttonContentRow}>
+                <Ionicons
+                  name="person-search-outline"
+                  size={22}
+                  color="#ffffff"
+                  style={{ marginRight: 8 }}
+                />
+
+                <Text style={styles.buttonText}>Member Lookup & Impersonation</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.sectionCard}>
             <Text style={styles.sectionHeader}>
               All-Star Managers
             </Text>
@@ -344,4 +364,10 @@ diagnosticsButton: {
   alignItems: "center",
   justifyContent: "center",
 },
+  memberLookupButton: {
+    backgroundColor: "#7c3aed",
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
 });
