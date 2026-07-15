@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router, Stack } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -81,7 +81,25 @@ const DEFAULT_GAME_STATE: GameState = {
 };
 
 export default function AnnouncerScreen() {
-  const [selectedGame, setSelectedGame] = useState<GameOption>(GAMES[1]);
+  const params = useLocalSearchParams<{
+    gameId?: string;
+    divisionId?: string;
+    gameTitle?: string;
+    eastDugout?: string;
+    westDugout?: string;
+    accentColor?: string;
+  }>();
+  const [selectedGame, setSelectedGame] = useState<GameOption>(() => {
+    const requestedId = String(params.gameId || "");
+    const requestedDivision = String(params.divisionId || "");
+
+    return (
+      GAMES.find(
+        (game) =>
+          game.id === requestedId || game.divisionId === requestedDivision
+      ) || GAMES[1]
+    );
+  });
   const [displaySquad, setDisplaySquad] = useState<Squad>("East");
   const [loading, setLoading] = useState(true);
 
@@ -111,6 +129,12 @@ export default function AnnouncerScreen() {
   const { width } = useWindowDimensions();
   const isWideScreen = width >= 900;
   const isDesktop = width >= 1200;
+  const gameTitle =
+    String(params.gameTitle || "").trim() ||
+    selectedGame.label.replace(/\n/g, " ");
+  const eastDugout = String(params.eastDugout || "1B Dugout");
+  const westDugout = String(params.westDugout || "3B Dugout");
+  const gameAccentColor = String(params.accentColor || "#1f4e9e");
   const swipeHintScale = useRef(new Animated.Value(1)).current;
 
   const displayBatting = displaySquad === "East" ? eastBatting : westBatting;
@@ -131,6 +155,25 @@ export default function AnnouncerScreen() {
     displayBatting,
     displayGameState.currentBatterIndex + 2
   );
+
+  useEffect(() => {
+    const requestedId = String(params.gameId || "");
+    const requestedDivision = String(params.divisionId || "");
+
+    if (!requestedId && !requestedDivision) {
+      router.replace("/announcer-games");
+      return;
+    }
+
+    const nextGame = GAMES.find(
+      (game) =>
+        game.id === requestedId || game.divisionId === requestedDivision
+    );
+
+    if (nextGame && nextGame.id !== selectedGame.id) {
+      setSelectedGame(nextGame);
+    }
+  }, [params.gameId, params.divisionId]);
 
   useEffect(() => {
     loadGameData();
@@ -514,7 +557,7 @@ return {
 
           <Pressable
             style={styles.chooseGameButton}
-            onPress={() => setShowGamePicker(true)}
+            onPress={() => router.replace("/announcer-games")}
           >
             <View style={styles.buttonContentRow}>
               <Ionicons
@@ -524,11 +567,58 @@ return {
                 style={{ marginRight: 8 }}
               />
 
-              <Text style={styles.chooseGameButtonText}>Choose Game</Text>
+              <Text style={styles.chooseGameButtonText}>Change Game</Text>
             </View>
           </Pressable>
 
-          <Text style={styles.selectedGameTitle}>{selectedGame.label}</Text>
+          <View
+            style={[
+              styles.matchupCard,
+              { borderTopColor: gameAccentColor },
+            ]}
+          >
+            <View style={styles.gameIdentityRow}>
+              <View style={styles.gameNumberPill}>
+                <Text style={styles.gameNumberPillText}>
+                  GAME {selectedGame.id.replace("game", "")}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.selectedGameTitle}>{gameTitle}</Text>
+
+            <View style={styles.matchupRow}>
+              <View style={styles.matchupTeam}>
+                <Image
+                  source={require("../assets/East.png")}
+                  style={styles.matchupLogo}
+                  resizeMode="contain"
+                />
+                <Text style={styles.eastMatchupTitle}>EAST</Text>
+                <Text style={styles.dugoutText}>{eastDugout}</Text>
+                <Text style={styles.matchupManagerText}>
+                  {eastManager || "Manager TBD"}
+                </Text>
+              </View>
+
+              <View style={styles.versusColumn}>
+                <Text style={styles.versusText}>VS</Text>
+              </View>
+
+              <View style={styles.matchupTeam}>
+                <Image
+                  source={require("../assets/West.png")}
+                  style={styles.matchupLogo}
+                  resizeMode="contain"
+                />
+                <Text style={styles.westMatchupTitle}>WEST</Text>
+                <Text style={styles.dugoutText}>{westDugout}</Text>
+                <Text style={styles.matchupManagerText}>
+                  {westManager || "Manager TBD"}
+                </Text>
+              </View>
+            </View>
+          </View>
 
           <Text style={styles.liveStatusText}>{liveLabel}</Text>
           <Text style={styles.lastUpdatedText}>{refreshAge}</Text>
@@ -824,11 +914,101 @@ allStarLogo: {
   },
 
   selectedGameTitle: {
-    fontSize: Platform.OS === "web" ? 40 : 28,
+    fontSize: Platform.OS === "web" ? 30 : 24,
     fontWeight: "900",
+    color: "#111827",
     textAlign: "center",
-    marginBottom: 8,
-    lineHeight: Platform.OS === "web" ? 46 : 30,
+    marginTop: 10,
+    lineHeight: Platform.OS === "web" ? 36 : 29,
+  },
+
+  matchupCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    borderTopWidth: 7,
+    padding: 16,
+    marginTop: 8,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+
+  gameIdentityRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+  },
+
+  gameNumberPill: {
+    backgroundColor: "#111827",
+    borderRadius: 999,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+  },
+
+  gameNumberPillText: {
+    color: "#ffffff",
+    fontSize: 11,
+    fontWeight: "900",
+  },
+
+  matchupRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+  },
+
+  matchupTeam: {
+    flex: 1,
+    alignItems: "center",
+  },
+
+  matchupLogo: {
+    width: 125,
+    height: 82,
+  },
+
+  eastMatchupTitle: {
+    color: "#c62828",
+    fontSize: 20,
+    fontWeight: "900",
+    marginTop: 3,
+  },
+
+  westMatchupTitle: {
+    color: "#1565c0",
+    fontSize: 20,
+    fontWeight: "900",
+    marginTop: 3,
+  },
+
+  dugoutText: {
+    color: "#111827",
+    fontSize: 14,
+    fontWeight: "900",
+    marginTop: 4,
+    textAlign: "center",
+  },
+
+  matchupManagerText: {
+    color: "#6b7280",
+    fontSize: 12,
+    fontWeight: "800",
+    marginTop: 3,
+    textAlign: "center",
+  },
+
+  versusColumn: {
+    width: 42,
+    alignItems: "center",
+  },
+
+  versusText: {
+    color: "#6b7280",
+    fontSize: 15,
+    fontWeight: "900",
   },
 
   liveStatusText: {
