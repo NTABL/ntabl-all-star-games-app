@@ -325,16 +325,20 @@ function toggleBatting(playerId: string, value: boolean) {
     [playerId]: value,
   }));
 
-  setBattingOrderIds((current) => {
-    if (value) {
-      if (current.includes(playerId)) return current;
-      return [...current, playerId];
-    }
+  setSaveStatus("Updating lineup...");
 
-    return current.filter((id) => id !== playerId);
-  });
+  setTimeout(() => {
+    setBattingOrderIds((current) => {
+      if (value) {
+        if (current.includes(playerId)) return current;
+        return [...current, playerId];
+      }
 
-  markLineupChanged();
+      return current.filter((id) => id !== playerId);
+    });
+
+    markLineupChanged();
+  }, 650);
 }
 
 function renderPlayer(
@@ -347,8 +351,10 @@ function renderPlayer(
     const isBatting = battingPlayers[player.id] ?? true;
 
 const cardContent = (
-  <View
+  <Pressable
     key={`${player.id}-${battingOrder || "sub"}`}
+    onLongPress={drag}
+    disabled={!drag}
     style={[
       styles.playerCard,
       editable
@@ -434,21 +440,17 @@ const cardContent = (
 <Switch
   value={isBatting}
   onValueChange={(value) => toggleBatting(player.id, value)}
+  disabled={saveStatus === "Updating lineup..."}
 />
               </View>
 
               {battingOrder ? (
-<Pressable
-  onLongPress={drag}
-  delayLongPress={180}
-  disabled={!drag}
-  hitSlop={8}
-  style={({ pressed }) => [
+<View
+  style={[
     styles.dragHandle,
     isBatting
       ? styles.dragHandleBatting
       : styles.dragHandleSubstitute,
-    pressed && styles.dragHandlePressed,
   ]}
 >
                   <Ionicons
@@ -456,7 +458,7 @@ const cardContent = (
                     size={24}
                     color="#111827"
                   />
-                </Pressable>
+                </View>
               ) : null}
             </>
           ) : (
@@ -465,7 +467,7 @@ const cardContent = (
             </View>
           )}
         </View>
-</View>
+</Pressable>
 );
 
 if (drag) {
@@ -734,9 +736,33 @@ function leaveWithoutSaving() {
     );
   }
 
-  function renderManagerListFooter() {
+  function renderManagerLineup() {
     return (
       <View style={styles.section}>
+        <Text style={styles.lineupSectionTitle}>
+          Batting Lineup ({battingLineup.length})
+        </Text>
+
+        {battingLineup.length > 0 ? (
+          <DraggableFlatList
+            data={battingLineup}
+            keyExtractor={(item) => item.id}
+            scrollEnabled={false}
+            activationDistance={8}
+            onDragEnd={({ data }) => {
+              setBattingOrderIds(data.map((player) => player.id));
+              markLineupChanged();
+            }}
+renderItem={({ item, getIndex, drag, isActive }) => {
+  const index = getIndex() ?? 0;
+
+  return renderPlayer(item, true, index + 1, drag, isActive);
+}}
+          />
+        ) : (
+          <Text style={styles.emptyText}>No Batting Players Selected.</Text>
+        )}
+
         <Text style={styles.lineupSectionTitle}>
           Substitutes ({notBattingPlayers.length})
         </Text>
@@ -746,12 +772,6 @@ function leaveWithoutSaving() {
         ) : (
           <Text style={styles.emptyText}>No Players Marked as Not Batting.</Text>
         )}
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            NTABL All-Star App • Version 1.0
-          </Text>
-        </View>
       </View>
     );
   }
@@ -847,17 +867,19 @@ if (!json?.ok) {
       <Stack.Screen options={{ headerShown: false }} />
 
       <GestureHandlerRootView style={styles.screen}>
-        <View
-          style={[
+        <ScrollView
+          contentContainerStyle={[
             styles.container,
             isTabletLayout && styles.containerTablet,
             isShortScreen && styles.containerShort,
           ]}
+          showsVerticalScrollIndicator={false}
         >
           {renderTopControls()}
+
           {renderHeroCard()}
 
-          <View style={[styles.mainCard, styles.mainCardFlexible]}>
+          <View style={styles.mainCard}>
             {loading ? (
               <View style={styles.loadingCard}>
                 <ActivityIndicator size="large" color="#1d4ed8" />
@@ -868,63 +890,19 @@ if (!json?.ok) {
                 {renderTabs()}
                 {renderSavePanel()}
 
-                {activeTab === "manager" ? (
-                  <>
-                    <Text style={styles.lineupSectionTitle}>
-                      Batting Lineup ({battingLineup.length})
-                    </Text>
-
-                    <DraggableFlatList
-                      style={styles.lineupList}
-                      contentContainerStyle={styles.lineupListContent}
-                      data={battingLineup}
-                      keyExtractor={(item) => item.id}
-                      activationDistance={10}
-                      autoscrollThreshold={28}
-                      autoscrollSpeed={18}
-                      showsVerticalScrollIndicator={false}
-                      keyboardShouldPersistTaps="handled"
-                      onDragEnd={({ data }) => {
-                        setBattingOrderIds(data.map((player) => player.id));
-                        markLineupChanged();
-                      }}
-                      renderItem={({ item, getIndex, drag, isActive }) => {
-                        const index = getIndex() ?? 0;
-                        return renderPlayer(
-                          item,
-                          true,
-                          index + 1,
-                          drag,
-                          isActive
-                        );
-                      }}
-                      ListEmptyComponent={
-                        <Text style={styles.emptyText}>
-                          No Batting Players Selected.
-                        </Text>
-                      }
-                      ListFooterComponent={renderManagerListFooter}
-                    />
-                  </>
-                ) : (
-                  <ScrollView
-                    style={styles.lineupList}
-                    contentContainerStyle={styles.lineupListContent}
-                    showsVerticalScrollIndicator={false}
-                  >
-                    {renderOpponentLineup()}
-
-                    <View style={styles.footer}>
-                      <Text style={styles.footerText}>
-                        NTABL All-Star App • Version 1.0
-                      </Text>
-                    </View>
-                  </ScrollView>
-                )}
+                {activeTab === "manager"
+                  ? renderManagerLineup()
+                  : renderOpponentLineup()}
               </>
             )}
           </View>
-        </View>
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              NTABL All-Star App • Version 1.0
+            </Text>
+          </View>
+        </ScrollView>
       </GestureHandlerRootView>
 
       <Modal
@@ -1229,16 +1207,14 @@ const styles = StyleSheet.create({
   },
 
   container: {
-    flex: 1,
-    paddingHorizontal: 12,
+    paddingHorizontal: 20,
     paddingTop: 50,
-    paddingBottom: 12,
+    paddingBottom: 70,
   },
 
   containerTablet: {
-    paddingHorizontal: 20,
     paddingTop: 30,
-    paddingBottom: 16,
+    paddingBottom: 50,
   },
 
   containerShort: {
@@ -1370,20 +1346,6 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
-  },
-
-  mainCardFlexible: {
-    flex: 1,
-    minHeight: 0,
-  },
-
-  lineupList: {
-    flex: 1,
-    minHeight: 0,
-  },
-
-  lineupListContent: {
-    paddingBottom: 24,
   },
 
   loadingCard: {
@@ -1650,11 +1612,6 @@ const styles = StyleSheet.create({
   dragHandleSubstitute: {
     backgroundColor: "#f3f4f6",
     borderColor: "#9ca3af",
-  },
-
-  dragHandlePressed: {
-    opacity: 0.82,
-    transform: [{ scale: 0.98 }],
   },
 
   viewOnlyBadge: {
