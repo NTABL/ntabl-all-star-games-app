@@ -51,6 +51,13 @@ export default function GameSchedulesAdminScreen() {
   const [resultType, setResultType] = useState<"success" | "error">("success");
   const [resultTitle, setResultTitle] = useState("");
   const [resultMessage, setResultMessage] = useState("");
+  const [emailGame, setEmailGame] = useState<GameSchedule | null>(null);
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
+  const [emailRecipientCount, setEmailRecipientCount] = useState(0);
+  const [emailMissingCount, setEmailMissingCount] = useState(0);
+  const [loadingRecipients, setLoadingRecipients] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   useEffect(() => {
     loadSchedule();
@@ -185,6 +192,102 @@ export default function GameSchedulesAdminScreen() {
           }
         : current
     );
+  }
+
+  async function openGameEmail(game: GameSchedule) {
+    setEmailGame(game);
+    setEmailSubject(`NTABL All-Star Games - ${game.title} Schedule`);
+    setEmailMessage(`Hello {FirstName},
+
+Please review the updated itinerary for the ${game.title}.
+
+Division: {Division}
+Squad: {Squad}
+Role: {Role}
+
+Open the NTABL All-Star App and select View Game Schedules to review the complete timeline.
+
+Thank you,
+NTABL`);
+
+    try {
+      setLoadingRecipients(true);
+
+      const params = new URLSearchParams({
+        audience: "everyone",
+        divisionIds: game.divisionIds.join(","),
+        squad: "all",
+      });
+
+      const response = await adminFetch(
+        `${API_BASE}/api/admin/communications/recipients?${params.toString()}`
+      );
+
+      const json = await response.json();
+
+      if (response.ok && json?.ok) {
+        setEmailRecipientCount(Number(json.summaries?.withEmail || 0));
+        setEmailMissingCount(Number(json.summaries?.withoutEmail || 0));
+      }
+    } catch (error) {
+      console.log("GAME EMAIL RECIPIENT LOAD ERROR:", error);
+    } finally {
+      setLoadingRecipients(false);
+    }
+  }
+
+  async function sendGameEmail() {
+    if (!emailGame) return;
+
+    if (!emailSubject.trim() || !emailMessage.trim()) {
+      showResult(
+        "error",
+        "Message Required",
+        "Enter both an email subject and message."
+      );
+      return;
+    }
+
+    try {
+      setSendingEmail(true);
+
+      const response = await adminFetch(
+        `${API_BASE}/api/admin/communications/email`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            audience: "everyone",
+            divisionIds: emailGame.divisionIds,
+            divisionId: "all",
+            squad: "all",
+            subject: emailSubject,
+            message: emailMessage,
+            sendTest: false,
+          }),
+        }
+      );
+
+      const json = await response.json();
+
+      if (!response.ok || !json?.ok) {
+        throw new Error(json?.message || "Game email could not be sent.");
+      }
+
+      setEmailGame(null);
+      showResult(
+        json.failedCount > 0 ? "error" : "success",
+        "Game Email Complete",
+        json.message || `${json.sentCount || 0} emails sent.`
+      );
+    } catch (error: any) {
+      showResult(
+        "error",
+        "Game Email Failed",
+        error?.message || "The game email could not be sent."
+      );
+    } finally {
+      setSendingEmail(false);
+    }
   }
 
   async function saveSchedule() {
@@ -390,6 +493,23 @@ export default function GameSchedulesAdminScreen() {
                           }
                         />
 
+                        <Pressable
+                          style={styles.emailGameButton}
+                          onPress={() => openGameEmail(game)}
+                        >
+                          <View style={styles.buttonRow}>
+                            <Ionicons
+                              name="mail-outline"
+                              size={20}
+                              color="#ffffff"
+                              style={{ marginRight: 7 }}
+                            />
+                            <Text style={styles.emailGameButtonText}>
+                              Email This Game
+                            </Text>
+                          </View>
+                        </Pressable>
+
                         <Text style={styles.timelineHeading}>
                           Schedule Timeline
                         </Text>
@@ -512,6 +632,108 @@ export default function GameSchedulesAdminScreen() {
           </Text>
         </ScrollView>
       </View>
+
+      <Modal
+        visible={!!emailGame}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEmailGame(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.emailModalCard}>
+            <Ionicons
+              name="mail-outline"
+              size={52}
+              color="#0369a1"
+              style={{ marginBottom: 8 }}
+            />
+
+            <Text style={styles.modalTitle}>Email This Game</Text>
+            <Text style={styles.emailGameTitle}>{emailGame?.title}</Text>
+
+            <View style={styles.recipientSummary}>
+              {loadingRecipients ? (
+                <ActivityIndicator color="#0369a1" />
+              ) : (
+                <>
+                  <Text style={styles.recipientReady}>
+                    {emailRecipientCount} Email Ready
+                  </Text>
+                  {emailMissingCount > 0 && (
+                    <Text style={styles.recipientMissing}>
+                      {emailMissingCount} Missing Email
+                    </Text>
+                  )}
+                </>
+              )}
+            </View>
+
+            <ScrollView
+              style={styles.emailModalScroll}
+              keyboardShouldPersistTaps="handled"
+            >
+              <Text style={styles.inputLabel}>Subject</Text>
+              <TextInput
+                style={styles.input}
+                value={emailSubject}
+                onChangeText={setEmailSubject}
+              />
+
+              <Text style={styles.inputLabel}>Message</Text>
+              <TextInput
+                style={styles.emailMessageInput}
+                value={emailMessage}
+                onChangeText={setEmailMessage}
+                multiline
+                textAlignVertical="top"
+              />
+            </ScrollView>
+
+            <Pressable
+              style={[
+                styles.sendGameEmailButton,
+                (sendingEmail || emailRecipientCount === 0) &&
+                  styles.disabledButton,
+              ]}
+              onPress={sendGameEmail}
+              disabled={sendingEmail || emailRecipientCount === 0}
+            >
+              {sendingEmail ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <View style={styles.buttonRow}>
+                  <Ionicons
+                    name="send-outline"
+                    size={20}
+                    color="#ffffff"
+                    style={{ marginRight: 7 }}
+                  />
+                  <Text style={styles.sendGameEmailButtonText}>
+                    Send to {emailRecipientCount} Recipient
+                    {emailRecipientCount === 1 ? "" : "s"}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
+
+            <Pressable
+              style={styles.cancelEmailButton}
+              onPress={() => setEmailGame(null)}
+              disabled={sendingEmail}
+            >
+              <View style={styles.buttonRow}>
+                <Ionicons
+                  name="close-circle-outline"
+                  size={19}
+                  color="#ffffff"
+                  style={{ marginRight: 6 }}
+                />
+                <Text style={styles.cancelEmailButtonText}>Cancel</Text>
+              </View>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={resultVisible}
@@ -714,6 +936,18 @@ const styles = StyleSheet.create({
   gameBody: {
     padding: 16,
   },
+  emailGameButton: {
+    backgroundColor: "#0f766e",
+    borderRadius: 11,
+    paddingVertical: 13,
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  emailGameButtonText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "900",
+  },
   timelineHeading: {
     color: "#1f4e9e",
     fontSize: 18,
@@ -776,6 +1010,81 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     ...modalStyles.overlay,
+  },
+  emailModalCard: {
+    ...modalStyles.card,
+    maxHeight: "90%",
+    alignItems: "center",
+  },
+  emailGameTitle: {
+    color: "#4b5563",
+    fontSize: 15,
+    fontWeight: "900",
+    textAlign: "center",
+    marginTop: 5,
+  },
+  recipientSummary: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "#f8fafc",
+    borderRadius: 11,
+    padding: 11,
+    marginTop: 12,
+    marginBottom: 10,
+  },
+  recipientReady: {
+    color: "#15803d",
+    fontSize: 13,
+    fontWeight: "900",
+  },
+  recipientMissing: {
+    color: "#c2410c",
+    fontSize: 13,
+    fontWeight: "900",
+  },
+  emailModalScroll: {
+    width: "100%",
+    maxHeight: 390,
+  },
+  emailMessageInput: {
+    minHeight: 190,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 11,
+    backgroundColor: "#ffffff",
+    padding: 12,
+    color: "#111827",
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  sendGameEmailButton: {
+    width: "100%",
+    backgroundColor: "#15803d",
+    borderRadius: 11,
+    paddingVertical: 13,
+    alignItems: "center",
+  },
+  sendGameEmailButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "900",
+  },
+  cancelEmailButton: {
+    width: "100%",
+    backgroundColor: "#c62828",
+    borderRadius: 11,
+    paddingVertical: 13,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  cancelEmailButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "900",
   },
   resultCard: {
     ...modalStyles.compactCard,

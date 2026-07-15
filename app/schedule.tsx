@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { router, Stack } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -45,10 +45,9 @@ function formatTime(value: string) {
 
   if (!Number.isFinite(hours)) return value;
 
-  const suffix = hours >= 12 ? "PM" : "AM";
-  const displayHours = hours % 12 || 12;
-
-  return `${displayHours}:${minutes.padStart(2, "0")} ${suffix}`;
+  return `${hours % 12 || 12}:${minutes.padStart(2, "0")} ${
+    hours >= 12 ? "PM" : "AM"
+  }`;
 }
 
 function formatEventDate(value: string) {
@@ -66,52 +65,31 @@ function formatEventDate(value: string) {
   });
 }
 
-export default function ScheduleScreen() {
-  const params = useLocalSearchParams<{
-    all?: string;
-    divisionIds?: string;
-  }>();
+function findItem(game: GameSchedule, term: string) {
+  return game.items.find((item) =>
+    item.title.toLowerCase().includes(term.toLowerCase())
+  );
+}
 
+export default function ScheduleScreen() {
   const [schedule, setSchedule] = useState<ScheduleConfig | null>(null);
   const [loading, setLoading] = useState(true);
-  const [expandedGameId, setExpandedGameId] = useState<string | null>(null);
-  const showAll = params.all === "true";
-
-  const divisionIds = useMemo(() => {
-    try {
-      const parsed = JSON.parse(String(params.divisionIds || "[]"));
-      return Array.isArray(parsed) ? parsed.map(String) : [];
-    } catch {
-      return [];
-    }
-  }, [params.divisionIds]);
 
   useEffect(() => {
     loadSchedule();
-  }, [params.all, params.divisionIds]);
+  }, []);
 
   async function loadSchedule() {
     try {
       setLoading(true);
 
-      const query = new URLSearchParams({
-        all: showAll ? "true" : "false",
-        divisionIds: divisionIds.join(","),
-      });
-
       const response = await fetch(
-        `${API_BASE}/api/schedules/active?${query.toString()}`
+        `${API_BASE}/api/schedules/active?all=true`
       );
-
       const json = await response.json();
 
       if (response.ok && json?.ok) {
-        const nextSchedule = json.schedule as ScheduleConfig;
-        setSchedule(nextSchedule);
-
-        if (!showAll && nextSchedule.games.length === 1) {
-          setExpandedGameId(nextSchedule.games[0].id);
-        }
+        setSchedule(json.schedule);
       }
     } catch (error) {
       console.log("SCHEDULE LOAD ERROR:", error);
@@ -120,67 +98,11 @@ export default function ScheduleScreen() {
     }
   }
 
-  function renderTimeline(game: GameSchedule) {
-    return (
-      <View style={styles.timeline}>
-        {game.items.map((item, index) => (
-          <View key={item.id} style={styles.timelineRow}>
-            <View style={styles.timelineRail}>
-              <View
-                style={[
-                  styles.timelineIcon,
-                  { backgroundColor: game.accentColor || "#1d4ed8" },
-                ]}
-              >
-                <Ionicons
-                  name={item.icon || "time-outline"}
-                  size={20}
-                  color="#ffffff"
-                />
-              </View>
-
-              {index < game.items.length - 1 && (
-                <View
-                  style={[
-                    styles.timelineLine,
-                    { backgroundColor: game.accentColor || "#1d4ed8" },
-                  ]}
-                />
-              )}
-            </View>
-
-            <View style={styles.timelineContent}>
-              <Text
-                style={[
-                  styles.timelineTime,
-                  { color: game.accentColor || "#1d4ed8" },
-                ]}
-              >
-                {formatTime(item.time)}
-              </Text>
-
-              <Text style={styles.timelineTitle}>{item.title}</Text>
-
-              {!!item.location && (
-                <View style={styles.locationRow}>
-                  <Ionicons
-                    name="location-outline"
-                    size={14}
-                    color="#6b7280"
-                    style={{ marginRight: 4 }}
-                  />
-                  <Text style={styles.timelineLocation}>{item.location}</Text>
-                </View>
-              )}
-
-              {!!item.details && (
-                <Text style={styles.timelineDetails}>{item.details}</Text>
-              )}
-            </View>
-          </View>
-        ))}
-      </View>
-    );
+  function openGame(gameId: string) {
+    router.push({
+      pathname: "/gameitinerary",
+      params: { gameId },
+    });
   }
 
   return (
@@ -231,98 +153,133 @@ export default function ScheduleScreen() {
             </Text>
 
             {!!schedule?.eventDate && (
-              <View style={styles.eventMetaRow}>
+              <View style={styles.metaRow}>
                 <Ionicons
                   name="calendar-outline"
                   size={18}
                   color="#1f4e9e"
                   style={{ marginRight: 6 }}
                 />
-                <Text style={styles.eventMetaText}>
+                <Text style={styles.metaText}>
                   {formatEventDate(schedule.eventDate)}
                 </Text>
               </View>
             )}
 
             {!!schedule?.location && (
-              <View style={styles.eventMetaRow}>
+              <View style={styles.metaRow}>
                 <Ionicons
                   name="location-outline"
                   size={18}
                   color="#c62828"
                   style={{ marginRight: 6 }}
                 />
-                <Text style={styles.eventMetaText}>{schedule.location}</Text>
+                <Text style={styles.metaText}>{schedule.location}</Text>
               </View>
             )}
           </View>
 
           {loading ? (
             <View style={styles.loadingCard}>
-              <ActivityIndicator size="large" color="#0369a1" />
-              <Text style={styles.loadingText}>Loading Game Schedule...</Text>
-            </View>
-          ) : !schedule || schedule.games.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Ionicons
-                name="calendar-clear-outline"
-                size={52}
-                color="#6b7280"
-              />
-              <Text style={styles.emptyTitle}>No Schedule Available</Text>
-              <Text style={styles.emptyText}>
-                A game schedule has not been assigned to this account.
-              </Text>
+              <ActivityIndicator size="large" color="#166534" />
+              <Text style={styles.loadingText}>Loading Game Schedules...</Text>
             </View>
           ) : (
-            schedule.games.map((game) => {
-              const expanded =
-                !showAll ||
-                schedule.games.length === 1 ||
-                expandedGameId === game.id;
+            schedule?.games.map((game) => {
+              const arrival = findItem(game, "arrive");
+              const start = findItem(game, "game begins");
+              const end = findItem(game, "game end");
 
               return (
-                <View key={game.id} style={styles.gameCard}>
-                  <Pressable
+                <Pressable
+                  key={game.id}
+                  style={styles.gameCard}
+                  onPress={() => openGame(game.id)}
+                >
+                  <View
                     style={[
-                      styles.gameHeader,
+                      styles.gameAccent,
                       { backgroundColor: game.accentColor || "#1d4ed8" },
                     ]}
-                    onPress={() =>
-                      showAll &&
-                      setExpandedGameId(expanded ? null : game.id)
-                    }
-                  >
-                    <View style={styles.gameNumberBadge}>
-                      <Text style={styles.gameNumberText}>
-                        GAME {game.gameNumber}
-                      </Text>
-                    </View>
+                  />
 
-                    <View style={styles.gameHeaderText}>
-                      <Text style={styles.gameTitle}>{game.title}</Text>
-                      <Text style={styles.gameDivisionText}>
-                        {game.divisionIds.join(" • ").toUpperCase()}
-                      </Text>
-                    </View>
+                  <View style={styles.gameCardBody}>
+                    <View style={styles.gameCardHeader}>
+                      <View
+                        style={[
+                          styles.gameNumberBadge,
+                          { backgroundColor: game.accentColor || "#1d4ed8" },
+                        ]}
+                      >
+                        <Text style={styles.gameNumberText}>
+                          GAME {game.gameNumber}
+                        </Text>
+                      </View>
 
-                    {showAll && schedule.games.length > 1 && (
                       <Ionicons
-                        name={
-                          expanded
-                            ? "chevron-up-outline"
-                            : "chevron-down-outline"
-                        }
-                        size={24}
-                        color="#ffffff"
+                        name="chevron-forward-circle"
+                        size={29}
+                        color={game.accentColor || "#1d4ed8"}
                       />
-                    )}
-                  </Pressable>
+                    </View>
 
-                  {expanded && (
-                    <View style={styles.gameBody}>{renderTimeline(game)}</View>
-                  )}
-                </View>
+                    <Text style={styles.gameTitle}>{game.title}</Text>
+                    <Text style={styles.divisionText}>
+                      {game.divisionIds.join(" • ").toUpperCase()}
+                    </Text>
+
+                    <View style={styles.quickTimes}>
+                      <View style={styles.quickTimeItem}>
+                        <Ionicons name="car-outline" size={18} color="#4b5563" />
+                        <Text style={styles.quickTimeLabel}>Arrival</Text>
+                        <Text style={styles.quickTimeValue}>
+                          {arrival ? formatTime(arrival.time) : "TBD"}
+                        </Text>
+                      </View>
+
+                      <View style={styles.quickTimeDivider} />
+
+                      <View style={styles.quickTimeItem}>
+                        <Ionicons
+                          name="baseball-outline"
+                          size={18}
+                          color="#4b5563"
+                        />
+                        <Text style={styles.quickTimeLabel}>First Pitch</Text>
+                        <Text style={styles.quickTimeValue}>
+                          {start ? formatTime(start.time) : "TBD"}
+                        </Text>
+                      </View>
+
+                      <View style={styles.quickTimeDivider} />
+
+                      <View style={styles.quickTimeItem}>
+                        <Ionicons name="flag-outline" size={18} color="#4b5563" />
+                        <Text style={styles.quickTimeLabel}>Est. End</Text>
+                        <Text style={styles.quickTimeValue}>
+                          {end ? formatTime(end.time) : "TBD"}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View
+                      style={[
+                        styles.viewButton,
+                        { backgroundColor: game.accentColor || "#1d4ed8" },
+                      ]}
+                    >
+                      <Ionicons
+                        name="calendar-outline"
+                        size={19}
+                        color="#ffffff"
+                        style={{ marginRight: 7 }}
+                      />
+                      <Text style={styles.viewButtonText}>
+                        View Game Itinerary
+                      </Text>
+                    </View>
+                  </View>
+                </Pressable>
               );
             })
           )}
@@ -349,10 +306,7 @@ export default function ScheduleScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "#eef2f7",
-  },
+  screen: { flex: 1, backgroundColor: "#eef2f7" },
   container: {
     paddingHorizontal: 20,
     paddingTop: 50,
@@ -374,20 +328,14 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 13,
   },
-  backButtonText: {
-    color: "#ffffff",
-    fontWeight: "800",
-  },
+  backButtonText: { color: "#ffffff", fontWeight: "800" },
   refreshButton: {
     backgroundColor: "#6b7280",
     borderRadius: 9,
     paddingVertical: 7,
     paddingHorizontal: 13,
   },
-  refreshButtonText: {
-    color: "#ffffff",
-    fontWeight: "800",
-  },
+  refreshButtonText: { color: "#ffffff", fontWeight: "800" },
   heroCard: {
     backgroundColor: "#ffffff",
     borderRadius: 20,
@@ -400,11 +348,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
-  logo: {
-    width: 210,
-    height: 145,
-    marginBottom: 4,
-  },
+  logo: { width: 210, height: 145, marginBottom: 3 },
   title: {
     color: "#1f4e9e",
     fontSize: 29,
@@ -418,16 +362,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 4,
   },
-  eventMetaRow: {
+  metaRow: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 9,
   },
-  eventMetaText: {
-    color: "#374151",
-    fontSize: 15,
-    fontWeight: "800",
-  },
+  metaText: { color: "#374151", fontSize: 15, fontWeight: "800" },
   loadingCard: {
     backgroundColor: "#ffffff",
     borderRadius: 18,
@@ -439,126 +379,89 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     marginTop: 10,
   },
-  emptyCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 18,
-    padding: 28,
-    alignItems: "center",
-  },
-  emptyTitle: {
-    color: "#1f4e9e",
-    fontSize: 21,
-    fontWeight: "900",
-    marginTop: 9,
-  },
-  emptyText: {
-    color: "#6b7280",
-    fontSize: 14,
-    fontWeight: "700",
-    textAlign: "center",
-    marginTop: 6,
-  },
   gameCard: {
     backgroundColor: "#ffffff",
     borderRadius: 20,
     overflow: "hidden",
     marginBottom: 16,
+    flexDirection: "row",
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
-  gameHeader: {
+  gameAccent: { width: 8 },
+  gameCardBody: { flex: 1, padding: 16 },
+  gameCardHeader: {
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 15,
-    paddingHorizontal: 15,
   },
   gameNumberBadge: {
-    backgroundColor: "rgba(255,255,255,0.18)",
     borderRadius: 999,
     paddingVertical: 6,
-    paddingHorizontal: 10,
-    marginRight: 10,
+    paddingHorizontal: 11,
   },
   gameNumberText: {
     color: "#ffffff",
     fontSize: 11,
     fontWeight: "900",
   },
-  gameHeaderText: {
-    flex: 1,
-  },
   gameTitle: {
-    color: "#ffffff",
-    fontSize: 19,
-    fontWeight: "900",
-  },
-  gameDivisionText: {
-    color: "#e0f2fe",
-    fontSize: 11,
-    fontWeight: "800",
-    marginTop: 3,
-  },
-  gameBody: {
-    padding: 16,
-  },
-  timeline: {
-    width: "100%",
-  },
-  timelineRow: {
-    flexDirection: "row",
-    minHeight: 92,
-  },
-  timelineRail: {
-    width: 48,
-    alignItems: "center",
-  },
-  timelineIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  timelineLine: {
-    width: 3,
-    flex: 1,
-    opacity: 0.28,
-  },
-  timelineContent: {
-    flex: 1,
-    paddingLeft: 8,
-    paddingBottom: 18,
-  },
-  timelineTime: {
-    fontSize: 17,
-    fontWeight: "900",
-  },
-  timelineTitle: {
     color: "#111827",
-    fontSize: 16,
+    fontSize: 22,
     fontWeight: "900",
-    marginTop: 2,
+    marginTop: 12,
   },
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 5,
-  },
-  timelineLocation: {
-    flex: 1,
+  divisionText: {
     color: "#6b7280",
     fontSize: 12,
-    fontWeight: "800",
+    fontWeight: "900",
+    marginTop: 4,
   },
-  timelineDetails: {
-    color: "#4b5563",
-    fontSize: 13,
-    fontWeight: "700",
-    lineHeight: 19,
-    marginTop: 5,
+  quickTimes: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    backgroundColor: "#f8fafc",
+    borderRadius: 13,
+    paddingVertical: 12,
+    marginTop: 14,
+  },
+  quickTimeItem: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 4,
+  },
+  quickTimeDivider: {
+    width: 1,
+    backgroundColor: "#d1d5db",
+  },
+  quickTimeLabel: {
+    color: "#6b7280",
+    fontSize: 10,
+    fontWeight: "900",
+    marginTop: 3,
+    textTransform: "uppercase",
+  },
+  quickTimeValue: {
+    color: "#111827",
+    fontSize: 14,
+    fontWeight: "900",
+    marginTop: 3,
+  },
+  viewButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+    paddingVertical: 12,
+    marginTop: 14,
+  },
+  viewButtonText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "800",
   },
   noticeCard: {
     flexDirection: "row",
@@ -566,7 +469,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#e0f2fe",
     borderRadius: 14,
     padding: 13,
-    marginTop: 2,
   },
   noticeText: {
     flex: 1,

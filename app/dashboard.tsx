@@ -140,8 +140,7 @@ export default function Dashboard() {
     String(managerData?.role || "").trim().toLowerCase() === "player";
   const shouldShowWaiver =
     !!managerData?.isAllStarManager || !!managerData?.isSelectedAllStar;
-  const canViewSchedule =
-    !!managerData?.isAllStarManager || !!managerData?.isLeagueAppsAdmin;
+  const canViewSchedule = true;
   const isShawn =
     String(managerData?.email || managerData?.managerEmail || "")
       .trim()
@@ -349,18 +348,7 @@ async function handleSwitchTeam(assignmentKey: string) {
   }
 
   function handleOpenSchedule() {
-    const divisionIds = managerData?.isLeagueAppsAdmin
-      ? []
-      : managerData?.allStarManagerAccess?.divisionIds ||
-        [managerData?.divisionId || managerData?.division || ""].filter(Boolean);
-
-    router.push({
-      pathname: "/schedule",
-      params: {
-        all: managerData?.isLeagueAppsAdmin ? "true" : "false",
-        divisionIds: JSON.stringify(divisionIds),
-      },
-    });
+    router.push("/schedule");
   }
 
 async function sendHelpRequest() {
@@ -725,14 +713,12 @@ async function sendHelpRequest() {
                   All-Star Manager Access
                 </Text>
               </View>
-            </Pressable>
-          )}
+          </Pressable>
 
-          {canViewSchedule && (
-            <Pressable
-              style={styles.scheduleButton}
-              onPress={handleOpenSchedule}
-            >
+          <Pressable
+            style={styles.scheduleButton}
+            onPress={handleOpenSchedule}
+          >
               <View style={styles.buttonContentRow}>
                 <Ionicons
                   name="calendar-outline"
@@ -742,9 +728,7 @@ async function sendHelpRequest() {
                 />
 
                 <Text style={styles.scheduleButtonText}>
-                  {managerData?.isLeagueAppsAdmin
-                    ? "View All Game Schedules"
-                    : "View Game Schedule"}
+                  View Game Schedules
                 </Text>
               </View>
             </Pressable>
