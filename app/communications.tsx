@@ -97,9 +97,9 @@ const DEFAULT_SUBJECT = "NTABL All-Star Games Information";
 const DEFAULT_MESSAGES: Record<Audience, string> = {
   "missing-waivers": `Hello {FirstName},
 
-Our records indicate that your required <b>NTABL All-Star Games Player Waiver</b> has not yet been completed.
+Our records indicate that your required NTABL All-Star Games Player Waiver has not yet been completed.
 
-Please log in to the <b>NTABL All-Star App</b> and complete your waiver as soon as possible.
+Please log in to the NTABL All-Star App and complete your waiver as soon as possible.
 
 Division: {Division}
 Squad: {Squad}
@@ -109,30 +109,30 @@ Thank you,
 NTABL`,
   players: `Hello {FirstName},
 
-You are receiving this message because you have been selected for the <b>NTABL All-Star Games</b>.
+You are receiving this message because you have been selected for the NTABL All-Star Games.
 
 Division: {Division}
 Squad: {Squad}
 Team: {Team}
 
-Additional event information will be provided through the <b>NTABL All-Star App</b>.
+Additional event information will be provided through the NTABL All-Star App.
 
 Thank you,
 NTABL`,
   managers: `Hello {FirstName},
 
-You are receiving this message as an assigned M<b>NTABL All-Star Team Manager</b>.
+You are receiving this message as an assigned NTABL All-Star Team Manager.
 
 Division: {Division}
 Squad: {Squad}
 
-Please review the <b>NTABL All-Star App</b> for your roster and lineup responsibilities.
+Please review the NTABL All-Star App for your roster and lineup responsibilities.
 
 Thank you,
 NTABL`,
   everyone: `Hello {FirstName},
 
-This is an important message for <b>NTABL All-Star Games</b> participants and managers.
+This is an important message for NTABL All-Star Games participants and managers.
 
 Division: {Division}
 Squad: {Squad}
@@ -157,17 +157,17 @@ const MESSAGE_TEMPLATES: MessageTemplate[] = [
     subject: "Congratulations - NTABL All-Star Selection",
     message: `Hello {FirstName},
 
-Congratulations! Your team has selected you to be a player in the upcoming <b>NTABL Charity All-Star Games</b>.
+Congratulations! Your team has selected you to be a player in the upcoming NTABL Charity All-Star Games.
 
 Division: {Division}
 Squad: {Squad}
 Team: {Team}
 
-<span style="color:#cc0000;"><b><u>IMPORTANT:</u></b></span>: You are required to access the <b>NTABL All-Star App</b> to complete your <b>Player Waiver</b>. Log into the app using your existing LeagueApps email address and your DOB for your password the first time.
+IMPORTANT: You are required to access the NTABL All-Star App to complete your Player Waiver. Log into the app using your existing LeagueApps email address and your DOB for your password the first time.
 
-It is highly recommended that you use <b>Change Password</b> to update and secure your password after logging in.
+It is highly recommended that you use Change Password to update and secure your password after logging in.
 
-If you have any trouble logging in, click on the <span style="color:#000080"><b>Forgot Password</b></span> link to send a reset code to your email on file.
+If you have any trouble logging in, click on the Forgot Password link to send a reset code to your email on file.
 
 Thank You!
 NTABL`,
@@ -179,12 +179,12 @@ NTABL`,
     subject: "NTABL All-Star Games - Schedule Update",
     message: `Hello {FirstName},
 
-There has been an important schedule update for the <b>NTABL All-Star Games</b>.
+There has been an important schedule update for the NTABL All-Star Games.
 
 Division: {Division}
 Squad: {Squad}
 
-Please review the updated information in the <b>NTABL All-Star App</b>.
+Please review the updated information in the NTABL All-Star App.
 
 Thank You!
 NTABL`,
@@ -196,12 +196,12 @@ NTABL`,
     subject: "NTABL All-Star Games - Location Update",
     message: `Hello {FirstName},
 
-Please note an important field or location update for the <b>NTABL All-Star Games</b>.
+Please note an important field or location update for the NTABL All-Star Games.
 
 Division: {Division}
 Squad: {Squad}
 
-Please review the latest details in the <b>NTABL All-Star App</b>.
+Please review the latest details in the NTABL All-Star App.
 
 Thank You!
 NTABL`,
