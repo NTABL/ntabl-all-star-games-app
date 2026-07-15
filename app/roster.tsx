@@ -135,6 +135,9 @@ export default function RosterScreen() {
   const [toastType, setToastType] = useState<"success" | "error" | "warning">(
     "success"
   );
+  const [showSubmissionWarning, setShowSubmissionWarning] = useState(false);
+  const [submissionWarnings, setSubmissionWarnings] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
   const { width, height } = useWindowDimensions();
   const isTabletLayout = width >= 700;
@@ -363,33 +366,65 @@ async function saveDraft() {
   }
 }
 
-  async function submitRoster() {
-if (selected.length !== maxTotal) {
-  showToast(`Select ${maxTotal} total players.`, "warning");
-  return;
-}
+  function buildSubmissionWarnings() {
+    const warnings: string[] = [];
 
-if (selectedPitchers !== maxPitchers) {
-  showToast(
-    `Select ${maxPitchers} ${playerLabel(maxPitchers, "pitcher", "pitchers")}.`,
-    "warning"
-  );
-  return;
-}
+    if (selected.length < maxTotal) {
+      warnings.push(
+        `You selected ${selected.length} of the ${maxTotal} players allowed for this division.`
+      );
+    }
 
-if (selectedPositionPlayers !== maxPositionPlayers) {
-  showToast(
-    `Select ${maxPositionPlayers} ${playerLabel(
-      maxPositionPlayers,
-      "position player",
-      "position players"
-    )}.`,
-    "warning"
-  );
-  return;
-}
+    if (
+      selectedPitchers !== maxPitchers ||
+      selectedPositionPlayers !== maxPositionPlayers
+    ) {
+      warnings.push(
+        `The recommended mix is ${maxPositionPlayers} ${playerLabel(
+          maxPositionPlayers,
+          "position player",
+          "position players"
+        )} and ${maxPitchers} ${playerLabel(
+          maxPitchers,
+          "pitcher",
+          "pitchers"
+        )}. Your current mix is ${selectedPositionPlayers} ${playerLabel(
+          selectedPositionPlayers,
+          "position player",
+          "position players"
+        )} and ${selectedPitchers} ${playerLabel(
+          selectedPitchers,
+          "pitcher",
+          "pitchers"
+        )}.`
+      );
+    }
 
+    selectedPlayers.forEach((player) => {
+      const playerName = getPlayerName(player) || "Unnamed Player";
+      const missingFields: string[] = [];
+
+      if (!String(jerseys[player.id] || "").trim()) {
+        missingFields.push("jersey number");
+      }
+
+      if (!String(positions[player.id] || "").trim()) {
+        missingFields.push("position");
+      }
+
+      if (missingFields.length > 0) {
+        warnings.push(
+          `${playerName} is missing ${missingFields.join(" and ")}.`
+        );
+      }
+    });
+
+    return warnings;
+  }
+
+  async function performRosterSubmission() {
     try {
+      setSubmitting(true);
       const manager = await getManagerContext();
 
       const response = await fetch(`${API_BASE}/api/manager/submit`, {
@@ -411,6 +446,8 @@ if (selectedPositionPlayers !== maxPositionPlayers) {
         throw new Error(json?.message || json?.error || "Submission failed.");
       }
 
+      setShowSubmissionWarning(false);
+      setSubmissionWarnings([]);
       setShowSubmittedSplash(true);
 
       setTimeout(() => {
@@ -420,7 +457,29 @@ if (selectedPositionPlayers !== maxPositionPlayers) {
     } catch (e) {
       console.log(e);
       showToast("Submission failed. Please try again.", "error");
+    } finally {
+      setSubmitting(false);
     }
+  }
+
+  async function submitRoster() {
+    if (selected.length > maxTotal) {
+      showToast(
+        `You may submit no more than ${maxTotal} total players.`,
+        "warning"
+      );
+      return;
+    }
+
+    const warnings = buildSubmissionWarnings();
+
+    if (warnings.length > 0) {
+      setSubmissionWarnings(warnings);
+      setShowSubmissionWarning(true);
+      return;
+    }
+
+    await performRosterSubmission();
   }
 
 async function clearRoster() {
@@ -544,11 +603,15 @@ showToast("Roster Cleared!");
 <Text style={styles.subtitle}>
   {isPlayer
     ? "View Current Team Roster"
-    : `Select ${maxPositionPlayers} ${playerLabel(
-    maxPositionPlayers,
-    "Position Player",
-    "Position Players"
-  )} and ${maxPitchers} ${playerLabel(maxPitchers, "Pitcher", "Pitchers")}`}
+    : `Select up to ${maxTotal} total players • Recommended: ${maxPositionPlayers} ${playerLabel(
+        maxPositionPlayers,
+        "Position Player",
+        "Position Players"
+      )} and ${maxPitchers} ${playerLabel(
+        maxPitchers,
+        "Pitcher",
+        "Pitchers"
+      )}`}
 </Text>
       </View>
     );
@@ -592,10 +655,10 @@ showToast("Roster Cleared!");
           ]}
         >
           {selected.length === maxTotal
-            ? "Ready to Submit"
-            : `${maxTotal - selected.length} player${
+            ? "Maximum Reached • Ready to Submit"
+            : `${maxTotal - selected.length} additional player${
                 maxTotal - selected.length === 1 ? "" : "s"
-              } remaining`}
+              } may be selected`}
         </Text>
       </View>
     );
@@ -939,15 +1002,13 @@ showToast("Roster Cleared!");
       </Text>
 
 <Text style={styles.instructionsText}>
-  2. Your division uses{" "}
-  <Text style={styles.redBoldText}>
-    {managerData?.rules?.maxPositionPlayers ?? ""}
-  </Text>{" "}
+  2. Your division may submit up to{" "}
+  <Text style={styles.redBoldText}>{maxTotal}</Text>{" "}
+  <Text style={styles.boldText}>total players</Text>. The recommended mix is{" "}
+  <Text style={styles.redBoldText}>{maxPositionPlayers}</Text>{" "}
   <Text style={styles.boldText}>Position Players</Text> and{" "}
-  <Text style={styles.redBoldText}>
-    {managerData?.rules?.maxPitchers ?? ""}
-  </Text>{" "}
-  <Text style={styles.boldText}>Pitchers</Text>.
+  <Text style={styles.redBoldText}>{maxPitchers}</Text>{" "}
+  <Text style={styles.boldText}>Pitchers</Text>, but you may adjust that mix.
 </Text>
 
       <Text style={styles.instructionsText}>
@@ -957,10 +1018,10 @@ showToast("Roster Cleared!");
       </Text>
 
       <Text style={styles.instructionsText}>
-        4. Please be sure to verify{" "}
+        4. Please verify each player&apos;s{" "}
         <Text style={styles.boldText}>Jersey Number</Text> and{" "}
-        <Text style={styles.boldText}>Position</Text> for{" "}
-        <Text style={styles.underlineText}>each player</Text>.
+        <Text style={styles.boldText}>Position</Text>. Missing information will
+        be identified before submission, but you may still continue.
       </Text>
 
       <Text style={styles.instructionsText}>
@@ -977,6 +1038,69 @@ showToast("Roster Cleared!");
     </View>
   </View>
 </Modal>
+          <Modal
+            visible={showSubmissionWarning}
+            transparent
+            animationType="fade"
+            onRequestClose={() => {
+              if (!submitting) {
+                setShowSubmissionWarning(false);
+              }
+            }}
+          >
+            <View style={styles.submissionWarningOverlay}>
+              <View style={styles.submissionWarningCard}>
+                <Ionicons
+                  name="warning-outline"
+                  size={50}
+                  color="#f97316"
+                  style={{ marginBottom: 8 }}
+                />
+
+                <Text style={styles.submissionWarningTitle}>
+                  Review Before Submitting
+                </Text>
+
+                <Text style={styles.submissionWarningIntro}>
+                  Your selections can still be submitted, but please review the
+                  following:
+                </Text>
+
+                <View style={styles.submissionWarningList}>
+                  {submissionWarnings.map((warning, index) => (
+                    <View
+                      key={`${index}-${warning}`}
+                      style={styles.submissionWarningRow}
+                    >
+                      <Text style={styles.submissionWarningBullet}>•</Text>
+                      <Text style={styles.submissionWarningText}>{warning}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <View style={styles.submissionWarningButtonRow}>
+                  <TouchableOpacity
+                    style={styles.editSubmissionButton}
+                    onPress={() => setShowSubmissionWarning(false)}
+                    disabled={submitting}
+                  >
+                    <Text style={styles.editSubmissionButtonText}>Edit</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.continueSubmissionButton}
+                    onPress={performRosterSubmission}
+                    disabled={submitting}
+                  >
+                    <Text style={styles.continueSubmissionButtonText}>
+                      {submitting ? "Submitting..." : "Continue Anyway"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+
           <Modal
             visible={positionModalVisible}
             transparent
@@ -1522,6 +1646,96 @@ const styles = StyleSheet.create({
     height: 70,
     marginLeft: 10,
   },
+
+submissionWarningOverlay: {
+  ...modalStyles.overlay,
+},
+
+submissionWarningCard: {
+  ...modalStyles.card,
+  alignItems: "center",
+  maxHeight: "86%",
+},
+
+submissionWarningTitle: {
+  color: "#1f4e9e",
+  fontSize: 23,
+  fontWeight: "900",
+  textAlign: "center",
+  marginBottom: 8,
+},
+
+submissionWarningIntro: {
+  color: "#4b5563",
+  fontSize: 15,
+  fontWeight: "700",
+  lineHeight: 21,
+  textAlign: "center",
+  marginBottom: 14,
+},
+
+submissionWarningList: {
+  width: "100%",
+  marginBottom: 18,
+},
+
+submissionWarningRow: {
+  flexDirection: "row",
+  alignItems: "flex-start",
+  marginBottom: 9,
+},
+
+submissionWarningBullet: {
+  color: "#f97316",
+  fontSize: 20,
+  fontWeight: "900",
+  lineHeight: 22,
+  marginRight: 8,
+},
+
+submissionWarningText: {
+  flex: 1,
+  color: "#374151",
+  fontSize: 14,
+  fontWeight: "700",
+  lineHeight: 20,
+},
+
+submissionWarningButtonRow: {
+  flexDirection: "row",
+  width: "100%",
+},
+
+editSubmissionButton: {
+  flex: 1,
+  backgroundColor: "#6b7280",
+  borderRadius: 10,
+  paddingVertical: 13,
+  alignItems: "center",
+  marginRight: 7,
+},
+
+continueSubmissionButton: {
+  flex: 1.35,
+  backgroundColor: "#15803d",
+  borderRadius: 10,
+  paddingVertical: 13,
+  alignItems: "center",
+  marginLeft: 7,
+},
+
+editSubmissionButtonText: {
+  color: "#ffffff",
+  fontSize: 16,
+  fontWeight: "900",
+},
+
+continueSubmissionButtonText: {
+  color: "#ffffff",
+  fontSize: 15,
+  fontWeight: "900",
+  textAlign: "center",
+},
 
 modalOverlay: {
   ...modalStyles.overlay,

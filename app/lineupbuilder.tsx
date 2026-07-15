@@ -727,26 +727,39 @@ function leaveWithoutSaving() {
   function renderManagerLineup() {
     return (
       <View style={styles.section}>
-        <View style={styles.lineupSectionHeaderRow}>
-          <Text style={styles.lineupSectionTitle}>
-            Batting Lineup ({battingLineup.length})
-          </Text>
+        <Text style={styles.lineupSectionTitle}>
+          Batting Lineup ({battingLineup.length})
+        </Text>
 
-          <Pressable
-            style={styles.reorderLineupButton}
-            onPress={openReorderModal}
-          >
-            <View style={styles.buttonContentRow}>
+        <Pressable
+          style={styles.reorderLineupButton}
+          onPress={openReorderModal}
+        >
+          <View style={styles.reorderLineupButtonContent}>
+            <View style={styles.reorderLineupIconCircle}>
               <Ionicons
-                name="reorder-three-outline"
-                size={17}
+                name="swap-vertical-outline"
+                size={22}
                 color="#ffffff"
-                style={{ marginRight: 5 }}
               />
-              <Text style={styles.reorderLineupButtonText}>Reorder</Text>
             </View>
-          </Pressable>
-        </View>
+
+            <View style={styles.reorderLineupTextArea}>
+              <Text style={styles.reorderLineupButtonText}>
+                Reorder Batting Lineup
+              </Text>
+              <Text style={styles.reorderLineupButtonSubText}>
+                Press, hold, and drag players into batting order
+              </Text>
+            </View>
+
+            <Ionicons
+              name="chevron-forward"
+              size={22}
+              color="#ffffff"
+            />
+          </View>
+        </Pressable>
 
         {battingLineup.length > 0 ? (
           battingLineup.map((player, index) =>
@@ -1142,7 +1155,15 @@ if (!json?.ok) {
         style={styles.reorderCancelButton}
         onPress={() => setShowReorderModal(false)}
       >
-        <Text style={styles.reorderCancelButtonText}>Cancel</Text>
+        <View style={styles.buttonContentRow}>
+          <Ionicons
+            name="close-circle-outline"
+            size={17}
+            color="#ffffff"
+            style={{ marginRight: 5 }}
+          />
+          <Text style={styles.reorderCancelButtonText}>Cancel</Text>
+        </View>
       </Pressable>
 
       <View style={styles.reorderHeaderTextArea}>
@@ -1156,7 +1177,15 @@ if (!json?.ok) {
         style={styles.reorderDoneButton}
         onPress={applyReorderedLineup}
       >
-        <Text style={styles.reorderDoneButtonText}>Done</Text>
+        <View style={styles.buttonContentRow}>
+          <Ionicons
+            name="checkmark-circle-outline"
+            size={17}
+            color="#ffffff"
+            style={{ marginRight: 5 }}
+          />
+          <Text style={styles.reorderDoneButtonText}>Done</Text>
+        </View>
       </Pressable>
     </View>
 
@@ -1570,15 +1599,48 @@ const styles = StyleSheet.create({
 
   reorderLineupButton: {
     backgroundColor: "#1d4ed8",
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 6,
+  },
+
+  reorderLineupButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  reorderLineupIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 11,
+  },
+
+  reorderLineupTextArea: {
+    flex: 1,
+    paddingRight: 8,
   },
 
   reorderLineupButtonText: {
     color: "#ffffff",
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: "900",
+  },
+
+  reorderLineupButtonSubText: {
+    color: "#dbeafe",
+    fontSize: 12,
+    fontWeight: "700",
+    marginTop: 2,
   },
 
   emptyText: {
