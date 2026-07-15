@@ -26,6 +26,7 @@ type ManagerData = {
   isAllStarManager?: boolean;
   isSelectedAllStar?: boolean;
   isLeagueAppsAdmin?: boolean;
+  isImpersonating?: boolean;
   divisionId?: string;
   selectedAllStarIds?: string[];
   email?: string;
@@ -713,26 +714,26 @@ async function sendHelpRequest() {
                   All-Star Manager Access
                 </Text>
               </View>
-          </Pressable>
+            </Pressable>
+          )}
 
           <Pressable
             style={styles.scheduleButton}
             onPress={handleOpenSchedule}
           >
-              <View style={styles.buttonContentRow}>
-                <Ionicons
-                  name="calendar-outline"
-                  size={22}
-                  color="#ffffff"
-                  style={{ marginRight: 8 }}
-                />
+            <View style={styles.buttonContentRow}>
+              <Ionicons
+                name="calendar-outline"
+                size={22}
+                color="#ffffff"
+                style={{ marginRight: 8 }}
+              />
 
-                <Text style={styles.scheduleButtonText}>
-                  View Game Schedules
-                </Text>
-              </View>
-            </Pressable>
-          )}
+              <Text style={styles.scheduleButtonText}>
+                View Game Schedules
+              </Text>
+            </View>
+          </Pressable>
 
           <Pressable
             style={styles.changePasswordButton}
