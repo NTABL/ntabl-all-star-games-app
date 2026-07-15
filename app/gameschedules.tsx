@@ -493,6 +493,35 @@ NTABL`);
                           }
                         />
 
+                        <Text style={styles.inputLabel}>
+                          Game Color (hex)
+                        </Text>
+                        <View style={styles.colorInputRow}>
+                          <View
+                            style={[
+                              styles.colorPreview,
+                              {
+                                backgroundColor:
+                                  game.accentColor || "#1d4ed8",
+                              },
+                            ]}
+                          />
+
+                          <TextInput
+                            style={[styles.input, styles.colorInput]}
+                            value={game.accentColor}
+                            onChangeText={(value) =>
+                              updateGame(game.id, {
+                                accentColor: value.trim(),
+                              })
+                            }
+                            placeholder="#1d4ed8"
+                            placeholderTextColor="#9ca3af"
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                          />
+                        </View>
+
                         <Pressable
                           style={styles.emailGameButton}
                           onPress={() => openGameEmail(game)}
@@ -947,6 +976,23 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 15,
     fontWeight: "900",
+  },
+  colorInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  colorPreview: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    marginRight: 10,
+  },
+  colorInput: {
+    flex: 1,
+    marginBottom: 0,
   },
   timelineHeading: {
     color: "#1f4e9e",
