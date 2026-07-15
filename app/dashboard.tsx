@@ -25,6 +25,8 @@ type ManagerData = {
   role?: string;
   isAllStarManager?: boolean;
   isSelectedAllStar?: boolean;
+  isLeagueAppsAdmin?: boolean;
+  divisionId?: string;
   selectedAllStarIds?: string[];
   email?: string;
   managerEmail?: string;
@@ -138,6 +140,8 @@ export default function Dashboard() {
     String(managerData?.role || "").trim().toLowerCase() === "player";
   const shouldShowWaiver =
     !!managerData?.isAllStarManager || !!managerData?.isSelectedAllStar;
+  const canViewSchedule =
+    !!managerData?.isAllStarManager || !!managerData?.isLeagueAppsAdmin;
   const isShawn =
     String(managerData?.email || managerData?.managerEmail || "")
       .trim()
@@ -340,6 +344,21 @@ async function handleSwitchTeam(assignmentKey: string) {
         displayName: access.displayName,
         squad: access.squad,
         divisionIds: JSON.stringify(access.divisionIds),
+      },
+    });
+  }
+
+  function handleOpenSchedule() {
+    const divisionIds = managerData?.isLeagueAppsAdmin
+      ? []
+      : managerData?.allStarManagerAccess?.divisionIds ||
+        [managerData?.divisionId || managerData?.division || ""].filter(Boolean);
+
+    router.push({
+      pathname: "/schedule",
+      params: {
+        all: managerData?.isLeagueAppsAdmin ? "true" : "false",
+        divisionIds: JSON.stringify(divisionIds),
       },
     });
   }
@@ -688,6 +707,28 @@ async function sendHelpRequest() {
               </Text>
             </View>
           </Pressable>
+
+          {canViewSchedule && (
+            <Pressable
+              style={styles.scheduleButton}
+              onPress={handleOpenSchedule}
+            >
+              <View style={styles.buttonContentRow}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={22}
+                  color="#ffffff"
+                  style={{ marginRight: 8 }}
+                />
+
+                <Text style={styles.scheduleButtonText}>
+                  {managerData?.isLeagueAppsAdmin
+                    ? "View All Game Schedules"
+                    : "View Game Schedule"}
+                </Text>
+              </View>
+            </Pressable>
+          )}
 
           {managerData?.isAllStarManager && managerData?.allStarManagerAccess && (
             <Pressable
@@ -1326,6 +1367,20 @@ helpButtonText: {
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "700",
+  },
+
+  scheduleButton: {
+    backgroundColor: "#0369a1",
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  scheduleButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "900",
   },
 
   allStarManagerButton: {

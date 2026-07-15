@@ -142,6 +142,26 @@ export default function AdminScreen() {
           </View>
 
           <View style={styles.sectionCard}>
+            <Text style={styles.sectionHeader}>Game Schedules</Text>
+
+            <TouchableOpacity
+              style={styles.gameSchedulesButton}
+              onPress={() => router.push("/gameschedules")}
+            >
+              <View style={styles.buttonContentRow}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={22}
+                  color="#ffffff"
+                  style={{ marginRight: 8 }}
+                />
+
+                <Text style={styles.buttonText}>Manage Game Schedules</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.sectionCard}>
             <Text style={styles.sectionHeader}>
               All-Star Managers
             </Text>
@@ -328,6 +348,15 @@ const styles = StyleSheet.create({
 
   communicationsButton: {
     backgroundColor: "#0f766e",
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  gameSchedulesButton: {
+    backgroundColor: "#0369a1",
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 18,
