@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import {
   clearManagerContext,
+  exitImpersonation,
   getManagerContext,
   switchManagerAssignment,
 } from "../stores/store";
@@ -256,6 +257,16 @@ async function handleLogout() {
 }
 
 
+async function handleExitImpersonation() {
+  try {
+    await exitImpersonation();
+    router.replace("/admin");
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+
 async function handleSwitchTeam(assignmentKey: string) {
   try {
     setSwitchingTeam(true);
@@ -403,8 +414,33 @@ async function sendHelpRequest() {
   showsVerticalScrollIndicator={false}
   keyboardShouldPersistTaps="handled"
 >
+          {managerData?.isImpersonating && (
+            <View style={styles.impersonationBanner}>
+              <View style={styles.impersonationBannerText}>
+                <Text style={styles.impersonationLabel}>ADMIN IMPERSONATION</Text>
+                <Text style={styles.impersonationName}>
+                  Viewing as {managerData?.managerName || managerData?.email || "Member"}
+                </Text>
+              </View>
+
+              <Pressable
+                style={styles.exitImpersonationButton}
+                onPress={handleExitImpersonation}
+              >
+                <Text style={styles.exitImpersonationButtonText}>Exit</Text>
+              </Pressable>
+            </View>
+          )}
+
           <View style={styles.headerRow}>
-            <Pressable onPress={handleLogout} style={styles.logoutButton}>
+            <Pressable
+              onPress={
+                managerData?.isImpersonating
+                  ? handleExitImpersonation
+                  : handleLogout
+              }
+              style={styles.logoutButton}
+            >
               <View style={styles.smallButtonRow}>
                 <Ionicons
                   name="log-out-outline"
@@ -412,7 +448,9 @@ async function sendHelpRequest() {
                   color="#ffffff"
                   style={{ marginRight: 5 }}
                 />
-                <Text style={styles.logoutText}>Logout</Text>
+                <Text style={styles.logoutText}>
+                  {managerData?.isImpersonating ? "Exit Admin View" : "Logout"}
+                </Text>
               </View>
             </Pressable>
           </View>
@@ -1003,6 +1041,54 @@ container: {
   paddingTop: 50,
   paddingBottom: 70,
 },
+
+  impersonationBanner: {
+    backgroundColor: "#7c3aed",
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 7,
+  },
+
+  impersonationBannerText: {
+    flex: 1,
+    paddingRight: 10,
+  },
+
+  impersonationLabel: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 0.8,
+  },
+
+  impersonationName: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "800",
+    marginTop: 2,
+  },
+
+  exitImpersonationButton: {
+    backgroundColor: "#ffffff",
+    borderRadius: 9,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+
+  exitImpersonationButtonText: {
+    color: "#7c3aed",
+    fontSize: 13,
+    fontWeight: "900",
+  },
 
   headerRow: {
     flexDirection: "row",

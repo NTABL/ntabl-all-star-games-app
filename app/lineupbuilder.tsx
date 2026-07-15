@@ -439,15 +439,7 @@ const cardContent = (
 />
               </View>
 
-              {battingOrder ? (
-                <View style={styles.orderDisplayBadge}>
-                  <Ionicons
-                    name="reorder-three-outline"
-                    size={22}
-                    color="#6b7280"
-                  />
-                </View>
-              ) : null}
+
             </>
           ) : (
             <View style={styles.viewOnlyBadge}>
@@ -1174,9 +1166,9 @@ if (!json?.ok) {
         .filter((player): player is Player => !!player)}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.reorderListContent}
-      activationDistance={12}
-      autoscrollThreshold={40}
-      autoscrollSpeed={30}
+      activationDistance={4}
+      autoscrollThreshold={24}
+      autoscrollSpeed={12}
       showsVerticalScrollIndicator={false}
       onDragEnd={({ data }) =>
         setDraftBattingOrderIds(data.map((player) => player.id))
@@ -1206,8 +1198,7 @@ if (!json?.ok) {
               </View>
 
               <Pressable
-                onLongPress={drag}
-                delayLongPress={120}
+                onPressIn={drag}
                 hitSlop={10}
                 style={({ pressed }) => [
                   styles.reorderHandle,
@@ -1745,16 +1736,6 @@ const styles = StyleSheet.create({
     borderColor: "#9ca3af",
   },
 
-  orderDisplayBadge: {
-    width: 38,
-    height: 34,
-    borderRadius: 9,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#f3f4f6",
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-  },
 
   viewOnlyBadge: {
     backgroundColor: "#e5e7eb",
@@ -2158,8 +2139,8 @@ reorderPlayerMeta: {
 },
 
 reorderHandle: {
-  width: 48,
-  height: 44,
+  width: 52,
+  height: 48,
   borderRadius: 11,
   backgroundColor: "#eef2f7",
   borderWidth: 1,
@@ -2169,8 +2150,8 @@ reorderHandle: {
 },
 
 reorderHandlePressed: {
-  opacity: 0.8,
-  transform: [{ scale: 0.98 }],
+  opacity: 0.9,
+  transform: [{ scale: 0.99 }],
 },
 
 footer: {

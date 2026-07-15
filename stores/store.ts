@@ -45,3 +45,15 @@ export async function switchManagerAssignment(assignmentKey: string) {
   await setManagerContext(nextContext);
   return nextContext;
 }
+
+
+export async function exitImpersonation() {
+  const current = await getManagerContext();
+
+  if (!current?.isImpersonating) {
+    return false;
+  }
+
+  await clearManagerContext();
+  return true;
+}
