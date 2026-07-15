@@ -28,6 +28,8 @@ type GameSchedule = {
   shortTitle: string;
   divisionIds: string[];
   accentColor: string;
+  eastDugout: string;
+  westDugout: string;
   items: ScheduleItem[];
 };
 
@@ -199,6 +201,38 @@ export default function GameItineraryScreen() {
                     <Text style={styles.eventMetaText}>
                       {schedule?.location || "Riders Field"}
                     </Text>
+                  </View>
+                </View>
+
+                <View style={styles.dugoutAssignmentCard}>
+                  <View style={styles.dugoutAssignmentHeader}>
+                    <Ionicons
+                      name="home-outline"
+                      size={20}
+                      color={game.accentColor || "#1d4ed8"}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text style={styles.dugoutAssignmentTitle}>
+                      Dugout Assignments
+                    </Text>
+                  </View>
+
+                  <View style={styles.dugoutAssignmentRow}>
+                    <View style={styles.dugoutAssignmentItem}>
+                      <Text style={styles.dugoutAssignmentSquad}>EAST</Text>
+                      <Text style={styles.dugoutAssignmentValue}>
+                        {game.eastDugout || "1B Dugout"}
+                      </Text>
+                    </View>
+
+                    <View style={styles.dugoutAssignmentDivider} />
+
+                    <View style={styles.dugoutAssignmentItem}>
+                      <Text style={styles.dugoutAssignmentSquad}>WEST</Text>
+                      <Text style={styles.dugoutAssignmentValue}>
+                        {game.westDugout || "3B Dugout"}
+                      </Text>
+                    </View>
                   </View>
                 </View>
               </View>
@@ -399,6 +433,50 @@ const styles = StyleSheet.create({
     color: "#374151",
     fontSize: 14,
     fontWeight: "800",
+  },
+  dugoutAssignmentCard: {
+    width: "100%",
+    backgroundColor: "#f8fafc",
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: "#dbe5f1",
+    padding: 12,
+    marginTop: 12,
+  },
+  dugoutAssignmentHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  dugoutAssignmentTitle: {
+    color: "#1f4e9e",
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  dugoutAssignmentRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+  },
+  dugoutAssignmentItem: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 8,
+  },
+  dugoutAssignmentDivider: {
+    width: 1,
+    backgroundColor: "#d1d5db",
+  },
+  dugoutAssignmentSquad: {
+    color: "#6b7280",
+    fontSize: 11,
+    fontWeight: "900",
+  },
+  dugoutAssignmentValue: {
+    color: "#111827",
+    fontSize: 16,
+    fontWeight: "900",
+    marginTop: 3,
   },
   itineraryCard: {
     backgroundColor: "#ffffff",

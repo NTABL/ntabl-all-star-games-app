@@ -31,6 +31,8 @@ type GameSchedule = {
   shortTitle: string;
   divisionIds: string[];
   accentColor: string;
+  eastDugout: string;
+  westDugout: string;
   items: ScheduleItem[];
 };
 
@@ -522,6 +524,54 @@ NTABL`);
                           />
                         </View>
 
+                        <Text style={styles.inputLabel}>
+                          East Dugout
+                        </Text>
+                        <TextInput
+                          style={styles.input}
+                          value={game.eastDugout || ""}
+                          onChangeText={(value) =>
+                            updateGame(game.id, {
+                              eastDugout: value,
+                            })
+                          }
+                          placeholder="1B Dugout"
+                          placeholderTextColor="#9ca3af"
+                        />
+
+                        <Text style={styles.inputLabel}>
+                          West Dugout
+                        </Text>
+                        <TextInput
+                          style={styles.input}
+                          value={game.westDugout || ""}
+                          onChangeText={(value) =>
+                            updateGame(game.id, {
+                              westDugout: value,
+                            })
+                          }
+                          placeholder="3B Dugout"
+                          placeholderTextColor="#9ca3af"
+                        />
+
+                        <View style={styles.dugoutPreviewCard}>
+                          <View style={styles.dugoutPreviewItem}>
+                            <Text style={styles.dugoutPreviewLabel}>EAST</Text>
+                            <Text style={styles.dugoutPreviewValue}>
+                              {game.eastDugout || "1B Dugout"}
+                            </Text>
+                          </View>
+
+                          <View style={styles.dugoutPreviewDivider} />
+
+                          <View style={styles.dugoutPreviewItem}>
+                            <Text style={styles.dugoutPreviewLabel}>WEST</Text>
+                            <Text style={styles.dugoutPreviewValue}>
+                              {game.westDugout || "3B Dugout"}
+                            </Text>
+                          </View>
+                        </View>
+
                         <Pressable
                           style={styles.emailGameButton}
                           onPress={() => openGameEmail(game)}
@@ -993,6 +1043,36 @@ const styles = StyleSheet.create({
   colorInput: {
     flex: 1,
     marginBottom: 0,
+  },
+  dugoutPreviewCard: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#dbe5f1",
+    borderRadius: 12,
+    paddingVertical: 12,
+    marginBottom: 14,
+  },
+  dugoutPreviewItem: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 8,
+  },
+  dugoutPreviewDivider: {
+    width: 1,
+    backgroundColor: "#d1d5db",
+  },
+  dugoutPreviewLabel: {
+    color: "#6b7280",
+    fontSize: 11,
+    fontWeight: "900",
+  },
+  dugoutPreviewValue: {
+    color: "#111827",
+    fontSize: 15,
+    fontWeight: "900",
+    marginTop: 3,
   },
   timelineHeading: {
     color: "#1f4e9e",

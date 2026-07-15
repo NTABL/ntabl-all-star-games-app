@@ -28,6 +28,8 @@ type GameSchedule = {
   shortTitle: string;
   divisionIds: string[];
   accentColor: string;
+  eastDugout: string;
+  westDugout: string;
   items: ScheduleItem[];
 };
 
@@ -228,6 +230,24 @@ export default function ScheduleScreen() {
                       {game.divisionIds.join(" • ").toUpperCase()}
                     </Text>
 
+                    <View style={styles.dugoutRow}>
+                      <View style={styles.dugoutItem}>
+                        <Text style={styles.dugoutLabel}>EAST</Text>
+                        <Text style={styles.dugoutValue}>
+                          {game.eastDugout || "1B Dugout"}
+                        </Text>
+                      </View>
+
+                      <View style={styles.dugoutDivider} />
+
+                      <View style={styles.dugoutItem}>
+                        <Text style={styles.dugoutLabel}>WEST</Text>
+                        <Text style={styles.dugoutValue}>
+                          {game.westDugout || "3B Dugout"}
+                        </Text>
+                      </View>
+                    </View>
+
                     <View style={styles.quickTimes}>
                       <View style={styles.quickTimeItem}>
                         <Ionicons name="car-outline" size={18} color="#4b5563" />
@@ -419,6 +439,34 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "900",
     marginTop: 4,
+  },
+  dugoutRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    backgroundColor: "#eef2f7",
+    borderRadius: 12,
+    paddingVertical: 10,
+    marginTop: 12,
+  },
+  dugoutItem: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 6,
+  },
+  dugoutDivider: {
+    width: 1,
+    backgroundColor: "#cbd5e1",
+  },
+  dugoutLabel: {
+    color: "#6b7280",
+    fontSize: 10,
+    fontWeight: "900",
+  },
+  dugoutValue: {
+    color: "#111827",
+    fontSize: 14,
+    fontWeight: "900",
+    marginTop: 3,
   },
   quickTimes: {
     flexDirection: "row",
