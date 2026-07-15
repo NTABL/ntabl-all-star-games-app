@@ -90,8 +90,6 @@ export default function LineupBuilderScreen() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [saveStatus, setSaveStatus] = useState("");
   const [showSaveToast, setShowSaveToast] = useState(false);
-  const [showReorderModal, setShowReorderModal] = useState(false);
-  const [draftBattingOrderIds, setDraftBattingOrderIds] = useState<string[]>([]);
 
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -327,16 +325,20 @@ function toggleBatting(playerId: string, value: boolean) {
     [playerId]: value,
   }));
 
-  setBattingOrderIds((current) => {
-    if (value) {
-      if (current.includes(playerId)) return current;
-      return [...current, playerId];
-    }
+  setSaveStatus("Updating lineup...");
 
-    return current.filter((id) => id !== playerId);
-  });
+  setTimeout(() => {
+    setBattingOrderIds((current) => {
+      if (value) {
+        if (current.includes(playerId)) return current;
+        return [...current, playerId];
+      }
 
-  markLineupChanged();
+      return current.filter((id) => id !== playerId);
+    });
+
+    markLineupChanged();
+  }, 650);
 }
 
 function renderPlayer(
@@ -359,7 +361,7 @@ const cardContent = (
           : styles.notBattingPlayerCard
         : styles.viewOnlyPlayerCard,
       isTabletLayout && styles.playerCardTablet,
-      isActive && { opacity: 0.75 },
+      isActive && styles.activeDragPlayerCard,
     ]}
   >
         <View style={styles.playerHeaderRow}>
@@ -436,10 +438,29 @@ const cardContent = (
 <Switch
   value={isBatting}
   onValueChange={(value) => toggleBatting(player.id, value)}
+  disabled={saveStatus === "Updating lineup..."}
 />
               </View>
 
-
+              {battingOrder && drag ? (
+                <Pressable
+                  onLongPress={drag}
+                  delayLongPress={140}
+                  hitSlop={10}
+                  style={({ pressed }) => [
+                    styles.dragHandle,
+                    styles.dragHandleBatting,
+                    pressed && styles.dragHandlePressed,
+                  ]}
+                >
+                  <Ionicons
+                    name="reorder-three-outline"
+                    size={25}
+                    color="#1f4e9e"
+                  />
+                  <Text style={styles.dragHandleText}>Hold & Drag</Text>
+                </Pressable>
+              ) : null}
             </>
           ) : (
             <View style={styles.viewOnlyBadge}>
@@ -449,6 +470,10 @@ const cardContent = (
         </View>
 </View>
 );
+
+if (drag) {
+  return <ScaleDecorator>{cardContent}</ScaleDecorator>;
+}
 
 return cardContent;
   }
@@ -491,18 +516,6 @@ return cardContent;
 
     markLineupChanged();
     setSubTargetPlayer(null);
-  }
-
-
-  function openReorderModal() {
-    setDraftBattingOrderIds(battingLineup.map((player) => player.id));
-    setShowReorderModal(true);
-  }
-
-  function applyReorderedLineup() {
-    setBattingOrderIds(draftBattingOrderIds);
-    markLineupChanged();
-    setShowReorderModal(false);
   }
 
   function requestLeaveScreen() {
@@ -731,40 +744,37 @@ function leaveWithoutSaving() {
           Batting Lineup ({battingLineup.length})
         </Text>
 
-        <Pressable
-          style={styles.reorderLineupButton}
-          onPress={openReorderModal}
-        >
-          <View style={styles.reorderLineupButtonContent}>
-            <View style={styles.reorderLineupIconCircle}>
-              <Ionicons
-                name="swap-vertical-outline"
-                size={22}
-                color="#ffffff"
-              />
-            </View>
-
-            <View style={styles.reorderLineupTextArea}>
-              <Text style={styles.reorderLineupButtonText}>
-                Reorder Batting Lineup
-              </Text>
-              <Text style={styles.reorderLineupButtonSubText}>
-                Press, hold, and drag players into batting order
-              </Text>
-            </View>
-
-            <Ionicons
-              name="chevron-forward"
-              size={22}
-              color="#ffffff"
-            />
-          </View>
-        </Pressable>
+        <View style={styles.dragInstructionRow}>
+          <Ionicons
+            name="hand-left-outline"
+            size={17}
+            color="#1f4e9e"
+            style={{ marginRight: 6 }}
+          />
+          <Text style={styles.dragInstructionText}>
+            Scroll normally anywhere on the card. Hold the drag handle to reorder.
+          </Text>
+        </View>
 
         {battingLineup.length > 0 ? (
-          battingLineup.map((player, index) =>
-            renderPlayer(player, true, index + 1)
-          )
+          <DraggableFlatList
+            data={battingLineup}
+            keyExtractor={(item) => item.id}
+            scrollEnabled={false}
+            activationDistance={12}
+            autoscrollThreshold={80}
+            autoscrollSpeed={90}
+            dragItemOverflow
+            onDragEnd={({ data }) => {
+              setBattingOrderIds(data.map((player) => player.id));
+              markLineupChanged();
+            }}
+renderItem={({ item, getIndex, drag, isActive }) => {
+  const index = getIndex() ?? 0;
+
+  return renderPlayer(item, true, index + 1, drag, isActive);
+}}
+          />
         ) : (
           <Text style={styles.emptyText}>No Batting Players Selected.</Text>
         )}
@@ -1054,13 +1064,14 @@ if (!json?.ok) {
             </Text>
 
 <Text style={styles.instructionsText}>
-  3. <Text style={styles.importantText}>IMPORTANT:</Text> Press and hold the{" "}
+  3. Scroll the screen normally by swiping anywhere on a player card. To change
+  batting order, press and hold the{" "}
   <Ionicons
     name="reorder-three-outline"
     size={18}
-    color="#111827"
+    color="#1f4e9e"
   />{" "}
-  icon to the right of a player to drag a batter up or down the lineup.
+  <Text style={styles.boldText}>Hold & Drag</Text> handle.
 </Text>
 
             <Text style={styles.instructionsText}>
@@ -1145,110 +1156,6 @@ if (!json?.ok) {
         </View>
       </Modal>
 <Modal
-  visible={showReorderModal}
-  animationType="slide"
-  onRequestClose={() => setShowReorderModal(false)}
->
-  <GestureHandlerRootView style={styles.reorderScreen}>
-    <View style={styles.reorderHeader}>
-      <Pressable
-        style={styles.reorderCancelButton}
-        onPress={() => setShowReorderModal(false)}
-      >
-        <View style={styles.buttonContentRow}>
-          <Ionicons
-            name="close-circle-outline"
-            size={17}
-            color="#ffffff"
-            style={{ marginRight: 5 }}
-          />
-          <Text style={styles.reorderCancelButtonText}>Cancel</Text>
-        </View>
-      </Pressable>
-
-      <View style={styles.reorderHeaderTextArea}>
-        <Text style={styles.reorderTitle}>Reorder Batting Order</Text>
-        <Text style={styles.reorderSubtitle}>
-          Press and hold the three-line handle, then move a batter up or down.
-        </Text>
-      </View>
-
-      <Pressable
-        style={styles.reorderDoneButton}
-        onPress={applyReorderedLineup}
-      >
-        <View style={styles.buttonContentRow}>
-          <Ionicons
-            name="checkmark-circle-outline"
-            size={17}
-            color="#ffffff"
-            style={{ marginRight: 5 }}
-          />
-          <Text style={styles.reorderDoneButtonText}>Done</Text>
-        </View>
-      </Pressable>
-    </View>
-
-    <DraggableFlatList
-      data={draftBattingOrderIds
-        .map((id) => managerPlayers.find((player) => player.id === id))
-        .filter((player): player is Player => !!player)}
-      keyExtractor={(item) => item.id}
-      contentContainerStyle={styles.reorderListContent}
-      activationDistance={4}
-      autoscrollThreshold={24}
-      autoscrollSpeed={12}
-      showsVerticalScrollIndicator={false}
-      onDragEnd={({ data }) =>
-        setDraftBattingOrderIds(data.map((player) => player.id))
-      }
-      renderItem={({ item, getIndex, drag, isActive }) => {
-        const index = getIndex() ?? 0;
-
-        return (
-          <ScaleDecorator>
-            <View
-              style={[
-                styles.reorderPlayerCard,
-                isActive && styles.reorderPlayerCardActive,
-              ]}
-            >
-              <View style={styles.reorderNumberBadge}>
-                <Text style={styles.reorderNumberText}>{index + 1}</Text>
-              </View>
-
-              <View style={styles.reorderPlayerInfo}>
-                <Text style={styles.reorderPlayerName}>
-                  #{item.jerseyNumber} {item.name}
-                </Text>
-                <Text style={styles.reorderPlayerMeta}>
-                  {item.position || "POS"} | {item.teamName}
-                </Text>
-              </View>
-
-              <Pressable
-                onPressIn={drag}
-                hitSlop={10}
-                style={({ pressed }) => [
-                  styles.reorderHandle,
-                  pressed && styles.reorderHandlePressed,
-                ]}
-              >
-                <Ionicons
-                  name="reorder-three-outline"
-                  size={30}
-                  color="#111827"
-                />
-              </Pressable>
-            </View>
-          </ScaleDecorator>
-        );
-      }}
-    />
-  </GestureHandlerRootView>
-</Modal>
-
-<Modal
   visible={showUnsavedExitModal}
   transparent
   animationType="fade"
@@ -1323,13 +1230,12 @@ const styles = StyleSheet.create({
   },
 
   container: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 70,
   },
 
   containerTablet: {
-    paddingHorizontal: 20,
     paddingTop: 30,
     paddingBottom: 50,
   },
@@ -1589,58 +1495,22 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
-  lineupSectionHeaderRow: {
+  dragInstructionRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 4,
-    marginBottom: 2,
+    backgroundColor: "#eff6ff",
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 10,
+    marginBottom: 12,
   },
 
-  reorderLineupButton: {
-    backgroundColor: "#1d4ed8",
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginBottom: 14,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 7,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 6,
-  },
-
-  reorderLineupButtonContent: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  reorderLineupIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 11,
-  },
-
-  reorderLineupTextArea: {
+  dragInstructionText: {
     flex: 1,
-    paddingRight: 8,
-  },
-
-  reorderLineupButtonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "900",
-  },
-
-  reorderLineupButtonSubText: {
-    color: "#dbeafe",
+    color: "#374151",
     fontSize: 12,
-    fontWeight: "700",
-    marginTop: 2,
+    fontWeight: "800",
+    lineHeight: 17,
   },
 
   emptyText: {
@@ -1665,6 +1535,14 @@ const styles = StyleSheet.create({
   playerCardTablet: {
     paddingVertical: 16,
     paddingHorizontal: 18,
+  },
+
+  activeDragPlayerCard: {
+    opacity: 0.9,
+    borderColor: "#1d4ed8",
+    borderWidth: 2,
+    transform: [{ scale: 1.01 }],
+    elevation: 12,
   },
 
   editablePlayerCard: {
@@ -1780,17 +1658,19 @@ const styles = StyleSheet.create({
   },
 
   dragHandle: {
-    width: 38,
-    height: 34,
-    borderRadius: 9,
+    minWidth: 92,
+    height: 40,
+    borderRadius: 10,
+    paddingHorizontal: 9,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
   },
 
   dragHandleBatting: {
-    backgroundColor: "#ecfdf5",
-    borderColor: "#15803d",
+    backgroundColor: "#eff6ff",
+    borderColor: "#1d4ed8",
   },
 
   dragHandleSubstitute: {
@@ -1798,6 +1678,17 @@ const styles = StyleSheet.create({
     borderColor: "#9ca3af",
   },
 
+  dragHandlePressed: {
+    backgroundColor: "#dbeafe",
+    transform: [{ scale: 0.98 }],
+  },
+
+  dragHandleText: {
+    color: "#1f4e9e",
+    fontSize: 11,
+    fontWeight: "900",
+    marginLeft: 4,
+  },
 
   viewOnlyBadge: {
     backgroundColor: "#e5e7eb",
@@ -2073,147 +1964,6 @@ lineupModeBadgeText: {
   color: "#ffffff",
   fontSize: 13,
   fontWeight: "900",
-},
-
-reorderScreen: {
-  flex: 1,
-  backgroundColor: "#eef2f7",
-},
-
-reorderHeader: {
-  flexDirection: "row",
-  alignItems: "center",
-  paddingTop: 52,
-  paddingBottom: 14,
-  paddingHorizontal: 14,
-  backgroundColor: "#ffffff",
-  borderBottomWidth: 1,
-  borderBottomColor: "#d1d5db",
-},
-
-reorderHeaderTextArea: {
-  flex: 1,
-  paddingHorizontal: 10,
-},
-
-reorderTitle: {
-  color: "#1f4e9e",
-  fontSize: 20,
-  fontWeight: "900",
-  textAlign: "center",
-},
-
-reorderSubtitle: {
-  color: "#6b7280",
-  fontSize: 12,
-  fontWeight: "700",
-  textAlign: "center",
-  marginTop: 3,
-},
-
-reorderCancelButton: {
-  backgroundColor: "#6b7280",
-  borderRadius: 9,
-  paddingVertical: 8,
-  paddingHorizontal: 11,
-},
-
-reorderCancelButtonText: {
-  color: "#ffffff",
-  fontWeight: "900",
-  fontSize: 13,
-},
-
-reorderDoneButton: {
-  backgroundColor: "#15803d",
-  borderRadius: 9,
-  paddingVertical: 8,
-  paddingHorizontal: 14,
-},
-
-reorderDoneButtonText: {
-  color: "#ffffff",
-  fontWeight: "900",
-  fontSize: 13,
-},
-
-reorderListContent: {
-  paddingHorizontal: 12,
-  paddingTop: 12,
-  paddingBottom: 40,
-},
-
-reorderPlayerCard: {
-  backgroundColor: "#ffffff",
-  borderRadius: 16,
-  padding: 14,
-  marginBottom: 10,
-  flexDirection: "row",
-  alignItems: "center",
-  borderWidth: 1,
-  borderColor: "#dbe5f1",
-  shadowColor: "#000",
-  shadowOpacity: 0.06,
-  shadowRadius: 6,
-  shadowOffset: { width: 0, height: 2 },
-  elevation: 4,
-},
-
-reorderPlayerCardActive: {
-  borderColor: "#1d4ed8",
-  shadowOpacity: 0.14,
-  elevation: 10,
-},
-
-reorderNumberBadge: {
-  width: 34,
-  height: 34,
-  borderRadius: 999,
-  backgroundColor: "#1f4e9e",
-  alignItems: "center",
-  justifyContent: "center",
-  marginRight: 10,
-},
-
-reorderNumberText: {
-  color: "#ffffff",
-  fontSize: 15,
-  fontWeight: "900",
-},
-
-reorderPlayerInfo: {
-  flex: 1,
-  minWidth: 0,
-  paddingRight: 10,
-},
-
-reorderPlayerName: {
-  color: "#111827",
-  fontSize: 16,
-  fontWeight: "900",
-},
-
-reorderPlayerMeta: {
-  color: "#6b7280",
-  fontSize: 13,
-  fontWeight: "700",
-  marginTop: 3,
-},
-
-reorderHandle: {
-  width: 52,
-  height: 48,
-  borderRadius: 11,
-  backgroundColor: "#eef2f7",
-  borderWidth: 1,
-  borderColor: "#9ca3af",
-  alignItems: "center",
-  justifyContent: "center",
-},
-
-reorderHandlePressed: {
-  opacity: 0.9,
-  transform: [{ scale: 0.99 }],
 },
 
 footer: {
