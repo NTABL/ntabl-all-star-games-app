@@ -38,6 +38,28 @@ type Division = {
   name: string;
 };
 
+type CommunicationHistoryEntry = {
+  id: string;
+  channel: string;
+  audience: string;
+  divisionId: string;
+  squad: string;
+  subject: string;
+  recipientCount: number;
+  sentCount: number;
+  failedCount: number;
+  test: boolean;
+  createdAt: string;
+};
+
+type MessageTemplate = {
+  id: string;
+  name: string;
+  subject: string;
+  message: string;
+  icon: keyof typeof Ionicons.glyphMap;
+};
+
 const AUDIENCES: Array<{
   id: Audience;
   title: string;
@@ -120,6 +142,75 @@ Thank you,
 NTABL`,
 };
 
+const MESSAGE_TEMPLATES: MessageTemplate[] = [
+  {
+    id: "waiver-reminder",
+    name: "Waiver Reminder",
+    icon: "document-text-outline",
+    subject: "NTABL All-Star Games - Waiver Required",
+    message: DEFAULT_MESSAGES["missing-waivers"],
+  },
+  {
+    id: "selection-congratulations",
+    name: "Selection Congratulations",
+    icon: "trophy-outline",
+    subject: "Congratulations - NTABL All-Star Selection",
+    message: `Hello {FirstName},
+
+Congratulations! You have been selected for the NTABL All-Star Games.
+
+Division: {Division}
+Squad: {Squad}
+Team: {Team}
+
+Please review the NTABL All-Star App for event information and required next steps.
+
+Thank you,
+NTABL`,
+  },
+  {
+    id: "schedule-update",
+    name: "Schedule Update",
+    icon: "calendar-outline",
+    subject: "NTABL All-Star Games - Schedule Update",
+    message: `Hello {FirstName},
+
+There has been an important schedule update for the NTABL All-Star Games.
+
+Division: {Division}
+Squad: {Squad}
+
+Please review the updated information in the NTABL All-Star App.
+
+Thank you,
+NTABL`,
+  },
+  {
+    id: "field-change",
+    name: "Field or Location Change",
+    icon: "location-outline",
+    subject: "NTABL All-Star Games - Location Update",
+    message: `Hello {FirstName},
+
+Please note an important field or location update for the NTABL All-Star Games.
+
+Division: {Division}
+Squad: {Squad}
+
+Please review the latest details in the NTABL All-Star App.
+
+Thank you,
+NTABL`,
+  },
+  {
+    id: "general-announcement",
+    name: "General Announcement",
+    icon: "megaphone-outline",
+    subject: "NTABL All-Star Games Information",
+    message: DEFAULT_MESSAGES.everyone,
+  },
+];
+
 export default function CommunicationsScreen() {
   const [audience, setAudience] = useState<Audience>("missing-waivers");
   const [divisionId, setDivisionId] = useState("all");
@@ -139,10 +230,18 @@ export default function CommunicationsScreen() {
   const [resultType, setResultType] = useState<"success" | "error" | "warning">(
     "success"
   );
+  const [history, setHistory] = useState<CommunicationHistoryEntry[]>([]);
+  const [historySummary, setHistorySummary] = useState<any>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     loadRecipients();
   }, [audience, divisionId, squad]);
+
+  useEffect(() => {
+    loadHistory();
+  }, []);
 
   const withEmail = useMemo(
     () => recipients.filter((recipient) => !!recipient.email),
@@ -192,6 +291,45 @@ export default function CommunicationsScreen() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function applyTemplate(template: MessageTemplate) {
+    setSubject(template.subject);
+    setMessage(template.message);
+
+    if (template.id === "waiver-reminder") {
+      setAudience("missing-waivers");
+    }
+  }
+
+  async function loadHistory() {
+    try {
+      setHistoryLoading(true);
+
+      const response = await adminFetch(
+        `${API_BASE}/api/admin/communications/history`
+      );
+
+      const json = await response.json();
+
+      if (response.ok && json?.ok) {
+        setHistory(Array.isArray(json.entries) ? json.entries : []);
+        setHistorySummary(json.summary || null);
+      }
+    } catch (error) {
+      console.log("COMMUNICATION HISTORY LOAD ERROR:", error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  function formatHistoryAudience(value: string) {
+    if (value === "missing-waivers") return "Missing Waivers";
+    if (value === "players") return "Selected Players";
+    if (value === "managers") return "All-Star Managers";
+    if (value === "everyone") return "Players & Managers";
+    if (value === "test") return "Test Email";
+    return value || "Audience";
   }
 
   function showResult(
@@ -260,6 +398,7 @@ export default function CommunicationsScreen() {
       );
 
       await loadRecipients();
+      await loadHistory();
     } catch (error: any) {
       showResult(
         "error",
@@ -347,6 +486,64 @@ export default function CommunicationsScreen() {
                 </View>
               </>
             )}
+          </View>
+
+          <View style={styles.dashboardGrid}>
+            <View style={styles.dashboardCard}>
+              <Ionicons name="people-outline" size={24} color="#1d4ed8" />
+              <Text style={styles.dashboardNumber}>{recipients.length}</Text>
+              <Text style={styles.dashboardLabel}>Recipients</Text>
+            </View>
+
+            <View style={styles.dashboardCard}>
+              <Ionicons name="mail-outline" size={24} color="#15803d" />
+              <Text style={styles.dashboardNumber}>{withEmail.length}</Text>
+              <Text style={styles.dashboardLabel}>Email Ready</Text>
+            </View>
+
+            <View style={styles.dashboardCard}>
+              <Ionicons name="warning-outline" size={24} color="#f97316" />
+              <Text style={styles.dashboardNumber}>{missingEmailCount}</Text>
+              <Text style={styles.dashboardLabel}>Missing Email</Text>
+            </View>
+
+            <Pressable
+              style={[styles.dashboardCard, styles.historyDashboardCard]}
+              onPress={() => {
+                setShowHistory(true);
+                loadHistory();
+              }}
+            >
+              <Ionicons name="time-outline" size={24} color="#7c3aed" />
+              <Text style={styles.dashboardNumber}>
+                {historySummary?.totalSends || 0}
+              </Text>
+              <Text style={styles.dashboardLabel}>Send History</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>Quick Templates</Text>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.templateRow}
+            >
+              {MESSAGE_TEMPLATES.map((template) => (
+                <Pressable
+                  key={template.id}
+                  style={styles.templateCard}
+                  onPress={() => applyTemplate(template)}
+                >
+                  <View style={styles.templateIcon}>
+                    <Ionicons name={template.icon} size={23} color="#ffffff" />
+                  </View>
+                  <Text style={styles.templateName}>{template.name}</Text>
+                  <Text style={styles.templateAction}>Use Template</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
           </View>
 
           <View style={styles.sectionCard}>
@@ -716,6 +913,93 @@ export default function CommunicationsScreen() {
       </Modal>
 
       <Modal
+        visible={showHistory}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowHistory(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.historyModalCard}>
+            <View style={styles.historyHeaderRow}>
+              <View>
+                <Text style={styles.modalTitle}>Communication History</Text>
+                <Text style={styles.modalSubtitle}>
+                  {historySummary?.totalSent || 0} delivered •{" "}
+                  {historySummary?.totalFailed || 0} failed
+                </Text>
+              </View>
+
+              <Pressable style={styles.historyRefreshButton} onPress={loadHistory}>
+                <Ionicons name="refresh-outline" size={20} color="#ffffff" />
+              </Pressable>
+            </View>
+
+            {historyLoading ? (
+              <ActivityIndicator size="large" color="#7c3aed" />
+            ) : (
+              <ScrollView style={styles.historyList}>
+                {history.length === 0 ? (
+                  <Text style={styles.emptyHistoryText}>
+                    No communication history is available yet.
+                  </Text>
+                ) : (
+                  history.map((entry) => (
+                    <View key={entry.id} style={styles.historyEntry}>
+                      <View style={styles.historyEntryIcon}>
+                        <Ionicons
+                          name={entry.test ? "flask-outline" : "mail-outline"}
+                          size={21}
+                          color="#ffffff"
+                        />
+                      </View>
+
+                      <View style={styles.historyEntryText}>
+                        <Text style={styles.historySubject}>{entry.subject}</Text>
+                        <Text style={styles.historyMeta}>
+                          {formatHistoryAudience(entry.audience)} •{" "}
+                          {entry.divisionId === "all"
+                            ? "All Divisions"
+                            : entry.divisionId}{" "}
+                          • {entry.squad === "all" ? "Both Squads" : entry.squad}
+                        </Text>
+                        <Text style={styles.historyDate}>
+                          {new Date(entry.createdAt).toLocaleString()}
+                        </Text>
+                      </View>
+
+                      <View style={styles.historyStats}>
+                        <Text style={styles.historySent}>{entry.sentCount} sent</Text>
+                        {entry.failedCount > 0 && (
+                          <Text style={styles.historyFailed}>
+                            {entry.failedCount} failed
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  ))
+                )}
+              </ScrollView>
+            )}
+
+            <Pressable
+              style={styles.closeButton}
+              onPress={() => setShowHistory(false)}
+            >
+              <View style={styles.buttonRow}>
+                <Ionicons
+                  name="close-circle-outline"
+                  size={19}
+                  color="#ffffff"
+                  style={{ marginRight: 6 }}
+                />
+                <Text style={styles.closeButtonText}>Close</Text>
+              </View>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
         visible={resultVisible}
         transparent
         animationType="fade"
@@ -876,6 +1160,77 @@ const styles = StyleSheet.create({
   },
   warningPillText: {
     color: "#c2410c",
+  },
+  dashboardGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 16,
+  },
+  dashboardCard: {
+    width: "48%",
+    minHeight: 112,
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 5,
+  },
+  historyDashboardCard: {
+    borderWidth: 1,
+    borderColor: "#ddd6fe",
+  },
+  dashboardNumber: {
+    color: "#111827",
+    fontSize: 25,
+    fontWeight: "900",
+    marginTop: 5,
+  },
+  dashboardLabel: {
+    color: "#6b7280",
+    fontSize: 12,
+    fontWeight: "900",
+    textAlign: "center",
+    marginTop: 2,
+  },
+  templateRow: {
+    gap: 10,
+    paddingRight: 4,
+  },
+  templateCard: {
+    width: 170,
+    minHeight: 145,
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#dbe5f1",
+    borderRadius: 15,
+    padding: 13,
+  },
+  templateIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    backgroundColor: "#0f766e",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 11,
+  },
+  templateName: {
+    color: "#111827",
+    fontSize: 15,
+    fontWeight: "900",
+    lineHeight: 20,
+  },
+  templateAction: {
+    color: "#0f766e",
+    fontSize: 12,
+    fontWeight: "900",
+    marginTop: 8,
   },
   sectionCard: {
     backgroundColor: "#ffffff",
@@ -1075,6 +1430,86 @@ const styles = StyleSheet.create({
   confirmModalCard: {
     ...modalStyles.card,
     alignItems: "center",
+  },
+  historyModalCard: {
+    ...modalStyles.card,
+    maxHeight: "88%",
+  },
+  historyHeaderRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
+  historyRefreshButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    backgroundColor: "#7c3aed",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 10,
+  },
+  historyList: {
+    width: "100%",
+    marginVertical: 10,
+  },
+  historyEntry: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+  },
+  historyEntryIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 999,
+    backgroundColor: "#7c3aed",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  historyEntryText: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  historySubject: {
+    color: "#111827",
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  historyMeta: {
+    color: "#6b7280",
+    fontSize: 11,
+    fontWeight: "700",
+    marginTop: 3,
+  },
+  historyDate: {
+    color: "#9ca3af",
+    fontSize: 11,
+    fontWeight: "700",
+    marginTop: 3,
+  },
+  historyStats: {
+    alignItems: "flex-end",
+  },
+  historySent: {
+    color: "#15803d",
+    fontSize: 12,
+    fontWeight: "900",
+  },
+  historyFailed: {
+    color: "#c62828",
+    fontSize: 11,
+    fontWeight: "900",
+    marginTop: 3,
+  },
+  emptyHistoryText: {
+    color: "#6b7280",
+    fontSize: 14,
+    fontWeight: "800",
+    textAlign: "center",
+    paddingVertical: 24,
   },
   resultModalCard: {
     ...modalStyles.compactCard,
