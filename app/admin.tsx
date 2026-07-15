@@ -122,6 +122,26 @@ export default function AdminScreen() {
           </View>
 
           <View style={styles.sectionCard}>
+            <Text style={styles.sectionHeader}>Communications Center</Text>
+
+            <TouchableOpacity
+              style={styles.communicationsButton}
+              onPress={() => router.push("/communications")}
+            >
+              <View style={styles.buttonContentRow}>
+                <Ionicons
+                  name="mail-unread-outline"
+                  size={22}
+                  color="#ffffff"
+                  style={{ marginRight: 8 }}
+                />
+
+                <Text style={styles.buttonText}>Email Players & Managers</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.sectionCard}>
             <Text style={styles.sectionHeader}>
               All-Star Managers
             </Text>
@@ -304,6 +324,15 @@ const styles = StyleSheet.create({
     color: "#1f4e9e",
     marginBottom: 12,
     textAlign: "center",
+  },
+
+  communicationsButton: {
+    backgroundColor: "#0f766e",
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   managerCard: {
