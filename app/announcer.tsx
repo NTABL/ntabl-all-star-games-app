@@ -258,11 +258,20 @@ export default function AnnouncerScreen() {
 
     const json = await response.json();
 
+    const resolvedManagerName =
+      json?.managerName ||
+      json?.lineup?.managerName ||
+      json?.manager?.displayName ||
+      json?.manager?.name ||
+      json?.assignment?.managerName ||
+      json?.assignment?.displayName ||
+      "";
+
     if (!json?.ok || !json.lineup?.players) {
       return {
         batting: [],
         subs: [],
-        managerName: json?.managerName || "",
+        managerName: resolvedManagerName,
       };
     }
 
@@ -280,7 +289,7 @@ export default function AnnouncerScreen() {
     return {
       batting,
       subs,
-      managerName: json.managerName || "",
+      managerName: resolvedManagerName,
     };
   }
 
@@ -478,6 +487,73 @@ return {
     );
   }
 
+  function renderCompactPlayerRow(
+    player: Player,
+    squad: Squad,
+    index: number,
+    currentIndex: number
+  ) {
+    const current = index === currentIndex;
+
+    return (
+      <View
+        key={`${squad}-${player.id}-${index}`}
+        style={[
+          styles.compactPlayerRow,
+          current && styles.compactCurrentPlayerRow,
+        ]}
+      >
+        <Text style={styles.compactOrder}>{index + 1}</Text>
+
+        <Text
+          style={[
+            styles.compactJersey,
+            squad === "East"
+              ? styles.compactEastJersey
+              : styles.compactWestJersey,
+          ]}
+        >
+          #{player.jerseyNumber || "--"}
+        </Text>
+
+        <View style={styles.compactPlayerInfo}>
+          <Text style={styles.compactPlayerName}>{player.name}</Text>
+          <Text style={styles.compactPlayerMeta}>
+            {player.position || "POS"} • {player.teamName || "Team"}
+          </Text>
+        </View>
+
+        {current ? (
+          <Ionicons name="caret-back" size={20} color="#f59e0b" />
+        ) : null}
+      </View>
+    );
+  }
+
+  function renderCompactSubRow(player: Player, squad: Squad) {
+    return (
+      <View key={`${squad}-sub-${player.id}`} style={styles.compactSubRow}>
+        <Text
+          style={[
+            styles.compactSubJersey,
+            squad === "East"
+              ? styles.compactEastJersey
+              : styles.compactWestJersey,
+          ]}
+        >
+          #{player.jerseyNumber || "--"}
+        </Text>
+
+        <View style={styles.compactPlayerInfo}>
+          <Text style={styles.compactPlayerName}>{player.name}</Text>
+          <Text style={styles.compactPlayerMeta}>
+            {player.position || "POS"} • {player.teamName || "Team"}
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   function renderSquad(
     title: string,
     squad: Squad,
@@ -528,54 +604,60 @@ return {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.screen}>
-        <ScrollView contentContainerStyle={styles.container}>
-          <View style={styles.headerRow}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.topActionRow}>
             <Pressable
-              onPress={() => router.replace("/dashboard")}
-              style={styles.backButton}
+              style={styles.changeGameTopButton}
+              onPress={() => router.replace("/announcer-games")}
             >
-              <View style={styles.smallButtonRow}>
+              <View style={styles.buttonContentRow}>
                 <Ionicons
-                  name="chevron-back-outline"
-                  size={16}
+                  name="calendar-outline"
+                  size={18}
                   color="#ffffff"
-                  style={{ marginRight: 3 }}
+                  style={{ marginRight: 6 }}
                 />
+                <Text style={styles.topButtonText}>Change Game</Text>
+              </View>
+            </Pressable>
 
-                <Text style={styles.backButtonText}>Back</Text>
+            <Pressable
+              style={styles.exitTopButton}
+              onPress={() => router.replace("/dashboard")}
+            >
+              <View style={styles.buttonContentRow}>
+                <Ionicons
+                  name="arrow-back-outline"
+                  size={18}
+                  color="#ffffff"
+                  style={{ marginRight: 6 }}
+                />
+                <Text style={styles.topButtonText}>Back</Text>
               </View>
             </Pressable>
           </View>
 
-          <Text style={styles.title}>Live Game View</Text>
-
-          <Image
-            source={require("../assets/All-Star Logo.png")}
-            style={styles.allStarLogo}
-            resizeMode="contain"
-          />
-
-          <Pressable
-            style={styles.chooseGameButton}
-            onPress={() => router.replace("/announcer-games")}
-          >
-            <View style={styles.buttonContentRow}>
-              <Ionicons
-                name="calendar-outline"
-                size={22}
-                color="#ffffff"
-                style={{ marginRight: 8 }}
-              />
-
-              <Text style={styles.chooseGameButtonText}>Change Game</Text>
+          <View style={styles.titleArea}>
+            <View style={styles.gameNumberPill}>
+              <Text style={styles.gameNumberPillText}>
+                GAME {selectedGame.id.replace("game", "")}
+              </Text>
             </View>
-          </Pressable>
 
-          <Text style={styles.liveStatusText}>{liveLabel}</Text>
-          <Text style={styles.lastUpdatedText}>{refreshAge}</Text>
+            <Text style={styles.gameTitle}>{gameTitle}</Text>
+            <Text style={styles.screenModeTitle}>Live Game View</Text>
+            <Text style={styles.liveStatusText}>{liveLabel}</Text>
+            <Text style={styles.lastUpdatedText}>{refreshAge}</Text>
+          </View>
 
           {loading ? (
-            <ActivityIndicator size="large" color="#1d4ed8" />
+            <View style={styles.loadingPanel}>
+              <ActivityIndicator size="large" color="#1f4e9e" />
+              <Text style={styles.loadingText}>Loading Game...</Text>
+            </View>
           ) : (
             <>
               <View
@@ -593,7 +675,7 @@ return {
                   <Text style={styles.broadcastEastLabel}>EAST</Text>
                   <Text style={styles.broadcastDugout}>{eastDugout}</Text>
                   <Text style={styles.broadcastManager}>
-                    {eastManager || "Manager TBD"}
+                    Manager: {eastManager || "TBD"}
                   </Text>
                 </View>
 
@@ -605,8 +687,7 @@ return {
                   </Text>
 
                   <Text style={styles.broadcastInning}>
-                    {displayGameState.half.toUpperCase()}{" "}
-                    {displayGameState.inning}
+                    {displayGameState.half.toUpperCase()} {displayGameState.inning}
                   </Text>
 
                   <Text style={styles.broadcastOutDots}>
@@ -629,815 +710,588 @@ return {
                   <Text style={styles.broadcastWestLabel}>WEST</Text>
                   <Text style={styles.broadcastDugout}>{westDugout}</Text>
                   <Text style={styles.broadcastManager}>
-                    {westManager || "Manager TBD"}
+                    Manager: {westManager || "TBD"}
                   </Text>
                 </View>
               </View>
 
-              <View style={styles.liveFeaturePanel}>
-                <Text style={styles.liveFeatureTitle}>Live Now Batting</Text>
-
-                <View style={styles.displayToggleRow}>
-                  <Pressable
-                    style={[
-                      styles.displayToggleButton,
-                      displaySquad === "East" && styles.eastDisplayActive,
-                    ]}
-                    onPress={() => setDisplaySquad("East")}
-                  >
-                    <Text
-                      style={[
-                        styles.displayToggleText,
-                        displaySquad === "East" && styles.activeDisplayText,
-                      ]}
-                    >
-                      East
-                    </Text>
-                  </Pressable>
-
-                  <Pressable
-                    style={[
-                      styles.displayToggleButton,
-                      displaySquad === "West" && styles.westDisplayActive,
-                    ]}
-                    onPress={() => setDisplaySquad("West")}
-                  >
-                    <Text
-                      style={[
-                        styles.displayToggleText,
-                        displaySquad === "West" && styles.activeDisplayText,
-                      ]}
-                    >
-                      West
-                    </Text>
-                  </Pressable>
-                </View>
-
-                <View
+              <View style={styles.viewerToggleRow}>
+                <Pressable
                   style={[
-                    styles.battingSquadBanner,
-                    displaySquad === "East"
-                      ? styles.eastBattingBanner
-                      : styles.westBattingBanner,
+                    styles.viewerToggleButton,
+                    displaySquad === "East" && styles.eastActiveButton,
                   ]}
+                  onPress={() => setDisplaySquad("East")}
                 >
-                  <Image
-                    source={
-                      displaySquad === "East"
-                        ? require("../assets/East.png")
-                        : require("../assets/West.png")
-                    }
-                    style={styles.battingSquadLogo}
-                    resizeMode="contain"
-                  />
-                  <Text style={styles.battingSquadText}>
-                    {displaySquad.toUpperCase()} BATTING
+                  <Text
+                    style={[
+                      styles.viewerToggleText,
+                      displaySquad === "East" && styles.activeToggleText,
+                    ]}
+                  >
+                    East Batting
                   </Text>
+                </Pressable>
+
+                <Pressable
+                  style={[
+                    styles.viewerToggleButton,
+                    displaySquad === "West" && styles.westActiveButton,
+                  ]}
+                  onPress={() => setDisplaySquad("West")}
+                >
+                  <Text
+                    style={[
+                      styles.viewerToggleText,
+                      displaySquad === "West" && styles.activeToggleText,
+                    ]}
+                  >
+                    West Batting
+                  </Text>
+                </Pressable>
+              </View>
+
+              <View style={styles.desktopWorkspace}>
+                <View style={styles.featureColumn}>
+                  <View style={styles.panelCard}>
+                    <View style={styles.panelHeaderDark}>
+                      <Text style={styles.panelHeaderText}>NOW BATTING</Text>
+                    </View>
+
+                    <View
+                      style={[
+                        styles.activeSquadStrip,
+                        displaySquad === "East" ? styles.eastStrip : styles.westStrip,
+                      ]}
+                    >
+                      <Image
+                        source={
+                          displaySquad === "East"
+                            ? require("../assets/East.png")
+                            : require("../assets/West.png")
+                        }
+                        style={styles.activeSquadMiniLogo}
+                        resizeMode="contain"
+                      />
+                      <Text style={styles.activeSquadStripText}>
+                        {displaySquad.toUpperCase()} BATTING
+                      </Text>
+                    </View>
+
+                    {renderFeaturedPlayer(
+                      "NOW BATTING",
+                      currentBatter,
+                      displayGameState.currentBatterIndex + 1,
+                      true
+                    )}
+
+                    <View style={styles.upNextRow}>
+                      <View style={styles.upNextColumn}>
+                        {renderFeaturedPlayer(
+                          "ON DECK",
+                          onDeckBatter,
+                          displayGameState.currentBatterIndex + 2
+                        )}
+                      </View>
+                      <View style={styles.upNextColumn}>
+                        {renderFeaturedPlayer(
+                          "IN THE HOLE",
+                          inHoleBatter,
+                          displayGameState.currentBatterIndex + 3
+                        )}
+                      </View>
+                    </View>
+                  </View>
                 </View>
 
-                {renderFeaturedPlayer(
-                  "NOW BATTING",
-                  currentBatter,
-                  displayGameState.currentBatterIndex + 1,
-                  true
-                )}
+                <View style={styles.lineupColumn}>
+                  <View style={styles.panelCard}>
+                    <View
+                      style={[
+                        styles.panelHeaderTeam,
+                        displaySquad === "East" ? styles.eastHeader : styles.westHeader,
+                      ]}
+                    >
+                      <Text style={styles.panelHeaderText}>
+                        {displaySquad.toUpperCase()} BATTING LINEUP ({displayBatting.length})
+                      </Text>
+                    </View>
 
-                <View style={styles.upNextRow}>
-                  <View style={styles.upNextColumn}>
-                    {renderFeaturedPlayer(
-                      "ON DECK",
-                      onDeckBatter,
-                      displayGameState.currentBatterIndex + 2
+                    {displayBatting.length > 0 ? (
+                      displayBatting.map((player, index) =>
+                        renderCompactPlayerRow(
+                          player,
+                          displaySquad,
+                          index,
+                          displayGameState.currentBatterIndex
+                        )
+                      )
+                    ) : (
+                      <Text style={styles.emptyPanelText}>No saved batting lineup yet.</Text>
+                    )}
+
+                    <Text style={styles.lineupManagerFooter}>
+                      Manager: {displaySquad === "East" ? eastManager || "TBD" : westManager || "TBD"}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.sideColumn}>
+                  <View style={styles.panelCard}>
+                    <View
+                      style={[
+                        styles.panelHeaderTeam,
+                        displaySquad === "East" ? styles.eastHeader : styles.westHeader,
+                      ]}
+                    >
+                      <Text style={styles.panelHeaderText}>
+                        {displaySquad.toUpperCase()} SUBSTITUTES
+                      </Text>
+                    </View>
+
+                    {(displaySquad === "East" ? eastSubs : westSubs).length > 0 ? (
+                      (displaySquad === "East" ? eastSubs : westSubs).map(
+                        (player) => renderCompactSubRow(player, displaySquad)
+                      )
+                    ) : (
+                      <Text style={styles.emptyPanelText}>No substitutes listed.</Text>
                     )}
                   </View>
 
-                  <View style={styles.upNextColumn}>
-                    {renderFeaturedPlayer(
-                      "IN THE HOLE",
-                      inHoleBatter,
-                      displayGameState.currentBatterIndex + 3
-                    )}
+                  <View style={styles.panelCard}>
+                    <View
+                      style={[
+                        styles.panelHeaderTeam,
+                        displaySquad === "East" ? styles.westHeader : styles.eastHeader,
+                      ]}
+                    >
+                      <Text style={styles.panelHeaderText}>
+                        {displaySquad === "East" ? "WEST" : "EAST"} LINEUP
+                      </Text>
+                    </View>
+
+                    <Pressable
+                      style={styles.opposingLineupButton}
+                      onPress={() =>
+                        setDisplaySquad(displaySquad === "East" ? "West" : "East")
+                      }
+                    >
+                      <Text style={styles.opposingLineupButtonText}>
+                        View {displaySquad === "East" ? "West" : "East"} Lineup
+                      </Text>
+                      <Ionicons name="chevron-forward-outline" size={22} color="#1f4e9e" />
+                    </Pressable>
                   </View>
                 </View>
               </View>
-
-              {!isWideScreen && (
-                <Animated.View style={{ transform: [{ scale: swipeHintScale }] }}>
-                  <Text style={styles.swipeHint}>
-                    👈 Swipe to Switch Between East & West All-Stars 👉
-                  </Text>
-                </Animated.View>
-              )}
-
-              <ScrollView
-                horizontal={!isWideScreen}
-                showsHorizontalScrollIndicator={!isWideScreen}
-                contentContainerStyle={[
-                  styles.squadBoard,
-                  isWideScreen && styles.squadBoardWide,
-                ]}
-              >
-                <View
-                  style={
-                    isWideScreen
-                      ? styles.squadColumnWide
-                      : styles.squadColumnMobile
-                  }
-                >
-                  {renderSquad(
-                    "East All-Stars",
-                    "East",
-                    styles.eastText,
-                    eastManager,
-                    eastBatting,
-                    eastSubs
-                  )}
-                </View>
-
-                <View
-                  style={
-                    isWideScreen
-                      ? styles.squadColumnWide
-                      : styles.squadColumnMobile
-                  }
-                >
-                  {renderSquad(
-                    "West All-Stars",
-                    "West",
-                    styles.westText,
-                    westManager,
-                    westBatting,
-                    westSubs
-                  )}
-                </View>
-              </ScrollView>
             </>
           )}
+
           <View style={styles.footer}>
-  <Text style={styles.footerText}>
-    NTABL All-Star App • Version 1.0
-  </Text>
-</View>
+            <Text style={styles.footerText}>NTABL All-Star App • Version 1.0</Text>
+          </View>
         </ScrollView>
       </View>
 
-      <Modal
-        visible={showGamePicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowGamePicker(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.gamePickerCard}>
-            <Text style={styles.modalTitle}>Choose Game</Text>
 
-            {GAMES.map((game) => (
-              <Pressable
-                key={game.id}
-                style={[
-                  styles.gamePickerOption,
-                  selectedGame.id === game.id && styles.activeGamePickerOption,
-                ]}
-                onPress={() => {
-                  setSelectedGame(game);
-                  setDisplaySquad("East");
-                  setShowGamePicker(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.gamePickerOptionText,
-                    selectedGame.id === game.id &&
-                      styles.activeGamePickerOptionText,
-                  ]}
-                >
-                  {game.label}
-                </Text>
-              </Pressable>
-            ))}
-
-            <Pressable
-              style={styles.cancelButton}
-              onPress={() => setShowGamePicker(false)}
-            >
-              <View style={styles.buttonContentRow}>
-                <Ionicons
-                  name="close-circle-outline"
-                  size={20}
-                  color="#ffffff"
-                  style={{ marginRight: 6 }}
-                />
-
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </View>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "#eef2f7",
-  },
-
-container: {
-  padding: 12,
-  paddingTop: 40,
-  paddingBottom: 70,
-},
-
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    marginBottom: 8,
-  },
-
-  backButton: {
-    backgroundColor: "#1d4ed8",
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-
-  backButtonText: {
-    color: "#ffffff",
-    fontWeight: "700",
-    fontSize: 14,
-  },
-
-  title: {
-    fontSize: 28,
-    fontWeight: "900",
-    color: "#1f4e9e",
-    textAlign: "center",
-    marginBottom: 8,
-  },
-
-allStarLogo: {
-  width: 170,
-  height: 115,
-  alignSelf: "center",
-  marginBottom: 10,
-},
-
-  chooseGameButton: {
-    backgroundColor: "#1f4e9e",
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 18,
-    marginBottom: 4,
-    alignItems: "center",
+  screen: { flex: 1, backgroundColor: "#eef2f7" },
+  container: {
+    width: "100%",
+    maxWidth: 1700,
     alignSelf: "center",
-    minWidth: 220,
+    paddingHorizontal: 12,
+    paddingTop: 18,
+    paddingBottom: 70,
   },
-
-  chooseGameButtonText: {
-    color: "#ffffff",
-    fontSize: 18,
-    fontWeight: "900",
+  topActionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
   },
-
+  changeGameTopButton: {
+    backgroundColor: "#1d4ed8",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  exitTopButton: {
+    backgroundColor: "#c62828",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  topButtonText: { color: "#fff", fontSize: 15, fontWeight: "900" },
   buttonContentRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
   },
-
-  selectedGameTitle: {
-    fontSize: Platform.OS === "web" ? 30 : 24,
-    fontWeight: "900",
+  titleArea: { alignItems: "center", paddingVertical: 5 },
+  gameNumberPill: {
+    backgroundColor: "#111827",
+    borderRadius: 999,
+    paddingVertical: 5,
+    paddingHorizontal: 13,
+  },
+  gameNumberPillText: { color: "#fff", fontSize: 11, fontWeight: "900" },
+  gameTitle: {
     color: "#111827",
-    textAlign: "center",
-    marginTop: 10,
-    lineHeight: Platform.OS === "web" ? 36 : 29,
-  },
-
-  liveStatusText: {
-    fontSize: 20,
+    fontSize: Platform.OS === "web" ? 32 : 25,
     fontWeight: "900",
-    color: "#15803d",
     textAlign: "center",
-    marginBottom: 2,
+    marginTop: 8,
   },
-
-  lastUpdatedText: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#6b7280",
-    textAlign: "center",
-    marginBottom: 12,
-  },
-
-  liveFeaturePanel: {
-    backgroundColor: "#ffffff",
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 18,
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    elevation: 6,
-  },
-
-  liveFeatureTitle: {
-    fontSize: 22,
-    fontWeight: "900",
+  screenModeTitle: {
     color: "#1f4e9e",
-    textAlign: "center",
+    fontSize: 14,
+    fontWeight: "900",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginTop: 2,
+  },
+  liveStatusText: { color: "#15803d", fontSize: 18, fontWeight: "900", marginTop: 9 },
+  lastUpdatedText: {
+    color: "#6b7280",
+    fontSize: 13,
+    fontWeight: "800",
+    marginTop: 2,
     marginBottom: 10,
   },
-
-  displayToggleRow: {
+  loadingPanel: {
+    backgroundColor: "#fff",
+    borderRadius: 18,
+    padding: 35,
+    alignItems: "center",
+  },
+  loadingText: { color: "#6b7280", fontWeight: "800", marginTop: 10 },
+  broadcastScoreboard: {
+    backgroundColor: "#0f172a",
+    borderRadius: 18,
+    borderWidth: 3,
+    paddingVertical: 15,
+    paddingHorizontal: 12,
+    marginBottom: 14,
     flexDirection: "row",
-    gap: 8,
-    marginBottom: 10,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 9,
   },
-
-  displayToggleButton: {
+  broadcastTeamColumn: { flex: 1, alignItems: "center" },
+  broadcastLogo: {
+    width: Platform.OS === "web" ? 145 : 94,
+    height: Platform.OS === "web" ? 88 : 65,
+  },
+  broadcastEastLabel: { color: "#ef4444", fontSize: 19, fontWeight: "900", marginTop: 2 },
+  broadcastWestLabel: { color: "#60a5fa", fontSize: 19, fontWeight: "900", marginTop: 2 },
+  broadcastDugout: { color: "#fff", fontSize: 13, fontWeight: "900", marginTop: 3 },
+  broadcastManager: {
+    color: "#cbd5e1",
+    fontSize: 12,
+    fontWeight: "800",
+    textAlign: "center",
+    marginTop: 4,
+  },
+  broadcastCenter: {
+    minWidth: Platform.OS === "web" ? 180 : 105,
+    alignItems: "center",
+  },
+  broadcastScore: {
+    color: "#fff",
+    fontSize: Platform.OS === "web" ? 43 : 31,
+    fontWeight: "900",
+  },
+  broadcastDash: { color: "#94a3b8" },
+  broadcastInning: { color: "#facc15", fontSize: 19, fontWeight: "900", marginTop: 3 },
+  broadcastOutDots: {
+    color: "#facc15",
+    fontSize: 24,
+    fontWeight: "900",
+    letterSpacing: 5,
+    marginTop: 3,
+  },
+  broadcastOutText: { color: "#d1d5db", fontSize: 12, fontWeight: "900" },
+  viewerToggleRow: { flexDirection: "row", gap: 10, marginBottom: 12 },
+  viewerToggleButton: {
     flex: 1,
     borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+    backgroundColor: "#d1d5db",
+  },
+  viewerToggleText: { color: "#374151", fontSize: 15, fontWeight: "900" },
+  desktopWorkspace: {
+    flexDirection: Platform.OS === "web" ? "row" : "column",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  featureColumn: { flex: 1.05, width: Platform.OS === "web" ? undefined : "100%", minWidth: 0 },
+  lineupColumn: { flex: 0.9, width: Platform.OS === "web" ? undefined : "100%", minWidth: 0 },
+  sideColumn: {
+    flex: 0.9,
+    width: Platform.OS === "web" ? undefined : "100%",
+    minWidth: 0,
+    gap: 12,
+  },
+  panelCard: {
+    backgroundColor: "#fff",
+    borderRadius: 15,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#d6dee8",
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+  },
+  panelHeaderDark: {
+    backgroundColor: "#10213d",
     paddingVertical: 10,
-    backgroundColor: "#e5e7eb",
+    paddingHorizontal: 12,
     alignItems: "center",
   },
-
-  eastDisplayActive: {
-    backgroundColor: "#c62828",
+  panelHeaderBlue: {
+    backgroundColor: "#1f4e9e",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: "center",
   },
-
-  westDisplayActive: {
-    backgroundColor: "#1565c0",
+  panelHeaderTeam: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: "center",
   },
-
-  displayToggleText: {
-    color: "#374151",
-    fontSize: 14,
-    fontWeight: "900",
+  eastHeader: { backgroundColor: "#d71920" },
+  westHeader: { backgroundColor: "#174ea6" },
+  panelHeaderText: { color: "#fff", fontSize: 15, fontWeight: "900", textAlign: "center" },
+  activeSquadStrip: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 7,
   },
-
-  activeDisplayText: {
-    color: "#ffffff",
-  },
-
-  gameStateText: {
-    textAlign: "center",
-    fontSize: 15,
-    fontWeight: "900",
-    color: "#374151",
-    marginBottom: 10,
-  },
-
-  publicGameStateCard: {
-  backgroundColor: "#111827",
-  borderRadius: 16,
-  paddingVertical: 14,
-  paddingHorizontal: 12,
-  alignItems: "center",
-  marginBottom: 12,
-  borderWidth: 3,
-  borderColor: "#facc15",
-},
-
-publicGameStateMain: {
-  color: "#ffffff",
-  fontSize: 28,
-  fontWeight: "900",
-  textAlign: "center",
-},
-
-publicOutsDots: {
-  color: "#facc15",
-  fontSize: 28,
-  fontWeight: "900",
-  letterSpacing: 6,
-  marginTop: 4,
-},
-
-publicOutsText: {
-  color: "#d1d5db",
-  fontSize: 14,
-  fontWeight: "900",
-  marginTop: 2,
-},
-
+  eastStrip: { backgroundColor: "#fee2e2" },
+  westStrip: { backgroundColor: "#dbeafe" },
+  activeSquadMiniLogo: { width: 50, height: 34, marginRight: 7 },
+  activeSquadStripText: { color: "#111827", fontSize: 14, fontWeight: "900" },
   currentBatterCard: {
-    backgroundColor: "#111827",
-    borderRadius: 18,
+    backgroundColor: "#fff",
     padding: 18,
     alignItems: "center",
-    marginBottom: 12,
-    borderWidth: 3,
-    borderColor: "#facc15",
+    margin: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#d6dee8",
   },
-
-  currentBatterLabel: {
-    color: "#facc15",
-    fontSize: 20,
-    fontWeight: "900",
-    marginBottom: 6,
-  },
-
-  orderNumberLarge: {
-    color: "#93c5fd",
-    fontSize: 18,
-    fontWeight: "900",
-    textAlign: "center",
-  },
-
-  jerseyLarge: {
-    color: "#ffffff",
-    fontSize: 40,
-    fontWeight: "900",
-  },
-
-  playerNameLarge: {
-    color: "#ffffff",
-    fontSize: 30,
-    fontWeight: "900",
-    textAlign: "center",
-  },
-
+  currentBatterLabel: { display: "none" },
+  orderNumberLarge: { color: "#6b7280", fontSize: 13, fontWeight: "900" },
+  jerseyLarge: { color: "#d71920", fontSize: 31, fontWeight: "900", marginTop: 4 },
+  playerNameLarge: { color: "#111827", fontSize: 27, fontWeight: "900", textAlign: "center" },
   playerMetaLarge: {
-    color: "#d1d5db",
-    fontSize: 18,
+    color: "#4b5563",
+    fontSize: 16,
     fontWeight: "800",
     textAlign: "center",
-    marginTop: 4,
+    marginTop: 5,
   },
-
-  playerPositionLarge: {
-    color: "#facc15",
-    fontSize: 18,
-    fontWeight: "900",
-    marginTop: 4,
-  },
-
-  upNextRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 4,
-  },
-
-  upNextColumn: {
-    flex: 1,
-  },
-
+  playerPositionLarge: { color: "#1f4e9e", fontSize: 17, fontWeight: "900", marginTop: 3 },
+  upNextRow: { flexDirection: "row", gap: 9, paddingHorizontal: 10, marginBottom: 10 },
+  upNextColumn: { flex: 1 },
   upNextCard: {
-    backgroundColor: "#f3f4f6",
-    borderRadius: 14,
-    padding: 12,
-    alignItems: "center",
-    minHeight: 130,
+    backgroundColor: "#f8fafc",
+    borderRadius: 11,
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: "#d6dee8",
+    padding: 11,
+    alignItems: "center",
+    minHeight: 132,
   },
-
-  upNextLabel: {
-    color: "#1f4e9e",
-    fontSize: 14,
-    fontWeight: "900",
-    marginBottom: 4,
-  },
-
-  orderNumberSmall: {
-    color: "#6b7280",
-    fontSize: 12,
-    fontWeight: "900",
-    textAlign: "center",
-  },
-
-  jerseySmall: {
-    color: "#111827",
-    fontSize: 20,
-    fontWeight: "900",
-  },
-
-  playerNameMedium: {
-    color: "#111827",
-    fontSize: 17,
-    fontWeight: "900",
-    textAlign: "center",
-  },
-
+  upNextLabel: { color: "#1f4e9e", fontSize: 13, fontWeight: "900", marginBottom: 4 },
+  orderNumberSmall: { color: "#6b7280", fontSize: 11, fontWeight: "900" },
+  jerseySmall: { color: "#d71920", fontSize: 19, fontWeight: "900" },
+  playerNameMedium: { color: "#111827", fontSize: 16, fontWeight: "900", textAlign: "center" },
   playerMetaMedium: {
-    color: "#555",
-    fontSize: 12,
+    color: "#6b7280",
+    fontSize: 11,
     fontWeight: "800",
     textAlign: "center",
     marginTop: 2,
   },
-
   emptyFeaturedText: {
     color: "#6b7280",
     fontSize: 14,
     fontWeight: "800",
     textAlign: "center",
-    marginTop: 12,
+    marginVertical: 18,
   },
-
-  swipeHint: {
-    textAlign: "center",
-    fontSize: 14,
-    color: "#1f4e9e",
-    marginTop: 4,
-    marginBottom: 12,
-    fontWeight: "900",
-  },
-
-  squadBoard: {
-    flexDirection: "row",
-    gap: 14,
-    paddingBottom: 8,
-  },
-
-  squadBoardWide: {
-    width: "100%",
-    justifyContent: "space-between",
-  },
-
-  squadColumnWide: {
-    flex: 1,
-    minWidth: 0,
-  },
-
-  squadColumnMobile: {
-    width: 390,
-  },
-
-  squadCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-},
-elevation: 6,
-  },
-
-  squadTitle: {
-    fontSize: 23,
-    fontWeight: "900",
-    textAlign: "center",
-    marginBottom: 10,
-  },
-
-  eastText: {
-    color: "#c62828",
-  },
-
-  westText: {
-    color: "#1565c0",
-  },
-
-  managerText: {
-    textAlign: "center",
-    fontSize: 15,
-    fontWeight: "800",
-    color: "#374151",
-    marginBottom: 8,
-  },
-
-  squadLogo: {
-    width: 220,
-    height: 120,
-    alignSelf: "center",
-    marginTop: -6,
-    marginBottom: 8,
-  },
-
-  squadLogoDesktop: {
-    width: 240,
-    height: 140,
-  },
-
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: "900",
-    color: "#1f4e9e",
-    marginTop: 10,
-    marginBottom: 6,
-  },
-
-  playerRow: {
+  compactPlayerRow: {
+    minHeight: 52,
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingVertical: 6,
+    paddingVertical: 7,
     paddingHorizontal: 10,
-    marginBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
   },
-
-  eastBattingRow: {
-    backgroundColor: "#fee2e2",
-    borderColor: "#fca5a5",
+  compactCurrentPlayerRow: {
+    backgroundColor: "#fef3c7",
+    borderLeftWidth: 5,
+    borderLeftColor: "#f59e0b",
   },
-
-  westBattingRow: {
-    backgroundColor: "#dbeafe",
-    borderColor: "#93c5fd",
+  compactOrder: { width: 25, color: "#6b7280", fontSize: 13, fontWeight: "800" },
+  compactJersey: { width: 52, fontSize: 15, fontWeight: "900" },
+  compactEastJersey: { color: "#d71920" },
+  compactWestJersey: { color: "#174ea6" },
+  compactPlayerInfo: { flex: 1 },
+  compactPlayerName: { color: "#111827", fontSize: 14, fontWeight: "900" },
+  compactPlayerMeta: { color: "#6b7280", fontSize: 11, fontWeight: "700", marginTop: 1 },
+  compactSubRow: {
+    minHeight: 49,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 7,
+    paddingHorizontal: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
   },
-
-  substituteRow: {
-    backgroundColor: "#f3f4f6",
-    borderColor: "#d1d5db",
+  compactSubJersey: { width: 55, fontSize: 15, fontWeight: "900" },
+  lineupManagerFooter: {
+    color: "#4b5563",
+    fontSize: 13,
+    fontWeight: "800",
+    textAlign: "center",
+    paddingVertical: 12,
   },
-
-  currentPlayerRow: {
-    backgroundColor: "#111827",
-    borderColor: "#facc15",
-    borderWidth: 3,
-  },
-
-  currentPlayerText: {
-    color: "#ffffff",
-  },
-
-  currentPlayerMeta: {
-    color: "#d1d5db",
-  },
-
-  nowBattingPill: {
-    alignSelf: "flex-start",
-    backgroundColor: "#facc15",
-    color: "#111827",
-    fontSize: 11,
-    fontWeight: "900",
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: 999,
-    marginTop: 5,
-    overflow: "hidden",
-  },
-
-  playerNumber: {
-    width: 74,
-    fontSize: 17,
-    fontWeight: "900",
-    color: "#111827",
-  },
-
-  playerInfo: {
-    flex: 1,
-  },
-
-  playerName: {
-    fontSize: 18,
-    fontWeight: "900",
-    color: "#111827",
-  },
-
-  playerNameDesktop: {
-    fontSize: 24,
-  },
-
-  playerMeta: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#555",
-    marginTop: 2,
-  },
-
-  emptyText: {
+  emptyPanelText: {
     color: "#6b7280",
-    fontWeight: "700",
-    marginBottom: 6,
-  },
-
-modalOverlay: {
-  ...modalStyles.overlay,
-},
-
-gamePickerCard: {
-  ...modalStyles.card,
-},
-
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: "900",
-    color: "#1f4e9e",
+    fontSize: 14,
+    fontWeight: "800",
     textAlign: "center",
-    marginBottom: 14,
+    padding: 25,
   },
-
-  gamePickerOption: {
-    backgroundColor: "#f3f4f6",
+  opposingLineupButton: {
+    margin: 13,
     borderWidth: 1,
-    borderColor: "#d1d5db",
+    borderColor: "#93c5fd",
     borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    marginBottom: 8,
-  },
-
-  activeGamePickerOption: {
-    backgroundColor: "#1f4e9e",
-    borderColor: "#1f4e9e",
-  },
-
-  gamePickerOptionText: {
-    color: "#111827",
-    fontSize: 16,
-    fontWeight: "800",
-    textAlign: "center",
-  },
-
-  activeGamePickerOptionText: {
-    color: "#ffffff",
-  },
-
-  cancelButton: {
-    backgroundColor: "#c62828",
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: "center",
-    marginTop: 8,
-  },
-
-  cancelButtonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "800",
-  },
-
-  smallButtonRow: {
+    paddingVertical: 16,
+    paddingHorizontal: 14,
     flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#eff6ff",
+  },
+  opposingLineupButtonText: { color: "#1f4e9e", fontSize: 15, fontWeight: "900" },
+  gameControlsCard: {
+    backgroundColor: "#fff",
+    borderRadius: 15,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#d6dee8",
+    marginBottom: 12,
+  },
+  squadToggleRow: { flexDirection: "row", gap: 8, padding: 10 },
+  squadToggleButton: {
+    flex: 1,
+    borderRadius: 9,
+    paddingVertical: 11,
+    backgroundColor: "#e5e7eb",
+    alignItems: "center",
+  },
+  eastActiveButton: { backgroundColor: "#d71920" },
+  westActiveButton: { backgroundColor: "#174ea6" },
+  squadToggleText: { color: "#374151", fontSize: 14, fontWeight: "900" },
+  activeToggleText: { color: "#fff" },
+  scoreControlGrid: { flexDirection: "row", gap: 10, paddingHorizontal: 10, paddingBottom: 10 },
+  scoreControlTeam: {
+    flex: 1,
+    alignItems: "center",
+    backgroundColor: "#f8fafc",
+    borderRadius: 10,
+    padding: 9,
+  },
+  eastControlLabel: { color: "#d71920", fontSize: 12, fontWeight: "900" },
+  westControlLabel: { color: "#174ea6", fontSize: 12, fontWeight: "900" },
+  scoreControlRow: { flexDirection: "row", alignItems: "center", marginTop: 6 },
+  scoreButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 9,
+    backgroundColor: "#374151",
     alignItems: "center",
     justifyContent: "center",
   },
+  scoreButtonText: { color: "#fff", fontSize: 24, fontWeight: "900" },
+  scoreValue: { minWidth: 48, textAlign: "center", color: "#111827", fontSize: 27, fontWeight: "900" },
+  controlActionGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, padding: 10, paddingTop: 0 },
+  addOutButton: {
+    flexGrow: 1,
+    minWidth: 110,
+    backgroundColor: "#d97706",
+    borderRadius: 9,
+    paddingVertical: 11,
+    alignItems: "center",
+  },
+  clearOutsButton: {
+    flexGrow: 1,
+    minWidth: 110,
+    backgroundColor: "#6b7280",
+    borderRadius: 9,
+    paddingVertical: 11,
+    alignItems: "center",
+  },
+  switchSidesButton: {
+    flexGrow: 1,
+    minWidth: 145,
+    backgroundColor: "#15803d",
+    borderRadius: 9,
+    paddingVertical: 11,
+    alignItems: "center",
+  },
+  previousHalfButton: {
+    flexGrow: 1,
+    minWidth: 130,
+    backgroundColor: "#1d4ed8",
+    borderRadius: 9,
+    paddingVertical: 11,
+    alignItems: "center",
+  },
+  resetGameButton: {
+    flexGrow: 1,
+    minWidth: 120,
+    backgroundColor: "#c62828",
+    borderRadius: 9,
+    paddingVertical: 11,
+    alignItems: "center",
+  },
+  gameManagementButtonText: { color: "#fff", fontSize: 13, fontWeight: "900" },
+  controlButtonRow: { flexDirection: "row", gap: 9, paddingHorizontal: 10, paddingBottom: 10 },
+  previousButton: {
+    flex: 1,
+    backgroundColor: "#4b5563",
+    borderRadius: 9,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  nextButton: {
+    flex: 1,
+    backgroundColor: "#1d4ed8",
+    borderRadius: 9,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  controlButtonText: { color: "#fff", fontSize: 13, fontWeight: "900" },
+  footer: { marginTop: 12, alignItems: "center" },
+  footerText: { color: "#6b7280", fontSize: 12, fontWeight: "700" },
 
-  footer: {
-  alignItems: "center",
-  marginTop: 24,
-  marginBottom: 12,
-},
-
-footerText: {
-  color: "#6b7280",
-  fontSize: 12,
-  fontWeight: "700",
-  textAlign: "center",
-},
-
-scoreboardHeader: {
-  color: "#facc15",
-  fontSize: 18,
-  fontWeight: "900",
-  textAlign: "center",
-  letterSpacing: 2,
-  marginBottom: 10,
-},
-
-publicScoreboardRow: {
-  flexDirection: "row",
-  justifyContent: "space-evenly",
-  alignItems: "center",
-  marginBottom: 12,
-},
-
-publicScoreColumn: {
-  alignItems: "center",
-  flex: 1,
-},
-
-publicEastLabel: {
-  color: "#fca5a5",
-  fontSize: 18,
-  fontWeight: "900",
-},
-
-publicWestLabel: {
-  color: "#93c5fd",
-  fontSize: 18,
-  fontWeight: "900",
-},
-
-publicScoreNumber: {
-  color: "#ffffff",
-  fontSize: 42,
-  fontWeight: "900",
-  marginTop: 2,
-},
-
-publicScoreDivider: {
-  width: 2,
-  alignSelf: "stretch",
-  backgroundColor: "#374151",
-  marginHorizontal: 10,
-},
 });
