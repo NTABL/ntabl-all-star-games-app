@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   Animated,
   Image,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -16,7 +15,6 @@ import {
 } from "react-native";
 
 import { API_BASE } from "../utils/appconfig";
-import { modalStyles } from "../utils/modalStyles";
 
 type Squad = "East" | "West";
 
@@ -118,7 +116,6 @@ export default function AnnouncerScreen() {
     half: "Bottom",
   });
 
-  const [showGamePicker, setShowGamePicker] = useState(false);
   const [lastUpdatedDate, setLastUpdatedDate] = useState<Date | null>(null);
   const [refreshAge, setRefreshAge] = useState("Loading...");
   const [eastManager, setEastManager] = useState("");
@@ -576,12 +573,12 @@ return {
                 GAME {selectedGame.id.replace("game", "")}
               </Text>
             </View>
+
             <Text style={styles.viewGameTitle}>{gameTitle}</Text>
             <Text style={styles.viewModeLabel}>LIVE GAME VIEW</Text>
+            <Text style={styles.liveStatusText}>{liveLabel}</Text>
+            <Text style={styles.lastUpdatedText}>{refreshAge}</Text>
           </View>
-
-          <Text style={styles.liveStatusText}>{liveLabel}</Text>
-          <Text style={styles.lastUpdatedText}>{refreshAge}</Text>
 
           {loading ? (
             <ActivityIndicator size="large" color="#1d4ed8" />
@@ -602,7 +599,7 @@ return {
                   <Text style={styles.broadcastEastLabel}>EAST</Text>
                   <Text style={styles.broadcastDugout}>{eastDugout}</Text>
                   <Text style={styles.broadcastManager}>
-                    {eastManager || "Manager TBD"}
+                    Manager: {eastManager || "TBD"}
                   </Text>
                 </View>
 
@@ -638,7 +635,7 @@ return {
                   <Text style={styles.broadcastWestLabel}>WEST</Text>
                   <Text style={styles.broadcastDugout}>{westDugout}</Text>
                   <Text style={styles.broadcastManager}>
-                    {westManager || "Manager TBD"}
+                    Manager: {westManager || "TBD"}
                   </Text>
                 </View>
               </View>
@@ -680,28 +677,6 @@ return {
                       West
                     </Text>
                   </Pressable>
-                </View>
-
-                <View
-                  style={[
-                    styles.battingSquadBanner,
-                    displaySquad === "East"
-                      ? styles.eastBattingBanner
-                      : styles.westBattingBanner,
-                  ]}
-                >
-                  <Image
-                    source={
-                      displaySquad === "East"
-                        ? require("../assets/East.png")
-                        : require("../assets/West.png")
-                    }
-                    style={styles.battingSquadLogo}
-                    resizeMode="contain"
-                  />
-                  <Text style={styles.battingSquadText}>
-                    {displaySquad.toUpperCase()} BATTING
-                  </Text>
                 </View>
 
                 {renderFeaturedPlayer(
@@ -790,59 +765,7 @@ return {
         </ScrollView>
       </View>
 
-      <Modal
-        visible={showGamePicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowGamePicker(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.gamePickerCard}>
-            <Text style={styles.modalTitle}>Choose Game</Text>
 
-            {GAMES.map((game) => (
-              <Pressable
-                key={game.id}
-                style={[
-                  styles.gamePickerOption,
-                  selectedGame.id === game.id && styles.activeGamePickerOption,
-                ]}
-                onPress={() => {
-                  setSelectedGame(game);
-                  setDisplaySquad("East");
-                  setShowGamePicker(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.gamePickerOptionText,
-                    selectedGame.id === game.id &&
-                      styles.activeGamePickerOptionText,
-                  ]}
-                >
-                  {game.label}
-                </Text>
-              </Pressable>
-            ))}
-
-            <Pressable
-              style={styles.cancelButton}
-              onPress={() => setShowGamePicker(false)}
-            >
-              <View style={styles.buttonContentRow}>
-                <Ionicons
-                  name="close-circle-outline"
-                  size={20}
-                  color="#ffffff"
-                  style={{ marginRight: 6 }}
-                />
-
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </View>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
     </>
   );
 }
@@ -917,12 +840,11 @@ allStarLogo: {
   },
 
   selectedGameTitle: {
-    fontSize: Platform.OS === "web" ? 30 : 24,
+    fontSize: Platform.OS === "web" ? 40 : 28,
     fontWeight: "900",
-    color: "#111827",
     textAlign: "center",
-    marginTop: 10,
-    lineHeight: Platform.OS === "web" ? 36 : 29,
+    marginBottom: 8,
+    lineHeight: Platform.OS === "web" ? 46 : 30,
   },
 
   topActionRow: {
@@ -984,6 +906,97 @@ allStarLogo: {
     fontWeight: "900",
     letterSpacing: 1,
     marginTop: 2,
+  },
+
+  broadcastScoreboard: {
+    backgroundColor: "#0f172a",
+    borderRadius: 18,
+    borderWidth: 3,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    marginBottom: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    shadowColor: "#000000",
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 9,
+  },
+
+  broadcastTeamColumn: {
+    flex: 1,
+    alignItems: "center",
+    minWidth: 0,
+  },
+
+  broadcastLogo: {
+    width: Platform.OS === "web" ? 125 : 92,
+    height: Platform.OS === "web" ? 78 : 64,
+  },
+
+  broadcastEastLabel: {
+    color: "#ef4444",
+    fontSize: 18,
+    fontWeight: "900",
+    marginTop: 2,
+  },
+
+  broadcastWestLabel: {
+    color: "#60a5fa",
+    fontSize: 18,
+    fontWeight: "900",
+    marginTop: 2,
+  },
+
+  broadcastDugout: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "900",
+    textAlign: "center",
+    marginTop: 3,
+  },
+
+  broadcastManager: {
+    color: "#cbd5e1",
+    fontSize: 10,
+    fontWeight: "800",
+    textAlign: "center",
+    marginTop: 3,
+  },
+
+  broadcastCenter: {
+    minWidth: 100,
+    alignItems: "center",
+  },
+
+  broadcastScore: {
+    color: "#ffffff",
+    fontSize: Platform.OS === "web" ? 38 : 29,
+    fontWeight: "900",
+  },
+
+  broadcastDash: { color: "#94a3b8" },
+
+  broadcastInning: {
+    color: "#facc15",
+    fontSize: 18,
+    fontWeight: "900",
+    marginTop: 3,
+  },
+
+  broadcastOutDots: {
+    color: "#facc15",
+    fontSize: 22,
+    fontWeight: "900",
+    letterSpacing: 4,
+    marginTop: 3,
+  },
+
+  broadcastOutText: {
+    color: "#d1d5db",
+    fontSize: 11,
+    fontWeight: "900",
   },
 
   liveStatusText: {

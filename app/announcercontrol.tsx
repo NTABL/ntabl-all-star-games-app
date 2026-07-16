@@ -17,7 +17,6 @@ import {
 } from "react-native";
 
 import { adminFetch, API_BASE } from "../utils/appconfig";
-import { modalStyles } from "../utils/modalStyles";
 
 type Squad = "East" | "West";
 
@@ -1731,4 +1730,74 @@ const styles = StyleSheet.create({
   footer: { marginTop: 12, alignItems: "center" },
   footerText: { color: "#6b7280", fontSize: 12, fontWeight: "700" },
 
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.72)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+
+  gamePickerCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 20,
+    width: "88%",
+    maxWidth: 620,
+    maxHeight: "90%",
+    shadowColor: "#000000",
+    shadowOpacity: 0.22,
+    shadowRadius: 18,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    elevation: 12,
+  },
+
+  modalTitle: {
+    color: "#1f4e9e",
+    fontSize: 24,
+    fontWeight: "900",
+    textAlign: "center",
+    marginBottom: 14,
+  },
+
+  confirmText: {
+    color: "#374151",
+    fontSize: 15,
+    fontWeight: "700",
+    lineHeight: 22,
+    textAlign: "left",
+    marginBottom: 18,
+  },
+
+  confirmButtonRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+
+  confirmNoButton: {
+    flex: 1,
+    backgroundColor: "#6b7280",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+
+  confirmYesButton: {
+    flex: 1,
+    backgroundColor: "#15803d",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+
+  cancelButtonText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "900",
+    textAlign: "center",
+  },
 });
