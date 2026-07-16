@@ -51,7 +51,7 @@ function showMessage(title: string, message: string) {
       const response = await fetch(`${API_BASE}/api/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
       });
 
       const data = await response.json();
@@ -101,7 +101,7 @@ function showMessage(title: string, message: string) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: email.trim(),
+          email: email.trim().toLowerCase(),
           code: code.trim(),
           newPassword,
         }),
@@ -191,12 +191,13 @@ setShowMessageModal(true);
           <Text style={styles.title}>Forgot Password</Text>
 
           <Text style={styles.subtitle}>
-            Enter Your Manager Email and We&apos;ll Send You a Reset Code.
+            Enter the Email Address Associated With Your Account and
+            We&apos;ll Send You a Reset Code.
           </Text>
 
           <TextInput
             style={styles.input}
-            placeholder="Email"
+            placeholder="Account Email Address"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
