@@ -547,7 +547,7 @@ return {
             </Pressable>
           </View>
 
-          <Text style={styles.title}>Live Announcer Board</Text>
+          <Text style={styles.title}>Live Game View</Text>
 
           <Image
             source={require("../assets/All-Star Logo.png")}
@@ -627,6 +627,56 @@ return {
             <ActivityIndicator size="large" color="#1d4ed8" />
           ) : (
             <>
+              <View
+                style={[
+                  styles.broadcastScoreboard,
+                  { borderColor: gameAccentColor },
+                ]}
+              >
+                <View style={styles.broadcastTeamColumn}>
+                  <Image
+                    source={require("../assets/East.png")}
+                    style={styles.broadcastLogo}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.broadcastEastLabel}>EAST</Text>
+                  <Text style={styles.broadcastDugout}>{eastDugout}</Text>
+                </View>
+
+                <View style={styles.broadcastCenter}>
+                  <Text style={styles.broadcastScore}>
+                    {Number(displayGameState.eastScore || 0)}
+                    <Text style={styles.broadcastDash}> - </Text>
+                    {Number(displayGameState.westScore || 0)}
+                  </Text>
+
+                  <Text style={styles.broadcastInning}>
+                    {displayGameState.half.toUpperCase()}{" "}
+                    {displayGameState.inning}
+                  </Text>
+
+                  <Text style={styles.broadcastOutDots}>
+                    {"●".repeat(Number(displayGameState.outs || 0))}
+                    {"○".repeat(3 - Number(displayGameState.outs || 0))}
+                  </Text>
+
+                  <Text style={styles.broadcastOutText}>
+                    {Number(displayGameState.outs || 0)}{" "}
+                    {Number(displayGameState.outs || 0) === 1 ? "OUT" : "OUTS"}
+                  </Text>
+                </View>
+
+                <View style={styles.broadcastTeamColumn}>
+                  <Image
+                    source={require("../assets/West.png")}
+                    style={styles.broadcastLogo}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.broadcastWestLabel}>WEST</Text>
+                  <Text style={styles.broadcastDugout}>{westDugout}</Text>
+                </View>
+              </View>
+
               <View style={styles.liveFeaturePanel}>
                 <Text style={styles.liveFeatureTitle}>Live Now Batting</Text>
 
@@ -666,40 +716,27 @@ return {
                   </Pressable>
                 </View>
 
-<View style={styles.publicGameStateCard}>
-<Text style={styles.scoreboardHeader}>SCORE</Text>
-
-<View style={styles.publicScoreboardRow}>
-  <View style={styles.publicScoreColumn}>
-    <Text style={styles.publicEastLabel}>EAST</Text>
-    <Text style={styles.publicScoreNumber}>
-      {Number(displayGameState.eastScore || 0)}
-    </Text>
-  </View>
-
-  <View style={styles.publicScoreDivider} />
-
-  <View style={styles.publicScoreColumn}>
-    <Text style={styles.publicWestLabel}>WEST</Text>
-    <Text style={styles.publicScoreNumber}>
-      {Number(displayGameState.westScore || 0)}
-    </Text>
-  </View>
-</View>
-  <Text style={styles.publicGameStateMain}>
-    ⚾ {displayGameState.half.toUpperCase()} {displayGameState.inning}
-  </Text>
-
-  <Text style={styles.publicOutsDots}>
-    {"●".repeat(Number(displayGameState.outs || 0))}
-    {"○".repeat(3 - Number(displayGameState.outs || 0))}
-  </Text>
-
-  <Text style={styles.publicOutsText}>
-    {Number(displayGameState.outs || 0)}{" "}
-    {Number(displayGameState.outs || 0) === 1 ? "OUT" : "OUTS"}
-  </Text>
-</View>
+                <View
+                  style={[
+                    styles.battingSquadBanner,
+                    displaySquad === "East"
+                      ? styles.eastBattingBanner
+                      : styles.westBattingBanner,
+                  ]}
+                >
+                  <Image
+                    source={
+                      displaySquad === "East"
+                        ? require("../assets/East.png")
+                        : require("../assets/West.png")
+                    }
+                    style={styles.battingSquadLogo}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.battingSquadText}>
+                    {displaySquad.toUpperCase()} BATTING
+                  </Text>
+                </View>
 
                 {renderFeaturedPlayer(
                   "NOW BATTING",
@@ -1009,6 +1046,124 @@ allStarLogo: {
     color: "#6b7280",
     fontSize: 15,
     fontWeight: "900",
+  },
+
+  broadcastScoreboard: {
+    backgroundColor: "#111827",
+    borderRadius: 20,
+    borderWidth: 4,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 9,
+  },
+
+  broadcastTeamColumn: {
+    flex: 1,
+    alignItems: "center",
+  },
+
+  broadcastLogo: {
+    width: 108,
+    height: 70,
+  },
+
+  broadcastEastLabel: {
+    color: "#ef4444",
+    fontSize: 19,
+    fontWeight: "900",
+    marginTop: 2,
+  },
+
+  broadcastWestLabel: {
+    color: "#60a5fa",
+    fontSize: 19,
+    fontWeight: "900",
+    marginTop: 2,
+  },
+
+  broadcastDugout: {
+    color: "#d1d5db",
+    fontSize: 12,
+    fontWeight: "800",
+    textAlign: "center",
+    marginTop: 3,
+  },
+
+  broadcastCenter: {
+    minWidth: 115,
+    alignItems: "center",
+    paddingHorizontal: 5,
+  },
+
+  broadcastScore: {
+    color: "#ffffff",
+    fontSize: 34,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
+
+  broadcastDash: {
+    color: "#9ca3af",
+  },
+
+  broadcastInning: {
+    color: "#facc15",
+    fontSize: 17,
+    fontWeight: "900",
+    marginTop: 5,
+  },
+
+  broadcastOutDots: {
+    color: "#facc15",
+    fontSize: 21,
+    fontWeight: "900",
+    letterSpacing: 4,
+    marginTop: 4,
+  },
+
+  broadcastOutText: {
+    color: "#d1d5db",
+    fontSize: 11,
+    fontWeight: "900",
+    marginTop: 1,
+  },
+
+  battingSquadBanner: {
+    borderRadius: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  eastBattingBanner: {
+    backgroundColor: "#c62828",
+  },
+
+  westBattingBanner: {
+    backgroundColor: "#1565c0",
+  },
+
+  battingSquadLogo: {
+    width: 54,
+    height: 38,
+    marginRight: 8,
+  },
+
+  battingSquadText: {
+    color: "#ffffff",
+    fontSize: 17,
+    fontWeight: "900",
+    letterSpacing: 0.5,
   },
 
   liveStatusText: {

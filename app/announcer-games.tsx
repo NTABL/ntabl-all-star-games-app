@@ -1,7 +1,4 @@
-import {
-  Ionicons,
-  MaterialCommunityIcons,
-} from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -135,8 +132,8 @@ export default function AnnouncerGamesScreen() {
               style={styles.logo}
               resizeMode="contain"
             />
-            <Text style={styles.title}>Choose Game Below</Text>
-            <Text style={styles.subtitle}>Select a game to open its live announcer board, current batter, score, lineups, and dugout assignments.</Text>
+            <Text style={styles.title}>Choose Game — Game View</Text>
+            <Text style={styles.subtitle}>Select a game to open its live game view, current batter, score, lineups, and dugout assignments.</Text>
           </View>
 
           {loading ? (
@@ -217,8 +214,8 @@ export default function AnnouncerGamesScreen() {
                       { backgroundColor: game.accentColor || "#1f4e9e" },
                     ]}
                   >
-                    <MaterialCommunityIcons
-                      name="scoreboard-outline"
+                    <Ionicons
+                      name="tv-outline"
                       size={19}
                       color="#ffffff"
                       style={{ marginRight: 7 }}
@@ -231,7 +228,7 @@ export default function AnnouncerGamesScreen() {
           )}
 
           <Text style={styles.footer}>
-            NTABL All-Star App • Announcer
+            NTABL All-Star App • Game View
           </Text>
         </ScrollView>
       </View>

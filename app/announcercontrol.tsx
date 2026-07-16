@@ -837,8 +837,66 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
             <ActivityIndicator size="large" color="#1d4ed8" />
           ) : (
             <>
+              <View
+                style={[
+                  styles.broadcastScoreboard,
+                  { borderColor: gameAccentColor },
+                ]}
+              >
+                <View style={styles.broadcastTeamColumn}>
+                  <Image
+                    source={require("../assets/East.png")}
+                    style={styles.broadcastLogo}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.broadcastEastLabel}>EAST</Text>
+                  <Text style={styles.broadcastDugout}>{eastDugout}</Text>
+                </View>
+
+                <View style={styles.broadcastCenter}>
+                  <Text style={styles.broadcastScore}>
+                    {Number(activeGameState.eastScore || 0)}
+                    <Text style={styles.broadcastDash}> - </Text>
+                    {Number(activeGameState.westScore || 0)}
+                  </Text>
+
+                  <Text style={styles.broadcastInning}>
+                    {activeGameState.half.toUpperCase()}{" "}
+                    {activeGameState.inning}
+                  </Text>
+
+                  <Text style={styles.broadcastOutDots}>
+                    {"●".repeat(Number(activeGameState.outs || 0))}
+                    {"○".repeat(3 - Number(activeGameState.outs || 0))}
+                  </Text>
+
+                  <Text style={styles.broadcastOutText}>
+                    {Number(activeGameState.outs || 0)}{" "}
+                    {Number(activeGameState.outs || 0) === 1 ? "OUT" : "OUTS"}
+                  </Text>
+                </View>
+
+                <View style={styles.broadcastTeamColumn}>
+                  <Image
+                    source={require("../assets/West.png")}
+                    style={styles.broadcastLogo}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.broadcastWestLabel}>WEST</Text>
+                  <Text style={styles.broadcastDugout}>{westDugout}</Text>
+                </View>
+              </View>
+
               <View style={styles.controlPanel}>
-                <Text style={styles.controlPanelTitle}>Game Control</Text>
+                <View style={styles.controlPanelHeadingRow}>
+                  <Ionicons
+                    name="game-controller-outline"
+                    size={24}
+                    color="#1f4e9e"
+                    style={{ marginRight: 7 }}
+                  />
+                  <Text style={styles.controlPanelTitle}>Game Control</Text>
+                </View>
 
                 <View style={styles.squadToggleRow}>
                   <Pressable
@@ -1040,6 +1098,28 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
                       </View>
                     </Pressable>
                   </View>
+                </View>
+
+                <View
+                  style={[
+                    styles.battingSquadBanner,
+                    activeSquad === "East"
+                      ? styles.eastBattingBanner
+                      : styles.westBattingBanner,
+                  ]}
+                >
+                  <Image
+                    source={
+                      activeSquad === "East"
+                        ? require("../assets/East.png")
+                        : require("../assets/West.png")
+                    }
+                    style={styles.battingSquadLogo}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.battingSquadText}>
+                    {activeSquad.toUpperCase()} BATTING
+                  </Text>
                 </View>
 
                 {renderFeaturedPlayer(
@@ -1475,6 +1555,124 @@ headerRow: {
     fontWeight: "900",
   },
 
+  broadcastScoreboard: {
+    backgroundColor: "#111827",
+    borderRadius: 20,
+    borderWidth: 4,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 9,
+  },
+
+  broadcastTeamColumn: {
+    flex: 1,
+    alignItems: "center",
+  },
+
+  broadcastLogo: {
+    width: 108,
+    height: 70,
+  },
+
+  broadcastEastLabel: {
+    color: "#ef4444",
+    fontSize: 19,
+    fontWeight: "900",
+    marginTop: 2,
+  },
+
+  broadcastWestLabel: {
+    color: "#60a5fa",
+    fontSize: 19,
+    fontWeight: "900",
+    marginTop: 2,
+  },
+
+  broadcastDugout: {
+    color: "#d1d5db",
+    fontSize: 12,
+    fontWeight: "800",
+    textAlign: "center",
+    marginTop: 3,
+  },
+
+  broadcastCenter: {
+    minWidth: 115,
+    alignItems: "center",
+    paddingHorizontal: 5,
+  },
+
+  broadcastScore: {
+    color: "#ffffff",
+    fontSize: 34,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
+
+  broadcastDash: {
+    color: "#9ca3af",
+  },
+
+  broadcastInning: {
+    color: "#facc15",
+    fontSize: 17,
+    fontWeight: "900",
+    marginTop: 5,
+  },
+
+  broadcastOutDots: {
+    color: "#facc15",
+    fontSize: 21,
+    fontWeight: "900",
+    letterSpacing: 4,
+    marginTop: 4,
+  },
+
+  broadcastOutText: {
+    color: "#d1d5db",
+    fontSize: 11,
+    fontWeight: "900",
+    marginTop: 1,
+  },
+
+  battingSquadBanner: {
+    borderRadius: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  eastBattingBanner: {
+    backgroundColor: "#c62828",
+  },
+
+  westBattingBanner: {
+    backgroundColor: "#1565c0",
+  },
+
+  battingSquadLogo: {
+    width: 54,
+    height: 38,
+    marginRight: 8,
+  },
+
+  battingSquadText: {
+    color: "#ffffff",
+    fontSize: 17,
+    fontWeight: "900",
+    letterSpacing: 0.5,
+  },
+
   liveStatusText: {
     fontSize: 20,
     fontWeight: "900",
@@ -1508,12 +1706,18 @@ shadowOffset: {
 elevation: 6,
   },
 
+  controlPanelHeadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+
   controlPanelTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "900",
     color: "#1f4e9e",
     textAlign: "center",
-    marginBottom: 10,
   },
 
   squadToggleRow: {
@@ -1525,7 +1729,7 @@ elevation: 6,
   squadToggleButton: {
     flex: 1,
     borderRadius: 10,
-    paddingVertical: 10,
+    paddingVertical: 13,
     backgroundColor: "#e5e7eb",
     alignItems: "center",
   },
@@ -1540,7 +1744,7 @@ elevation: 6,
 
   squadToggleText: {
     color: "#374151",
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "900",
   },
 
