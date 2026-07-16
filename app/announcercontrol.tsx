@@ -1017,8 +1017,53 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
                     </View>
                   </View>
 
+                </View>
+
+                <View
+                  style={[
+                    styles.lineupColumn,
+                    !isWideScreen && styles.mobileColumn,
+                  ]}
+                >
+                  <View style={styles.panelCard}>
+                    <View
+                      style={[
+                        styles.panelHeaderTeam,
+                        activeSquad === "East" ? styles.eastHeader : styles.westHeader,
+                      ]}
+                    >
+                      <Text style={styles.panelHeaderText}>
+                        {activeSquad.toUpperCase()} BATTING LINEUP ({activeBatting.length})
+                      </Text>
+                    </View>
+
+                    {activeBatting.length > 0 ? (
+                      activeBatting.map((player, index) =>
+                        renderCompactPlayerRow(
+                          player,
+                          activeSquad,
+                          index,
+                          activeGameState.currentBatterIndex
+                        )
+                      )
+                    ) : (
+                      <Text style={styles.emptyPanelText}>No saved batting lineup yet.</Text>
+                    )}
+
+                    <Text style={styles.lineupManagerFooter}>
+                      Manager: {activeSquad === "East" ? eastManager || "TBD" : westManager || "TBD"}
+                    </Text>
+                  </View>
+                </View>
+
+                <View
+                  style={[
+                    styles.sideColumn,
+                    !isWideScreen && styles.mobileColumn,
+                  ]}
+                >
                   <View style={styles.gameControlsCard}>
-                    <View style={styles.panelHeaderBlue}>
+                    <View style={styles.panelHeaderGreen}>
                       <Text style={styles.panelHeaderText}>GAME CONTROL</Text>
                     </View>
 
@@ -1126,51 +1171,7 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
                       </Pressable>
                     </View>
                   </View>
-                </View>
 
-                <View
-                  style={[
-                    styles.lineupColumn,
-                    !isWideScreen && styles.mobileColumn,
-                  ]}
-                >
-                  <View style={styles.panelCard}>
-                    <View
-                      style={[
-                        styles.panelHeaderTeam,
-                        activeSquad === "East" ? styles.eastHeader : styles.westHeader,
-                      ]}
-                    >
-                      <Text style={styles.panelHeaderText}>
-                        {activeSquad.toUpperCase()} BATTING LINEUP ({activeBatting.length})
-                      </Text>
-                    </View>
-
-                    {activeBatting.length > 0 ? (
-                      activeBatting.map((player, index) =>
-                        renderCompactPlayerRow(
-                          player,
-                          activeSquad,
-                          index,
-                          activeGameState.currentBatterIndex
-                        )
-                      )
-                    ) : (
-                      <Text style={styles.emptyPanelText}>No saved batting lineup yet.</Text>
-                    )}
-
-                    <Text style={styles.lineupManagerFooter}>
-                      Manager: {activeSquad === "East" ? eastManager || "TBD" : westManager || "TBD"}
-                    </Text>
-                  </View>
-                </View>
-
-                <View
-                  style={[
-                    styles.sideColumn,
-                    !isWideScreen && styles.mobileColumn,
-                  ]}
-                >
                   <View style={styles.panelCard}>
                     <View
                       style={[
@@ -1496,6 +1497,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     alignItems: "center",
   },
+  panelHeaderGreen: {
+    backgroundColor: "#15803d",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: "center",
+  },
   panelHeaderTeam: {
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -1516,25 +1523,25 @@ const styles = StyleSheet.create({
   activeSquadStripText: { color: "#111827", fontSize: 14, fontWeight: "900" },
   currentBatterCard: {
     backgroundColor: "#111827",
-    padding: 18,
+    padding: 12,
     alignItems: "center",
-    margin: 10,
+    margin: 8,
     borderRadius: 12,
     borderWidth: 3,
     borderColor: "#facc15",
   },
   currentBatterLabel: { display: "none" },
   orderNumberLarge: { color: "#93c5fd", fontSize: 13, fontWeight: "900" },
-  jerseyLarge: { color: "#facc15", fontSize: 31, fontWeight: "900", marginTop: 4 },
-  playerNameLarge: { color: "#ffffff", fontSize: 27, fontWeight: "900", textAlign: "center" },
+  jerseyLarge: { color: "#facc15", fontSize: 26, fontWeight: "900", marginTop: 3 },
+  playerNameLarge: { color: "#ffffff", fontSize: 23, fontWeight: "900", textAlign: "center" },
   playerMetaLarge: {
     color: "#d1d5db",
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "800",
     textAlign: "center",
     marginTop: 5,
   },
-  playerPositionLarge: { color: "#facc15", fontSize: 17, fontWeight: "900", marginTop: 3 },
+  playerPositionLarge: { color: "#facc15", fontSize: 15, fontWeight: "900", marginTop: 2 },
   upNextRow: { flexDirection: "row", gap: 9, paddingHorizontal: 10, marginBottom: 10 },
   upNextColumn: { flex: 1 },
   upNextCard: {
@@ -1542,14 +1549,14 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     borderWidth: 1,
     borderColor: "#d6dee8",
-    padding: 11,
+    padding: 8,
     alignItems: "center",
-    minHeight: 132,
+    minHeight: 105,
   },
   upNextLabel: { color: "#1f4e9e", fontSize: 13, fontWeight: "900", marginBottom: 4 },
   orderNumberSmall: { color: "#6b7280", fontSize: 11, fontWeight: "900" },
   jerseySmall: { color: "#d71920", fontSize: 19, fontWeight: "900" },
-  playerNameMedium: { color: "#111827", fontSize: 16, fontWeight: "900", textAlign: "center" },
+  playerNameMedium: { color: "#111827", fontSize: 14, fontWeight: "900", textAlign: "center" },
   playerMetaMedium: {
     color: "#6b7280",
     fontSize: 11,
