@@ -215,7 +215,7 @@ export default function AnnouncerGamesScreen() {
                     ]}
                   >
                     <Ionicons
-                      name="mic-outline"
+                      name="baseball-outline"
                       size={19}
                       color="#ffffff"
                       style={{ marginRight: 7 }}
