@@ -508,7 +508,9 @@ async function sendHelpRequest() {
     ]}
   >
     <View style={styles.teamSwitcherTextWrap}>
-      <Text style={styles.teamSwitcherLabel}>CURRENT TEAM ASSIGNMENT</Text>
+      <Text style={styles.teamSwitcherLabel}>
+        CURRENT {isPlayer ? "PLAYER" : "TEAM"} ASSIGNMENT
+      </Text>
       <Text style={styles.teamSwitcherTeam}>{managerData?.teamName || ""}</Text>
       <Text style={styles.teamSwitcherDivision}>{managerData?.division || ""}</Text>
     </View>
@@ -828,7 +830,7 @@ async function sendHelpRequest() {
 
       <Text style={styles.teamSwitcherTitle}>Select Team</Text>
       <Text style={styles.teamSwitcherMessage}>
-        Choose the team and division you want to manage.
+        Choose the team and division you want to access.
       </Text>
 
       <View style={styles.assignmentList}>
@@ -858,6 +860,11 @@ async function sendHelpRequest() {
                 </Text>
                 <Text style={styles.assignmentDivisionName}>
                   {assignment.division || "Division not listed"}
+                </Text>
+                <Text style={styles.assignmentRoleName}>
+                  {String(assignment.role || "player").toLowerCase() === "manager"
+                    ? "Team Manager"
+                    : "Player"}
                 </Text>
               </View>
 
@@ -1735,6 +1742,14 @@ assignmentDivisionName: {
   fontSize: 13,
   fontWeight: "700",
   marginTop: 2,
+},
+
+assignmentRoleName: {
+  color: "#1f4e9e",
+  fontSize: 11,
+  fontWeight: "900",
+  textTransform: "uppercase",
+  marginTop: 3,
 },
 
 teamSwitcherCancelButton: {
