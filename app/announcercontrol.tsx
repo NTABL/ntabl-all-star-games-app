@@ -871,6 +871,7 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
               <View
                 style={[
                   styles.broadcastScoreboard,
+                  !isWideScreen && styles.mobileScoreboard,
                   { borderColor: gameAccentColor },
                 ]}
               >
@@ -923,10 +924,27 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
                 </View>
               </View>
 
-              <View style={styles.desktopWorkspace}>
-                <View style={styles.featureColumn}>
+              <View
+                style={[
+                  styles.desktopWorkspace,
+                  !isWideScreen && styles.desktopWorkspaceMobile,
+                ]}
+              >
+                <View
+                  style={[
+                    styles.featureColumn,
+                    !isWideScreen && styles.mobileColumn,
+                  ]}
+                >
                   <View style={styles.panelCard}>
-                    <View style={styles.panelHeaderDark}>
+                    <View
+                      style={[
+                        styles.panelHeaderTeam,
+                        activeSquad === "East"
+                          ? styles.eastHeader
+                          : styles.westHeader,
+                      ]}
+                    >
                       <Text style={styles.panelHeaderText}>NOW BATTING</Text>
                     </View>
 
@@ -1110,7 +1128,12 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
                   </View>
                 </View>
 
-                <View style={styles.lineupColumn}>
+                <View
+                  style={[
+                    styles.lineupColumn,
+                    !isWideScreen && styles.mobileColumn,
+                  ]}
+                >
                   <View style={styles.panelCard}>
                     <View
                       style={[
@@ -1142,7 +1165,12 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
                   </View>
                 </View>
 
-                <View style={styles.sideColumn}>
+                <View
+                  style={[
+                    styles.sideColumn,
+                    !isWideScreen && styles.mobileColumn,
+                  ]}
+                >
                   <View style={styles.panelCard}>
                     <View
                       style={[
@@ -1411,6 +1439,9 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   broadcastOutText: { color: "#d1d5db", fontSize: 12, fontWeight: "900" },
+  mobileScoreboard: {
+    paddingHorizontal: 6,
+  },
   viewerToggleRow: { flexDirection: "row", gap: 10, marginBottom: 12 },
   viewerToggleButton: {
     flex: 1,
@@ -1421,15 +1452,22 @@ const styles = StyleSheet.create({
   },
   viewerToggleText: { color: "#374151", fontSize: 15, fontWeight: "900" },
   desktopWorkspace: {
-    flexDirection: Platform.OS === "web" ? "row" : "column",
+    flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
   },
-  featureColumn: { flex: 1.05, width: Platform.OS === "web" ? undefined : "100%", minWidth: 0 },
-  lineupColumn: { flex: 0.9, width: Platform.OS === "web" ? undefined : "100%", minWidth: 0 },
+  desktopWorkspaceMobile: {
+    flexDirection: "column",
+    alignItems: "stretch",
+  },
+  mobileColumn: {
+    width: "100%",
+    flex: 0,
+  },
+  featureColumn: { flex: 1.05, minWidth: 0 },
+  lineupColumn: { flex: 0.9, minWidth: 0 },
   sideColumn: {
     flex: 0.9,
-    width: Platform.OS === "web" ? undefined : "100%",
     minWidth: 0,
     gap: 12,
   },
@@ -1477,26 +1515,26 @@ const styles = StyleSheet.create({
   activeSquadMiniLogo: { width: 50, height: 34, marginRight: 7 },
   activeSquadStripText: { color: "#111827", fontSize: 14, fontWeight: "900" },
   currentBatterCard: {
-    backgroundColor: "#fff",
+    backgroundColor: "#111827",
     padding: 18,
     alignItems: "center",
     margin: 10,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#d6dee8",
+    borderWidth: 3,
+    borderColor: "#facc15",
   },
   currentBatterLabel: { display: "none" },
-  orderNumberLarge: { color: "#6b7280", fontSize: 13, fontWeight: "900" },
-  jerseyLarge: { color: "#d71920", fontSize: 31, fontWeight: "900", marginTop: 4 },
-  playerNameLarge: { color: "#111827", fontSize: 27, fontWeight: "900", textAlign: "center" },
+  orderNumberLarge: { color: "#93c5fd", fontSize: 13, fontWeight: "900" },
+  jerseyLarge: { color: "#facc15", fontSize: 31, fontWeight: "900", marginTop: 4 },
+  playerNameLarge: { color: "#ffffff", fontSize: 27, fontWeight: "900", textAlign: "center" },
   playerMetaLarge: {
-    color: "#4b5563",
+    color: "#d1d5db",
     fontSize: 16,
     fontWeight: "800",
     textAlign: "center",
     marginTop: 5,
   },
-  playerPositionLarge: { color: "#1f4e9e", fontSize: 17, fontWeight: "900", marginTop: 3 },
+  playerPositionLarge: { color: "#facc15", fontSize: 17, fontWeight: "900", marginTop: 3 },
   upNextRow: { flexDirection: "row", gap: 9, paddingHorizontal: 10, marginBottom: 10 },
   upNextColumn: { flex: 1 },
   upNextCard: {
@@ -1527,7 +1565,7 @@ const styles = StyleSheet.create({
     marginVertical: 18,
   },
   compactPlayerRow: {
-    minHeight: 52,
+    minHeight: 58,
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 7,
