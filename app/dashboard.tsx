@@ -766,7 +766,7 @@ async function sendHelpRequest() {
                   style={{ marginRight: 8 }}
                 />
 
-                <Text style={styles.announcerButtonText}>Live Gamne View</Text>
+                <Text style={styles.announcerButtonText}>Live Game View</Text>
               </View>
             </Pressable>
           )}

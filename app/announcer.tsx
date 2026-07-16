@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Animated,
   Image,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -15,6 +16,7 @@ import {
 } from "react-native";
 
 import { API_BASE } from "../utils/appconfig";
+import { modalStyles } from "../utils/modalStyles";
 
 type Squad = "East" | "West";
 
@@ -116,6 +118,7 @@ export default function AnnouncerScreen() {
     half: "Bottom",
   });
 
+  const [showGamePicker, setShowGamePicker] = useState(false);
   const [lastUpdatedDate, setLastUpdatedDate] = useState<Date | null>(null);
   const [refreshAge, setRefreshAge] = useState("Loading...");
   const [eastManager, setEastManager] = useState("");
@@ -158,6 +161,7 @@ export default function AnnouncerScreen() {
     const requestedDivision = String(params.divisionId || "");
 
     if (!requestedId && !requestedDivision) {
+      router.replace("/announcer-games");
       return;
     }
 
@@ -546,6 +550,7 @@ return {
                   color="#ffffff"
                   style={{ marginRight: 4 }}
                 />
+
                 <Text style={styles.topActionText}>Back</Text>
               </View>
             </Pressable>
@@ -561,6 +566,7 @@ return {
                   color="#ffffff"
                   style={{ marginRight: 6 }}
                 />
+
                 <Text style={styles.topActionText}>Change Game</Text>
               </View>
             </Pressable>
@@ -595,6 +601,7 @@ return {
                     style={styles.broadcastLogo}
                     resizeMode="contain"
                   />
+
                   <Text style={styles.broadcastEastLabel}>EAST</Text>
                   <Text style={styles.broadcastDugout}>{eastDugout}</Text>
                   <Text style={styles.broadcastManager}>
@@ -631,6 +638,7 @@ return {
                     style={styles.broadcastLogo}
                     resizeMode="contain"
                   />
+
                   <Text style={styles.broadcastWestLabel}>WEST</Text>
                   <Text style={styles.broadcastDugout}>{westDugout}</Text>
                   <Text style={styles.broadcastManager}>
@@ -764,7 +772,59 @@ return {
         </ScrollView>
       </View>
 
+      <Modal
+        visible={showGamePicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowGamePicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.gamePickerCard}>
+            <Text style={styles.modalTitle}>Choose Game</Text>
 
+            {GAMES.map((game) => (
+              <Pressable
+                key={game.id}
+                style={[
+                  styles.gamePickerOption,
+                  selectedGame.id === game.id && styles.activeGamePickerOption,
+                ]}
+                onPress={() => {
+                  setSelectedGame(game);
+                  setDisplaySquad("East");
+                  setShowGamePicker(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.gamePickerOptionText,
+                    selectedGame.id === game.id &&
+                      styles.activeGamePickerOptionText,
+                  ]}
+                >
+                  {game.label}
+                </Text>
+              </Pressable>
+            ))}
+
+            <Pressable
+              style={styles.cancelButton}
+              onPress={() => setShowGamePicker(false)}
+            >
+              <View style={styles.buttonContentRow}>
+                <Ionicons
+                  name="close-circle-outline"
+                  size={20}
+                  color="#ffffff"
+                  style={{ marginRight: 6 }}
+                />
+
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </View>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -839,11 +899,101 @@ allStarLogo: {
   },
 
   selectedGameTitle: {
-    fontSize: Platform.OS === "web" ? 40 : 28,
+    fontSize: Platform.OS === "web" ? 30 : 24,
     fontWeight: "900",
+    color: "#111827",
     textAlign: "center",
-    marginBottom: 8,
-    lineHeight: Platform.OS === "web" ? 46 : 30,
+    marginTop: 10,
+    lineHeight: Platform.OS === "web" ? 36 : 29,
+  },
+
+  matchupCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    borderTopWidth: 7,
+    padding: 16,
+    marginTop: 8,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+
+  gameIdentityRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+  },
+
+  gameNumberPill: {
+    backgroundColor: "#111827",
+    borderRadius: 999,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+  },
+
+  gameNumberPillText: {
+    color: "#ffffff",
+    fontSize: 11,
+    fontWeight: "900",
+  },
+
+  matchupRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+  },
+
+  matchupTeam: {
+    flex: 1,
+    alignItems: "center",
+  },
+
+  matchupLogo: {
+    width: 125,
+    height: 82,
+  },
+
+  eastMatchupTitle: {
+    color: "#c62828",
+    fontSize: 20,
+    fontWeight: "900",
+    marginTop: 3,
+  },
+
+  westMatchupTitle: {
+    color: "#1565c0",
+    fontSize: 20,
+    fontWeight: "900",
+    marginTop: 3,
+  },
+
+  dugoutText: {
+    color: "#111827",
+    fontSize: 14,
+    fontWeight: "900",
+    marginTop: 4,
+    textAlign: "center",
+  },
+
+  matchupManagerText: {
+    color: "#6b7280",
+    fontSize: 12,
+    fontWeight: "800",
+    marginTop: 3,
+    textAlign: "center",
+  },
+
+  versusColumn: {
+    width: 42,
+    alignItems: "center",
+  },
+
+  versusText: {
+    color: "#6b7280",
+    fontSize: 15,
+    fontWeight: "900",
   },
 
   topActionRow: {
@@ -919,7 +1069,10 @@ allStarLogo: {
     shadowColor: "#000000",
     shadowOpacity: 0.18,
     shadowRadius: 12,
-    shadowOffset: { width: 0, height: 5 },
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
     elevation: 9,
   },
 
@@ -930,8 +1083,8 @@ allStarLogo: {
   },
 
   broadcastLogo: {
-    width: Platform.OS === "web" ? 125 : 92,
-    height: Platform.OS === "web" ? 78 : 64,
+    width: Platform.OS === "web" ? 125 : 88,
+    height: Platform.OS === "web" ? 78 : 62,
   },
 
   broadcastEastLabel: {
@@ -965,17 +1118,19 @@ allStarLogo: {
   },
 
   broadcastCenter: {
-    minWidth: 100,
+    minWidth: 96,
     alignItems: "center",
   },
 
   broadcastScore: {
     color: "#ffffff",
-    fontSize: Platform.OS === "web" ? 38 : 29,
+    fontSize: Platform.OS === "web" ? 38 : 28,
     fontWeight: "900",
   },
 
-  broadcastDash: { color: "#94a3b8" },
+  broadcastDash: {
+    color: "#94a3b8",
+  },
 
   broadcastInning: {
     color: "#facc15",
