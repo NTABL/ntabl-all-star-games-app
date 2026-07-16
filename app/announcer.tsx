@@ -158,7 +158,6 @@ export default function AnnouncerScreen() {
     const requestedDivision = String(params.divisionId || "");
 
     if (!requestedId && !requestedDivision) {
-      router.replace("/announcer-games");
       return;
     }
 

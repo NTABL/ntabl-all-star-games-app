@@ -622,9 +622,27 @@ async function resetActiveGame() {
               #{player.jerseyNumber || "--"}
             </Text>
 
-            <Text style={isMain ? styles.playerNameLarge : styles.playerNameMedium}>
-              {player.name}
-            </Text>
+            {isMain ? (
+              <View style={styles.currentBatterNameRow}>
+                <Text style={styles.playerNameLarge}>
+                  {player.name}
+                </Text>
+
+                <Image
+                  source={
+                    player.squad === "West"
+                      ? require("../assets/West.png")
+                      : require("../assets/East.png")
+                  }
+                  style={styles.currentBatterTeamAsset}
+                  resizeMode="contain"
+                />
+              </View>
+            ) : (
+              <Text style={styles.playerNameMedium}>
+                {player.name}
+              </Text>
+            )}
 
             <Text style={isMain ? styles.playerMetaLarge : styles.playerMetaMedium}>
               {player.teamName}
@@ -1532,7 +1550,27 @@ const styles = StyleSheet.create({
   currentBatterLabel: { display: "none" },
   orderNumberLarge: { color: "#93c5fd", fontSize: 13, fontWeight: "900" },
   jerseyLarge: { color: "#facc15", fontSize: 26, fontWeight: "900", marginTop: 3 },
-  playerNameLarge: { color: "#ffffff", fontSize: 23, fontWeight: "900", textAlign: "center" },
+  playerNameLarge: {
+    flexShrink: 1,
+    color: "#ffffff",
+    fontSize: 23,
+    fontWeight: "900",
+    textAlign: "center",
+  },
+  currentBatterNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    paddingHorizontal: 8,
+  },
+
+  currentBatterTeamAsset: {
+    width: 72,
+    height: 48,
+    marginLeft: 12,
+  },
+
   playerMetaLarge: {
     color: "#d1d5db",
     fontSize: 14,
