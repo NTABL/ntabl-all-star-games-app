@@ -781,55 +781,6 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
             </View>
           </Pressable>
 
-          <View
-            style={[
-              styles.matchupCard,
-              { borderTopColor: gameAccentColor },
-            ]}
-          >
-            <View style={styles.gameIdentityRow}>
-              <View style={styles.gameNumberPill}>
-                <Text style={styles.gameNumberPillText}>
-                  GAME {selectedGame.id.replace("game", "")}
-                </Text>
-              </View>
-            </View>
-
-            <Text style={styles.selectedGameTitle}>{gameTitle}</Text>
-
-            <View style={styles.matchupRow}>
-              <View style={styles.matchupTeam}>
-                <Image
-                  source={require("../assets/East.png")}
-                  style={styles.matchupLogo}
-                  resizeMode="contain"
-                />
-                <Text style={styles.eastMatchupTitle}>EAST</Text>
-                <Text style={styles.dugoutText}>{eastDugout}</Text>
-                <Text style={styles.matchupManagerText}>
-                  {eastManager || "Manager TBD"}
-                </Text>
-              </View>
-
-              <View style={styles.versusColumn}>
-                <Text style={styles.versusText}>VS</Text>
-              </View>
-
-              <View style={styles.matchupTeam}>
-                <Image
-                  source={require("../assets/West.png")}
-                  style={styles.matchupLogo}
-                  resizeMode="contain"
-                />
-                <Text style={styles.westMatchupTitle}>WEST</Text>
-                <Text style={styles.dugoutText}>{westDugout}</Text>
-                <Text style={styles.matchupManagerText}>
-                  {westManager || "Manager TBD"}
-                </Text>
-              </View>
-            </View>
-          </View>
-
           <Text style={styles.liveStatusText}>{liveLabel}</Text>
           <Text style={styles.lastUpdatedText}>{refreshAge}</Text>
 
@@ -851,6 +802,9 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
                   />
                   <Text style={styles.broadcastEastLabel}>EAST</Text>
                   <Text style={styles.broadcastDugout}>{eastDugout}</Text>
+                  <Text style={styles.broadcastManager}>
+                    {eastManager || "Manager TBD"}
+                  </Text>
                 </View>
 
                 <View style={styles.broadcastCenter}>
@@ -884,6 +838,9 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
                   />
                   <Text style={styles.broadcastWestLabel}>WEST</Text>
                   <Text style={styles.broadcastDugout}>{westDugout}</Text>
+                  <Text style={styles.broadcastManager}>
+                    {westManager || "Manager TBD"}
+                  </Text>
                 </View>
               </View>
 
@@ -1464,213 +1421,6 @@ headerRow: {
     textAlign: "center",
     marginTop: 10,
     lineHeight: Platform.OS === "web" ? 36 : 29,
-  },
-
-  matchupCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 18,
-    borderTopWidth: 7,
-    padding: 16,
-    marginTop: 8,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
-  },
-
-  gameIdentityRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-  },
-
-  gameNumberPill: {
-    backgroundColor: "#111827",
-    borderRadius: 999,
-    paddingVertical: 5,
-    paddingHorizontal: 12,
-  },
-
-  gameNumberPillText: {
-    color: "#ffffff",
-    fontSize: 11,
-    fontWeight: "900",
-  },
-
-  matchupRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 12,
-  },
-
-  matchupTeam: {
-    flex: 1,
-    alignItems: "center",
-  },
-
-  matchupLogo: {
-    width: 125,
-    height: 82,
-  },
-
-  eastMatchupTitle: {
-    color: "#c62828",
-    fontSize: 20,
-    fontWeight: "900",
-    marginTop: 3,
-  },
-
-  westMatchupTitle: {
-    color: "#1565c0",
-    fontSize: 20,
-    fontWeight: "900",
-    marginTop: 3,
-  },
-
-  dugoutText: {
-    color: "#111827",
-    fontSize: 14,
-    fontWeight: "900",
-    marginTop: 4,
-    textAlign: "center",
-  },
-
-  matchupManagerText: {
-    color: "#6b7280",
-    fontSize: 12,
-    fontWeight: "800",
-    marginTop: 3,
-    textAlign: "center",
-  },
-
-  versusColumn: {
-    width: 42,
-    alignItems: "center",
-  },
-
-  versusText: {
-    color: "#6b7280",
-    fontSize: 15,
-    fontWeight: "900",
-  },
-
-  broadcastScoreboard: {
-    backgroundColor: "#111827",
-    borderRadius: 20,
-    borderWidth: 4,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    marginBottom: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.16,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 9,
-  },
-
-  broadcastTeamColumn: {
-    flex: 1,
-    alignItems: "center",
-  },
-
-  broadcastLogo: {
-    width: 108,
-    height: 70,
-  },
-
-  broadcastEastLabel: {
-    color: "#ef4444",
-    fontSize: 19,
-    fontWeight: "900",
-    marginTop: 2,
-  },
-
-  broadcastWestLabel: {
-    color: "#60a5fa",
-    fontSize: 19,
-    fontWeight: "900",
-    marginTop: 2,
-  },
-
-  broadcastDugout: {
-    color: "#d1d5db",
-    fontSize: 12,
-    fontWeight: "800",
-    textAlign: "center",
-    marginTop: 3,
-  },
-
-  broadcastCenter: {
-    minWidth: 115,
-    alignItems: "center",
-    paddingHorizontal: 5,
-  },
-
-  broadcastScore: {
-    color: "#ffffff",
-    fontSize: 34,
-    fontWeight: "900",
-    letterSpacing: 1,
-  },
-
-  broadcastDash: {
-    color: "#9ca3af",
-  },
-
-  broadcastInning: {
-    color: "#facc15",
-    fontSize: 17,
-    fontWeight: "900",
-    marginTop: 5,
-  },
-
-  broadcastOutDots: {
-    color: "#facc15",
-    fontSize: 21,
-    fontWeight: "900",
-    letterSpacing: 4,
-    marginTop: 4,
-  },
-
-  broadcastOutText: {
-    color: "#d1d5db",
-    fontSize: 11,
-    fontWeight: "900",
-    marginTop: 1,
-  },
-
-  battingSquadBanner: {
-    borderRadius: 14,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    marginBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  eastBattingBanner: {
-    backgroundColor: "#c62828",
-  },
-
-  westBattingBanner: {
-    backgroundColor: "#1565c0",
-  },
-
-  battingSquadLogo: {
-    width: 54,
-    height: 38,
-    marginRight: 8,
-  },
-
-  battingSquadText: {
-    color: "#ffffff",
-    fontSize: 17,
-    fontWeight: "900",
-    letterSpacing: 0.5,
   },
 
   liveStatusText: {
