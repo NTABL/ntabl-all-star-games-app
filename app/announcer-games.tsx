@@ -1,4 +1,7 @@
-import { Ionicons } from "@expo/vector-icons";
+import {
+  Ionicons,
+  MaterialCommunityIcons,
+} from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -214,8 +217,8 @@ export default function AnnouncerGamesScreen() {
                       { backgroundColor: game.accentColor || "#1f4e9e" },
                     ]}
                   >
-                    <Ionicons
-                      name="tv-outline"
+                    <MaterialCommunityIcons
+                      name="scoreboard-outline"
                       size={19}
                       color="#ffffff"
                       style={{ marginRight: 7 }}
