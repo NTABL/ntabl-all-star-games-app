@@ -132,7 +132,7 @@ export default function AnnouncerGamesScreen() {
               style={styles.logo}
               resizeMode="contain"
             />
-            <Text style={styles.title}>Choose Game — Announcer View</Text>
+            <Text style={styles.title}>Choose Game Below</Text>
             <Text style={styles.subtitle}>Select a game to open its live announcer board, current batter, score, lineups, and dugout assignments.</Text>
           </View>
 
@@ -220,7 +220,7 @@ export default function AnnouncerGamesScreen() {
                       color="#ffffff"
                       style={{ marginRight: 7 }}
                     />
-                    <Text style={styles.openButtonText}>Open Announcer View</Text>
+                    <Text style={styles.openButtonText}>Open Game View</Text>
                   </View>
                 </View>
               </Pressable>
