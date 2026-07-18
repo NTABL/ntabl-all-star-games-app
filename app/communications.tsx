@@ -710,7 +710,26 @@ export default function CommunicationsScreen() {
               {"{Squad}"}, {"{Team}"}, {"{Role}"}
             </Text>
           </View>
+<View style={styles.sectionCard}>
+  <Text style={styles.sectionTitle}>SMS Testing</Text>
 
+  <Pressable
+    style={styles.sendButton}
+    onPress={() => router.push("/communications-sms")}
+  >
+    <View style={styles.buttonRow}>
+      <Ionicons
+        name="chatbubble-ellipses-outline"
+        size={20}
+        color="#ffffff"
+        style={{ marginRight: 7 }}
+      />
+      <Text style={styles.sendButtonText}>
+        Open SMS Testing Center
+      </Text>
+    </View>
+  </Pressable>
+</View>
           <View style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>4. Test and Send</Text>
 
