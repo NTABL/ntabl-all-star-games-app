@@ -3,7 +3,7 @@ import { router, Stack, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
+  Modal,
   Image,
   Keyboard,
   KeyboardAvoidingView,
@@ -18,12 +18,29 @@ import {
 import { isAdminLoggedIn } from "../stores/adminstore";
 import { adminFetch, API_BASE } from "../utils/appconfig";
 
-export default function CommunicationsScreen() {
+export default function SmsCenterScreen() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [message, setMessage] = useState(
     "This is a test text message from the NTABL All-Star Games app."
   );
   const [sending, setSending] = useState(false);
+  const [resultVisible, setResultVisible] = useState(false);
+  const [resultTitle, setResultTitle] = useState("");
+  const [resultMessage, setResultMessage] = useState("");
+  const [resultType, setResultType] = useState<"success" | "error" | "warning">(
+    "success"
+  );
+
+  function showResult(
+    type: "success" | "error" | "warning",
+    title: string,
+    text: string
+  ) {
+    setResultType(type);
+    setResultTitle(title);
+    setResultMessage(text);
+    setResultVisible(true);
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -44,7 +61,8 @@ export default function CommunicationsScreen() {
     const cleanMessage = message.trim();
 
     if (!cleanPhoneNumber) {
-      Alert.alert(
+      showResult(
+        "warning",
         "Phone Number Required",
         "Enter the mobile phone number that should receive the test message."
       );
@@ -52,7 +70,8 @@ export default function CommunicationsScreen() {
     }
 
     if (!cleanMessage) {
-      Alert.alert(
+      showResult(
+        "warning",
         "Message Required",
         "Enter the test message that should be sent."
       );
@@ -84,8 +103,9 @@ export default function CommunicationsScreen() {
         );
       }
 
-      Alert.alert(
-        "Test SMS Submitted",
+      showResult(
+        "success",
+        "SMS Submitted",
         `Twilio accepted the message for ${cleanPhoneNumber}.\n\nStatus: ${
           data?.sms?.status || "queued"
         }`
@@ -93,11 +113,12 @@ export default function CommunicationsScreen() {
     } catch (error) {
       console.log("TEST SMS ERROR:", error);
 
-      Alert.alert(
-        "Test SMS Failed",
+      showResult(
+        "error",
+        "SMS Failed",
         error instanceof Error
           ? error.message
-          : "The test text message could not be sent."
+          : "The text message could not be submitted."
       );
     } finally {
       setSending(false);
@@ -119,7 +140,7 @@ export default function CommunicationsScreen() {
         >
           <View style={styles.headerRow}>
             <TouchableOpacity
-              onPress={() => router.replace("/admin")}
+              onPress={() => router.replace("/communications")}
               style={styles.backButton}
               disabled={sending}
             >
@@ -142,10 +163,10 @@ export default function CommunicationsScreen() {
               resizeMode="contain"
             />
 
-            <Text style={styles.title}>Communications Center</Text>
+            <Text style={styles.title}>Text Message Communications</Text>
 
             <Text style={styles.subtitle}>
-              Send and test NTABL email and text communications.
+              Send live SMS messages through the NTABL Twilio account.
             </Text>
           </View>
 
@@ -160,9 +181,9 @@ export default function CommunicationsScreen() {
               </View>
 
               <View style={styles.sectionTitleText}>
-                <Text style={styles.sectionHeader}>Test SMS</Text>
+                <Text style={styles.sectionHeader}>Send Text Message</Text>
                 <Text style={styles.sectionDescription}>
-                  Send one live test message through the NTABL Twilio account.
+                  Send one live message to a mobile phone through the NTABL Twilio account.
                 </Text>
               </View>
             </View>
@@ -227,7 +248,7 @@ export default function CommunicationsScreen() {
                 )}
 
                 <Text style={styles.sendButtonText}>
-                  {sending ? "Sending Test SMS..." : "Send Test SMS"}
+                  {sending ? "Submitting SMS..." : "Send Text Message"}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -245,26 +266,51 @@ export default function CommunicationsScreen() {
             </View>
           </View>
 
-          <View style={styles.comingSoonCard}>
-            <Ionicons
-              name="mail-outline"
-              size={30}
-              color="#6b7280"
-            />
-            <Text style={styles.comingSoonTitle}>
-              Additional Communications Tools
-            </Text>
-            <Text style={styles.comingSoonText}>
-              Email, recipient selection, templates, broadcasts, and delivery
-              history will be added here after SMS testing is confirmed.
-            </Text>
-          </View>
-
           <Text style={styles.versionFooter}>
-            NTABL Communications Center • Version 1.0
+            NTABL All-Star App • Text Message Communications
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal
+        visible={resultVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setResultVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.resultModalCard}>
+            <Ionicons
+              name={
+                resultType === "success"
+                  ? "checkmark-circle"
+                  : resultType === "warning"
+                  ? "warning"
+                  : "alert-circle"
+              }
+              size={58}
+              color={
+                resultType === "success"
+                  ? "#15803d"
+                  : resultType === "warning"
+                  ? "#f97316"
+                  : "#c62828"
+              }
+              style={{ marginBottom: 8 }}
+            />
+
+            <Text style={styles.modalTitle}>{resultTitle}</Text>
+            <Text style={styles.resultMessage}>{resultMessage}</Text>
+
+            <TouchableOpacity
+              style={styles.resultButton}
+              onPress={() => setResultVisible(false)}
+            >
+              <Text style={styles.resultButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -507,6 +553,63 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     fontWeight: "600",
     textAlign: "center",
+  },
+
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.65)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+
+  resultModalCard: {
+    width: "100%",
+    maxWidth: 420,
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 22,
+    alignItems: "center",
+    shadowColor: "#000000",
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    elevation: 10,
+  },
+
+  modalTitle: {
+    color: "#1f4e9e",
+    fontSize: 23,
+    fontWeight: "900",
+    textAlign: "center",
+  },
+
+  resultMessage: {
+    color: "#4b5563",
+    fontSize: 15,
+    fontWeight: "700",
+    lineHeight: 22,
+    textAlign: "center",
+    marginTop: 8,
+  },
+
+  resultButton: {
+    width: "100%",
+    backgroundColor: "#1d4ed8",
+    borderRadius: 11,
+    paddingVertical: 13,
+    alignItems: "center",
+    marginTop: 16,
+  },
+
+  resultButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "900",
   },
 
   versionFooter: {

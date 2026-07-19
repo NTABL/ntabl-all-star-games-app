@@ -136,7 +136,7 @@ export default function AdminScreen() {
                   style={{ marginRight: 8 }}
                 />
 
-                <Text style={styles.buttonText}>Email Players & Managers</Text>
+                <Text style={styles.buttonText}>Open Communications Center</Text>
               </View>
             </TouchableOpacity>
           </View>
