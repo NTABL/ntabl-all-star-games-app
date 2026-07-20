@@ -33,6 +33,7 @@ type Division = {
   maxPitchers: number;
   maxPositionPlayers: number;
   isLocked: boolean;
+  integratesWithDivisionId?: string | null;
   leagueAppsSources?: LeagueAppsSource[];
 };
 
@@ -138,6 +139,7 @@ export default function DivisionConfigScreen() {
   const [leagueSourceId, setLeagueSourceId] = useState("");
   const [leagueSourceEnabled, setLeagueSourceEnabled] = useState(false);
   const [savingLeagueSources, setSavingLeagueSources] = useState(false);
+  const [savingGamePool, setSavingGamePool] = useState(false);
 
   const { width, height } = useWindowDimensions();
   const isTabletLayout = width >= 700;
@@ -462,6 +464,70 @@ export default function DivisionConfigScreen() {
       sourceIndex === index ? { ...source, enabled: !source.enabled } : source
     );
     await persistLeagueSources(current);
+  }
+
+  function getGamePoolName(divisionId?: string | null) {
+    if (!divisionId) return "Standalone Division";
+    return divisions.find((division) => division.id === divisionId)?.name || divisionId;
+  }
+
+  async function saveGamePool(targetDivisionId: string | null) {
+    if (!selectedDivision || savingGamePool) return;
+
+    const previousDivision = selectedDivision;
+    const updatedDivision = {
+      ...selectedDivision,
+      integratesWithDivisionId: targetDivisionId,
+    };
+
+    setSavingGamePool(true);
+    setSelectedDivision(updatedDivision);
+    setDivisions((current) =>
+      current.map((division) =>
+        division.id === updatedDivision.id ? updatedDivision : division
+      )
+    );
+
+    try {
+      const response = await adminFetch(
+        `${API_BASE}/api/admin/divisions/${selectedDivision.id}/game-pool`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            integratesWithDivisionId: targetDivisionId,
+          }),
+        }
+      );
+
+      const json = await response.json();
+
+      if (!response.ok || !json?.ok) {
+        throw new Error(json?.message || "All-Star game pool could not be saved.");
+      }
+
+      const savedDivision = (json.division || updatedDivision) as Division;
+
+      setSelectedDivision(savedDivision);
+      setDivisions((current) =>
+        current.map((division) =>
+          division.id === savedDivision.id ? savedDivision : division
+        )
+      );
+
+      showToast("Game Pool Saved!");
+    } catch (e) {
+      console.log("SAVE GAME POOL ERROR:", e);
+      setSelectedDivision(previousDivision);
+      setDivisions((current) =>
+        current.map((division) =>
+          division.id === previousDivision.id ? previousDivision : division
+        )
+      );
+      showToast("Game Pool Save Failed");
+    } finally {
+      setSavingGamePool(false);
+    }
   }
 
   function renderDivisionList() {
@@ -802,6 +868,97 @@ export default function DivisionConfigScreen() {
               <Text style={styles.addLeagueSourceText}>Add League Source</Text>
             </View>
           </TouchableOpacity>
+        </View>
+
+        <View style={styles.gamePoolCard}>
+          <View style={styles.gamePoolHeader}>
+            <View style={styles.gamePoolIconCircle}>
+              <Ionicons name="git-merge-outline" size={22} color="#ffffff" />
+            </View>
+
+            <View style={styles.gamePoolHeaderText}>
+              <Text style={styles.gamePoolTitle}>Combined All-Star Game</Text>
+              <Text style={styles.gamePoolSubtitle}>
+                Select another division when this division plays in the same All-Star game.
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.currentGamePoolBox}>
+            <Text style={styles.currentGamePoolLabel}>CURRENT GAME POOL</Text>
+            <Text style={styles.currentGamePoolValue}>
+              {getGamePoolName(selectedDivision.integratesWithDivisionId)}
+            </Text>
+          </View>
+
+          <Text style={styles.gamePoolHelp}>
+            Choose Standalone when this division has its own game. Combining divisions keeps each
+            division's teams and submissions separate while placing them into the same All-Star game pool.
+          </Text>
+
+          <TouchableOpacity
+            style={[
+              styles.gamePoolOption,
+              !selectedDivision.integratesWithDivisionId && styles.gamePoolOptionSelected,
+            ]}
+            onPress={() => saveGamePool(null)}
+            disabled={savingGamePool || selectedDivision.isLocked}
+          >
+            <Ionicons
+              name={!selectedDivision.integratesWithDivisionId ? "radio-button-on" : "radio-button-off"}
+              size={22}
+              color={!selectedDivision.integratesWithDivisionId ? "#15803d" : "#6b7280"}
+              style={{ marginRight: 10 }}
+            />
+            <View style={styles.gamePoolOptionText}>
+              <Text style={styles.gamePoolOptionTitle}>Standalone Division</Text>
+              <Text style={styles.gamePoolOptionDescription}>
+                This division has its own All-Star game.
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          {divisions
+            .filter((division) => division.id !== selectedDivision.id)
+            .map((division) => {
+              const isSelected =
+                selectedDivision.integratesWithDivisionId === division.id;
+
+              return (
+                <TouchableOpacity
+                  key={division.id}
+                  style={[
+                    styles.gamePoolOption,
+                    isSelected && styles.gamePoolOptionSelected,
+                  ]}
+                  onPress={() => saveGamePool(division.id)}
+                  disabled={savingGamePool || selectedDivision.isLocked}
+                >
+                  <Ionicons
+                    name={isSelected ? "radio-button-on" : "radio-button-off"}
+                    size={22}
+                    color={isSelected ? "#15803d" : "#6b7280"}
+                    style={{ marginRight: 10 }}
+                  />
+                  <View style={styles.gamePoolOptionText}>
+                    <Text style={styles.gamePoolOptionTitle}>
+                      Pool with {division.name}
+                    </Text>
+                    <Text style={styles.gamePoolOptionDescription}>
+                      Use the {division.name} All-Star game pool.
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+
+          {(savingGamePool || selectedDivision.isLocked) && (
+            <Text style={styles.gamePoolStatusText}>
+              {savingGamePool
+                ? "Saving game pool..."
+                : "Unlock this division to change its game pool."}
+            </Text>
+          )}
         </View>
 
         {loadingTeams ? (
@@ -1768,6 +1925,114 @@ saveToastText: {
   sourceCancelButton: { flex: 1, backgroundColor: "#6b7280", borderRadius: 10, paddingVertical: 12, alignItems: "center", marginRight: 6 },
   sourceSaveButton: { flex: 1, backgroundColor: "#1d4ed8", borderRadius: 10, paddingVertical: 12, alignItems: "center", marginLeft: 6 },
   sourceRemoveButton: { width: "100%", backgroundColor: "#c62828", borderRadius: 10, paddingVertical: 12, alignItems: "center", marginTop: 10 },
+
+  gamePoolCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 14,
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  gamePoolHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#eef4fb",
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 10,
+  },
+  gamePoolIconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    backgroundColor: "#7c3aed",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 11,
+  },
+  gamePoolHeaderText: {
+    flex: 1,
+  },
+  gamePoolTitle: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: "#1f4e9e",
+  },
+  gamePoolSubtitle: {
+    color: "#6b7280",
+    fontSize: 12,
+    fontWeight: "700",
+    marginTop: 2,
+    lineHeight: 17,
+  },
+  currentGamePoolBox: {
+    borderWidth: 1,
+    borderColor: "#c4b5fd",
+    backgroundColor: "#f5f3ff",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    alignItems: "center",
+  },
+  currentGamePoolLabel: {
+    color: "#6d28d9",
+    fontSize: 11,
+    fontWeight: "900",
+    marginBottom: 4,
+  },
+  currentGamePoolValue: {
+    color: "#4c1d95",
+    fontSize: 18,
+    fontWeight: "900",
+    textAlign: "center",
+  },
+  gamePoolHelp: {
+    color: "#6b7280",
+    fontSize: 12,
+    fontWeight: "700",
+    textAlign: "center",
+    lineHeight: 17,
+    marginBottom: 12,
+  },
+  gamePoolOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#dbe5f1",
+    backgroundColor: "#f8fafc",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+  },
+  gamePoolOptionSelected: {
+    borderColor: "#15803d",
+    backgroundColor: "#ecfdf5",
+  },
+  gamePoolOptionText: {
+    flex: 1,
+  },
+  gamePoolOptionTitle: {
+    color: "#111827",
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  gamePoolOptionDescription: {
+    color: "#6b7280",
+    fontSize: 12,
+    fontWeight: "700",
+    marginTop: 2,
+  },
+  gamePoolStatusText: {
+    color: "#6b7280",
+    fontSize: 12,
+    fontWeight: "800",
+    textAlign: "center",
+    marginTop: 4,
+  },
 
   versionFooter: {
     color: "#6b7280",
