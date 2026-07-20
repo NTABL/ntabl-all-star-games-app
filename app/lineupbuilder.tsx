@@ -25,6 +25,9 @@ type Squad = "East" | "West";
 
 type Player = {
   id: string;
+  poolPlayerId?: string;
+  sourceDivisionId?: string;
+  sourceDivisionName?: string;
   name: string;
   jerseyNumber: string;
   position: string;
@@ -379,7 +382,7 @@ const cardContent = (
             </View>
 
             <Text style={styles.playerMeta}>
-              {player.position || "POS"} | {player.teamName}
+              {player.position || "POS"} | {player.teamName}{player.sourceDivisionName ? ` | ${player.sourceDivisionName}` : ""}
             </Text>
           </View>
 
