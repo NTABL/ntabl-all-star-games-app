@@ -391,14 +391,16 @@ const cardContent = (
             </View>
 
             <Text style={styles.playerMeta}>
-              {[
-                player.position || "POS",
-                player.teamName,
-                player.sourceDivisionName,
-              ]
+              {[player.position || "POS", player.teamName]
                 .filter(Boolean)
                 .join(" | ")}
             </Text>
+
+            {!!player.sourceDivisionName && (
+              <Text style={styles.playerDivisionMeta}>
+                {player.sourceDivisionName}
+              </Text>
+            )}
           </View>
 
           {editable && (
@@ -1624,6 +1626,13 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#4b5563",
     marginTop: 5,
+  },
+
+  playerDivisionMeta: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#6b7280",
+    marginTop: 3,
   },
 
   headerButtons: {
