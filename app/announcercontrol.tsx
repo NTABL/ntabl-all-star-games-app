@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, Stack, useLocalSearchParams, useFocusEffect } from "expo-router";
+import * as Speech from "expo-speech";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -29,6 +30,7 @@ type Player = {
   squad: Squad;
   batting?: boolean;
   battingOrder?: number | null;
+  pronunciation?: string;
 };
 
 type GameState = {
@@ -78,6 +80,10 @@ const DEFAULT_GAME_STATE: GameState = {
   eastScore: 0,
   westScore: 0,
   updatedAt: "",
+};
+
+const PRONUNCIATION_OVERRIDES: Record<string, string> = {
+  "Paul Bierwagen": "Paul Beer-wagon",
 };
 
 export default function AnnouncerControlScreen() {
@@ -600,6 +606,50 @@ async function resetActiveGame() {
   }
 }
 
+  function speakPlayerName(player: Player) {
+    const playerName = String(player?.name || "").trim();
+
+    if (!playerName) return;
+
+    const spokenName =
+      String(player.pronunciation || "").trim() ||
+      PRONUNCIATION_OVERRIDES[playerName] ||
+      playerName;
+
+    Speech.stop();
+    Speech.speak(spokenName, {
+      language: "en-US",
+      rate: 0.82,
+      pitch: 1,
+    });
+  }
+
+  function renderPronunciationButton(
+    player: Player,
+    compact = false,
+    light = false
+  ) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Hear pronunciation for ${player.name}`}
+        onPress={() => speakPlayerName(player)}
+        hitSlop={8}
+        style={[
+          styles.pronunciationButton,
+          compact && styles.pronunciationButtonCompact,
+          light && styles.pronunciationButtonLight,
+        ]}
+      >
+        <Ionicons
+          name="volume-high-outline"
+          size={compact ? 18 : 21}
+          color={light ? "#ffffff" : "#1f4e9e"}
+        />
+      </Pressable>
+    );
+  }
+
   function renderFeaturedPlayer(
     label: string,
     player: Player | null,
@@ -622,9 +672,17 @@ async function resetActiveGame() {
               #{player.jerseyNumber || "--"}
             </Text>
 
-            <Text style={isMain ? styles.playerNameLarge : styles.playerNameMedium}>
-              {player.name}
-            </Text>
+            <View style={styles.featuredNameRow}>
+              <Text
+                style={[
+                  isMain ? styles.playerNameLarge : styles.playerNameMedium,
+                  styles.featuredNameText,
+                ]}
+              >
+                {player.name}
+              </Text>
+              {renderPronunciationButton(player, !isMain, isMain)}
+            </View>
 
             <Text style={isMain ? styles.playerMetaLarge : styles.playerMetaMedium}>
               {player.teamName}
@@ -674,15 +732,19 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
         </Text>
 
         <View style={styles.playerInfo}>
-          <Text
-            style={[
-              styles.playerName,
-              isDesktop && styles.playerNameDesktop,
-              current && styles.currentPlayerText,
-            ]}
-          >
-            {player.name}
-          </Text>
+          <View style={styles.playerNameRow}>
+            <Text
+              style={[
+                styles.playerName,
+                isDesktop && styles.playerNameDesktop,
+                current && styles.currentPlayerText,
+                styles.playerNameFlex,
+              ]}
+            >
+              {player.name}
+            </Text>
+            {renderPronunciationButton(player, true)}
+          </View>
 
           <Text style={[styles.playerMeta, current && styles.currentPlayerMeta]}>
             {player.position || "POS"} | {player.teamName}
@@ -724,7 +786,12 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
         </Text>
 
         <View style={styles.compactPlayerInfo}>
-          <Text style={styles.compactPlayerName}>{player.name}</Text>
+          <View style={styles.compactNameRow}>
+            <Text style={[styles.compactPlayerName, styles.playerNameFlex]}>
+              {player.name}
+            </Text>
+            {renderPronunciationButton(player, true)}
+          </View>
           <Text style={styles.compactPlayerMeta}>
             {player.position || "POS"} • {player.teamName || "Team"}
           </Text>
@@ -752,7 +819,12 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
         </Text>
 
         <View style={styles.compactPlayerInfo}>
-          <Text style={styles.compactPlayerName}>{player.name}</Text>
+          <View style={styles.compactNameRow}>
+            <Text style={[styles.compactPlayerName, styles.playerNameFlex]}>
+              {player.name}
+            </Text>
+            {renderPronunciationButton(player, true)}
+          </View>
           <Text style={styles.compactPlayerMeta}>
             {player.position || "POS"} • {player.teamName || "Team"}
           </Text>
@@ -1727,6 +1799,45 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   controlButtonText: { color: "#fff", fontSize: 13, fontWeight: "900" },
+  featuredNameRow: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8,
+  },
+  featuredNameText: {
+    flexShrink: 1,
+  },
+  playerNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  compactNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  playerNameFlex: {
+    flex: 1,
+  },
+  pronunciationButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#dbeafe",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
+  },
+  pronunciationButtonCompact: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    marginLeft: 6,
+  },
+  pronunciationButtonLight: {
+    backgroundColor: "rgba(255,255,255,0.16)",
+  },
   footer: { marginTop: 12, alignItems: "center" },
   footerText: { color: "#6b7280", fontSize: 12, fontWeight: "700" },
 
