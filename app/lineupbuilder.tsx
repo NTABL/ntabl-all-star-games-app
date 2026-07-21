@@ -26,13 +26,13 @@ type Squad = "East" | "West";
 type Player = {
   id: string;
   poolPlayerId?: string;
-  sourceDivisionId?: string;
-  sourceDivisionName?: string;
   name: string;
   jerseyNumber: string;
   position: string;
   teamName: string;
   squad: Squad;
+  sourceDivisionId?: string;
+  sourceDivisionName?: string;
 };
 
 const POSITION_OPTIONS = [
@@ -239,12 +239,21 @@ useEffect(() => {
       }
 
       const savedPlayers: Player[] = json.lineup.players.map((player: any) => ({
-        id: player.id,
-        name: player.name,
-        jerseyNumber: player.jerseyNumber,
-        position: player.position,
-        teamName: player.teamName,
+        id: String(player.id || ""),
+        poolPlayerId: player.poolPlayerId
+          ? String(player.poolPlayerId)
+          : undefined,
+        name: String(player.name || ""),
+        jerseyNumber: String(player.jerseyNumber || ""),
+        position: String(player.position || ""),
+        teamName: String(player.teamName || ""),
         squad: player.squad,
+        sourceDivisionId: player.sourceDivisionId
+          ? String(player.sourceDivisionId)
+          : undefined,
+        sourceDivisionName: player.sourceDivisionName
+          ? String(player.sourceDivisionName)
+          : undefined,
       }));
 
       const savedBattingState: Record<string, boolean> = {};
@@ -382,7 +391,13 @@ const cardContent = (
             </View>
 
             <Text style={styles.playerMeta}>
-              {player.position || "POS"} | {player.teamName}{player.sourceDivisionName ? ` | ${player.sourceDivisionName}` : ""}
+              {[
+                player.position || "POS",
+                player.teamName,
+                player.sourceDivisionName,
+              ]
+                .filter(Boolean)
+                .join(" | ")}
             </Text>
           </View>
 
