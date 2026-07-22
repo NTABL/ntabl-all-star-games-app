@@ -476,10 +476,15 @@ const response = await adminFetch(
       const json = await response.json();
 
       if (json?.ok && json.gameState) {
-const savedState = {
+const savedState: GameState = {
   currentBatterIndex: Number(json.gameState.currentBatterIndex || 0),
   inning: Number(json.gameState.inning || 1),
-  half: json.gameState.half || nextState.half,
+  half:
+    json.gameState.half === "Bottom"
+      ? "Bottom"
+      : json.gameState.half === "Top"
+      ? "Top"
+      : nextState.half,
   outs: Number(json.gameState.outs || 0),
   eastScore: Number(json.gameState.eastScore || 0),
   westScore: Number(json.gameState.westScore || 0),
@@ -747,62 +752,6 @@ async function resetActiveGame() {
     );
   }
 
-function isCurrentBatter(player: Player, squad: Squad, index?: number) {
-  if (!index) return false;
-
-  const gameState = squad === "East" ? eastGameState : westGameState;
-  return index - 1 === gameState.currentBatterIndex;
-}
-
-    function renderPlayer(
-    player: Player,
-    squad: Squad,
-    isSubstitute: boolean,
-    index?: number
-  ) {
-    const current = isCurrentBatter(player, squad, index);
-
-    return (
-      <View
-        key={`${player.id}-${index || "sub"}`}
-        style={[
-          styles.playerRow,
-          isSubstitute
-            ? styles.substituteRow
-            : squad === "East"
-            ? styles.eastBattingRow
-            : styles.westBattingRow,
-          current && styles.currentPlayerRow,
-        ]}
-      >
-        <Text style={[styles.playerNumber, current && styles.currentPlayerText]}>
-          {index ? `${index}. ` : ""}#{player.jerseyNumber}
-        </Text>
-
-        <View style={styles.playerInfo}>
-          <View style={styles.playerNameRow}>
-            <Text
-              style={[
-                styles.playerName,
-                isDesktop && styles.playerNameDesktop,
-                current && styles.currentPlayerText,
-                styles.playerNameFlex,
-              ]}
-            >
-              {player.name}
-            </Text>
-            {renderPronunciationButton(player, true)}
-          </View>
-
-          <Text style={[styles.playerMeta, current && styles.currentPlayerMeta]}>
-            {player.position || "POS"} | {player.teamName}
-          </Text>
-
-          {current ? <Text style={styles.nowBattingPill}>NOW BATTING</Text> : null}
-        </View>
-      </View>
-    );
-  }
 
   function renderCompactPlayerRow(
     player: Player,
@@ -877,51 +826,6 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
             {player.position || "POS"} • {player.teamName || "Team"}
           </Text>
         </View>
-      </View>
-    );
-  }
-
-  function renderSquad(
-    title: string,
-    squad: Squad,
-    colorStyle: object,
-    managerName: string,
-    batting: Player[],
-    subs: Player[]
-  ) {
-    return (
-      <View style={styles.squadCard}>
-        <Text style={[styles.squadTitle, colorStyle]}>{title}</Text>
-
-        <Text style={styles.managerText}>Manager: {managerName || "TBD"}</Text>
-
-        <Image
-          source={
-            squad === "East"
-              ? require("../assets/East.png")
-              : require("../assets/West.png")
-          }
-          style={[styles.squadLogo, isDesktop && styles.squadLogoDesktop]}
-          resizeMode="contain"
-        />
-
-        <Text style={styles.sectionTitle}>Batting Lineup</Text>
-
-        {batting.length > 0 ? (
-          batting.map((player, index) =>
-            renderPlayer(player, squad, false, index + 1)
-          )
-        ) : (
-          <Text style={styles.emptyText}>No saved batting lineup yet.</Text>
-        )}
-
-        <Text style={styles.sectionTitle}>Substitutes</Text>
-
-        {subs.length > 0 ? (
-          subs.map((player) => renderPlayer(player, squad, true))
-        ) : (
-          <Text style={styles.emptyText}>No substitutes listed.</Text>
-        )}
       </View>
     );
   }
@@ -2000,7 +1904,7 @@ const styles = StyleSheet.create({
   },
   swapHomeVisitorButton: {
     marginTop: 8,
-    backgroundColor: "#7c3aed",
+    backgroundColor: "#000000",
     borderRadius: 9,
     paddingVertical: 11,
     paddingHorizontal: 12,
