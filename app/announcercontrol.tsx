@@ -40,6 +40,8 @@ type GameState = {
   outs: number;
   eastScore?: number;
   westScore?: number;
+  visitorSquad?: Squad;
+  homeSquad?: Squad;
   updatedAt?: string;
 };
 
@@ -79,6 +81,8 @@ const DEFAULT_GAME_STATE: GameState = {
   outs: 0,
   eastScore: 0,
   westScore: 0,
+  visitorSquad: "East",
+  homeSquad: "West",
   updatedAt: "",
 };
 
@@ -172,6 +176,12 @@ useFocusEffect(() => {
   const activeBatting = activeSquad === "East" ? eastBatting : westBatting;
   const activeGameState =
     activeSquad === "East" ? eastGameState : westGameState;
+
+  const visitorSquad: Squad =
+    activeGameState.visitorSquad === "West" ? "West" : "East";
+  const homeSquad: Squad = visitorSquad === "East" ? "West" : "East";
+  const battingSquadForHalf: Squad =
+    activeGameState.half === "Top" ? visitorSquad : homeSquad;
 
   const currentBatter = getPlayerAtIndex(
     activeBatting,
@@ -333,6 +343,8 @@ return {
   outs: Number(json.gameState.outs || 0),
   eastScore: Number(json.gameState.eastScore || 0),
   westScore: Number(json.gameState.westScore || 0),
+  visitorSquad: json.gameState.visitorSquad === "West" ? "West" : "East",
+  homeSquad: json.gameState.homeSquad === "East" ? "East" : "West",
   updatedAt: json.gameState.updatedAt || "",
 };
   }
@@ -471,6 +483,14 @@ const savedState = {
   outs: Number(json.gameState.outs || 0),
   eastScore: Number(json.gameState.eastScore || 0),
   westScore: Number(json.gameState.westScore || 0),
+  visitorSquad:
+    json.gameState.visitorSquad === "West"
+      ? "West"
+      : nextState.visitorSquad || "East",
+  homeSquad:
+    json.gameState.homeSquad === "East"
+      ? "East"
+      : nextState.homeSquad || "West",
   updatedAt: json.gameState.updatedAt || "",
 };
 
@@ -531,13 +551,40 @@ function updateScore(team: "East" | "West", amount: number) {
   });
 }
 
+async function swapHomeAndVisitor() {
+  const nextVisitor: Squad = homeSquad;
+  const nextHome: Squad = visitorSquad;
+
+  const nextEastState: GameState = {
+    ...eastGameState,
+    visitorSquad: nextVisitor,
+    homeSquad: nextHome,
+  };
+
+  const nextWestState: GameState = {
+    ...westGameState,
+    visitorSquad: nextVisitor,
+    homeSquad: nextHome,
+  };
+
+  await Promise.all([
+    saveGameState("East", nextEastState),
+    saveGameState("West", nextWestState),
+  ]);
+
+  setActiveSquad(
+    activeGameState.half === "Top" ? nextVisitor : nextHome
+  );
+}
+
 function advanceHalfInning() {
   const currentInning = Number(activeGameState.inning || 1);
   const currentHalf = activeGameState.half;
 
-  const nextSquad: Squad = activeSquad === "East" ? "West" : "East";
   const nextHalf: "Top" | "Bottom" =
     currentHalf === "Top" ? "Bottom" : "Top";
+  const nextSquad: Squad =
+    nextHalf === "Top" ? visitorSquad : homeSquad;
 
   const nextInning =
     currentHalf === "Bottom" ? currentInning + 1 : currentInning;
@@ -568,7 +615,8 @@ function goBackHalfInning() {
   const previousInning =
     activeGameState.half === "Top" ? currentInning - 1 : currentInning;
 
-  const previousSquad: Squad = activeSquad === "East" ? "West" : "East";
+  const previousSquad: Squad =
+    previousHalf === "Top" ? visitorSquad : homeSquad;
 
   saveGameState(activeSquad, {
     ...activeGameState,
@@ -595,7 +643,7 @@ async function resetActiveGame() {
 
     if (json?.ok) {
       await loadGameData(false);
-      setActiveSquad("East");
+      setActiveSquad(visitorSquad);
     }
 
     setShowResetGameConfirm(false);
@@ -953,6 +1001,9 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
                     resizeMode="contain"
                   />
                   <Text style={styles.broadcastEastLabel}>EAST</Text>
+                  <Text style={styles.homeVisitorLabel}>
+                    {visitorSquad === "East" ? "VISITOR" : "HOME"}
+                  </Text>
                   <Text style={styles.broadcastDugout}>{eastDugout}</Text>
                   <Text style={styles.broadcastManager}>
                     Manager: {eastManager || "TBD"}
@@ -968,6 +1019,9 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
 
                   <Text style={styles.broadcastInning}>
                     {activeGameState.half.toUpperCase()} {activeGameState.inning}
+                  </Text>
+                  <Text style={styles.battingRoleText}>
+                    {battingSquadForHalf.toUpperCase()} BATTING
                   </Text>
 
                   <Text style={styles.broadcastOutDots}>
@@ -988,6 +1042,9 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
                     resizeMode="contain"
                   />
                   <Text style={styles.broadcastWestLabel}>WEST</Text>
+                  <Text style={styles.homeVisitorLabel}>
+                    {visitorSquad === "West" ? "VISITOR" : "HOME"}
+                  </Text>
                   <Text style={styles.broadcastDugout}>{westDugout}</Text>
                   <Text style={styles.broadcastManager}>
                     Manager: {westManager || "TBD"}
@@ -1136,6 +1193,60 @@ function isCurrentBatter(player: Player, squad: Squad, index?: number) {
                   <View style={styles.gameControlsCard}>
                     <View style={styles.panelHeaderGreen}>
                       <Text style={styles.panelHeaderText}>GAME CONTROL</Text>
+                    </View>
+
+                    <View style={styles.homeVisitorControl}>
+                      <View style={styles.homeVisitorAssignments}>
+                        <View style={styles.assignmentPill}>
+                          <Text style={styles.assignmentLabel}>VISITOR / TOP</Text>
+                          <Text
+                            style={[
+                              styles.assignmentTeam,
+                              visitorSquad === "East"
+                                ? styles.assignmentEast
+                                : styles.assignmentWest,
+                            ]}
+                          >
+                            {visitorSquad}
+                          </Text>
+                        </View>
+
+                        <Ionicons
+                          name="swap-horizontal-outline"
+                          size={22}
+                          color="#4b5563"
+                        />
+
+                        <View style={styles.assignmentPill}>
+                          <Text style={styles.assignmentLabel}>HOME / BOTTOM</Text>
+                          <Text
+                            style={[
+                              styles.assignmentTeam,
+                              homeSquad === "East"
+                                ? styles.assignmentEast
+                                : styles.assignmentWest,
+                            ]}
+                          >
+                            {homeSquad}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <Pressable
+                        style={styles.swapHomeVisitorButton}
+                        onPress={swapHomeAndVisitor}
+                        disabled={savingGameState}
+                      >
+                        <Ionicons
+                          name="swap-horizontal"
+                          size={18}
+                          color="#ffffff"
+                          style={{ marginRight: 6 }}
+                        />
+                        <Text style={styles.swapHomeVisitorButtonText}>
+                          Swap Home & Visitor
+                        </Text>
+                      </Pressable>
                     </View>
 
                     <View style={styles.squadToggleRow}>
@@ -1837,6 +1948,70 @@ const styles = StyleSheet.create({
   },
   pronunciationButtonLight: {
     backgroundColor: "rgba(255,255,255,0.16)",
+  },
+  homeVisitorLabel: {
+    color: "#facc15",
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 0.8,
+    marginTop: 2,
+  },
+  battingRoleText: {
+    color: "#93c5fd",
+    fontSize: 11,
+    fontWeight: "900",
+    marginTop: 2,
+  },
+  homeVisitorControl: {
+    paddingHorizontal: 10,
+    paddingTop: 10,
+  },
+  homeVisitorAssignments: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  assignmentPill: {
+    flex: 1,
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    alignItems: "center",
+  },
+  assignmentLabel: {
+    color: "#6b7280",
+    fontSize: 10,
+    fontWeight: "900",
+  },
+  assignmentTeam: {
+    fontSize: 16,
+    fontWeight: "900",
+    marginTop: 2,
+  },
+  assignmentEast: {
+    color: "#d71920",
+  },
+  assignmentWest: {
+    color: "#174ea6",
+  },
+  swapHomeVisitorButton: {
+    marginTop: 8,
+    backgroundColor: "#7c3aed",
+    borderRadius: 9,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  swapHomeVisitorButtonText: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "900",
   },
   footer: { marginTop: 12, alignItems: "center" },
   footerText: { color: "#6b7280", fontSize: 12, fontWeight: "700" },

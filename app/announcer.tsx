@@ -38,6 +38,8 @@ type GameState = {
   outs: number;
   eastScore?: number;
   westScore?: number;
+  visitorSquad?: Squad;
+  homeSquad?: Squad;
   updatedAt?: string;
 };
 
@@ -77,6 +79,8 @@ const DEFAULT_GAME_STATE: GameState = {
   outs: 0,
   eastScore: 0,
   westScore: 0,
+  visitorSquad: "East",
+  homeSquad: "West",
   updatedAt: "",
 };
 
@@ -140,6 +144,12 @@ export default function AnnouncerScreen() {
   const displayBatting = displaySquad === "East" ? eastBatting : westBatting;
   const displayGameState =
     displaySquad === "East" ? eastGameState : westGameState;
+
+  const visitorSquad: Squad =
+    displayGameState.visitorSquad === "West" ? "West" : "East";
+  const homeSquad: Squad = visitorSquad === "East" ? "West" : "East";
+  const battingSquadForHalf: Squad =
+    displayGameState.half === "Top" ? visitorSquad : homeSquad;
 
   const currentBatter = getPlayerAtIndex(
     displayBatting,
@@ -314,6 +324,8 @@ return {
   outs: Number(json.gameState.outs || 0),
   eastScore: Number(json.gameState.eastScore || 0),
   westScore: Number(json.gameState.westScore || 0),
+  visitorSquad: json.gameState.visitorSquad === "West" ? "West" : "East",
+  homeSquad: json.gameState.homeSquad === "East" ? "East" : "West",
   updatedAt: json.gameState.updatedAt || "",
 };
 }
@@ -339,6 +351,8 @@ return {
       westInning: nextWestGameState.inning,
       westHalf: nextWestGameState.half,
       westOuts: nextWestGameState.outs,
+      visitorSquad: nextEastGameState.visitorSquad || "East",
+      homeSquad: nextEastGameState.homeSquad || "West",
     });
   }
 
@@ -383,6 +397,13 @@ return {
       setWestManager(west.managerName || "");
       setEastGameState(typedEastState);
       setWestGameState(typedWestState);
+
+      const nextVisitor: Squad =
+        typedEastState.visitorSquad === "West" ? "West" : "East";
+      const nextHome: Squad = nextVisitor === "East" ? "West" : "East";
+      setDisplaySquad(
+        typedEastState.half === "Top" ? nextVisitor : nextHome
+      );
 
       const now = new Date();
       setLastUpdatedDate(now);
@@ -603,6 +624,9 @@ return {
                   />
 
                   <Text style={styles.broadcastEastLabel}>EAST</Text>
+                  <Text style={styles.homeVisitorLabel}>
+                    {visitorSquad === "East" ? "VISITOR" : "HOME"}
+                  </Text>
                   <Text style={styles.broadcastDugout}>{eastDugout}</Text>
                   <Text style={styles.broadcastManager}>
                     Manager: {eastManager || "TBD"}
@@ -619,6 +643,9 @@ return {
                   <Text style={styles.broadcastInning}>
                     {displayGameState.half.toUpperCase()}{" "}
                     {displayGameState.inning}
+                  </Text>
+                  <Text style={styles.battingRoleText}>
+                    {battingSquadForHalf.toUpperCase()} BATTING
                   </Text>
 
                   <Text style={styles.broadcastOutDots}>
@@ -640,6 +667,9 @@ return {
                   />
 
                   <Text style={styles.broadcastWestLabel}>WEST</Text>
+                  <Text style={styles.homeVisitorLabel}>
+                    {visitorSquad === "West" ? "VISITOR" : "HOME"}
+                  </Text>
                   <Text style={styles.broadcastDugout}>{westDugout}</Text>
                   <Text style={styles.broadcastManager}>
                     Manager: {westManager || "TBD"}
@@ -664,7 +694,7 @@ return {
                         displaySquad === "East" && styles.activeDisplayText,
                       ]}
                     >
-                      East
+                      East ({visitorSquad === "East" ? "Visitor" : "Home"})
                     </Text>
                   </Pressable>
 
@@ -681,7 +711,7 @@ return {
                         displaySquad === "West" && styles.activeDisplayText,
                       ]}
                     >
-                      West
+                      West ({visitorSquad === "West" ? "Visitor" : "Home"})
                     </Text>
                   </Pressable>
                 </View>
@@ -1097,6 +1127,21 @@ allStarLogo: {
   broadcastWestLabel: {
     color: "#60a5fa",
     fontSize: 18,
+    fontWeight: "900",
+    marginTop: 2,
+  },
+
+  homeVisitorLabel: {
+    color: "#facc15",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 0.7,
+    marginTop: 2,
+  },
+
+  battingRoleText: {
+    color: "#93c5fd",
+    fontSize: 10,
     fontWeight: "900",
     marginTop: 2,
   },
