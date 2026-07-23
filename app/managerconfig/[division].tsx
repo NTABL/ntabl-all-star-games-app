@@ -24,6 +24,8 @@ type Squad = "East" | "West";
 type SquadManager = {
   managerName: string;
   managerEmail: string;
+  coManagerName: string;
+  coManagerEmail: string;
   source: string;
   username: string;
   password: string;
@@ -78,6 +80,8 @@ function defaultManager(game: GameConfig, squad: Squad): SquadManager {
   return {
     managerName: "",
     managerEmail: "",
+    coManagerName: "",
+    coManagerEmail: "",
     source: "manual",
     username: defaultUsername(game.id, squad),
     password: "",
@@ -154,6 +158,7 @@ export default function ManagerConfigScreen() {
 
   const [pickerContext, setPickerContext] = useState<{
     squad: Squad;
+    type: "manager" | "coManager";
     options: PickerOption[];
   } | null>(null);
 
@@ -231,48 +236,52 @@ export default function ManagerConfigScreen() {
 
   function getCaptainOptions() {
     return teams.flatMap((team) => {
-      const options: PickerOption[] = [];
+      if (!team.captainName) return [];
 
-      if (team.captainName) {
-        options.push({
-          label: `${team.captainName} - ${team.name}`,
-          name: team.captainName,
-          email: team.captainEmail || "",
-        });
-      }
-
-      if (Array.isArray(team.coCaptains)) {
-        team.coCaptains.forEach((captain: any) => {
-          options.push({
-            label: `${captain.name} - ${team.name} Co-Captain`,
-            name: captain.name,
-            email: captain.email || "",
-          });
-        });
-      }
-
-      return options;
+      return [{
+        label: `${team.captainName} - ${team.name}`,
+        name: team.captainName,
+        email: team.captainEmail || "",
+      }];
     });
   }
 
-  function selectManagerFromPicker(squad: Squad, option: PickerOption) {
-    if (squad === "East" && eastManager) {
-      setEastManager({
-        ...eastManager,
-        managerName: option.name,
-        managerEmail: option.email,
-        source: "manual",
-      });
-    }
+  function getCoCaptainOptions() {
+    return teams.flatMap((team) =>
+      Array.isArray(team.coCaptains)
+        ? team.coCaptains.map((captain: any) => ({
+            label: `${captain.name} - ${team.name}`,
+            name: captain.name,
+            email: captain.email || "",
+          }))
+        : []
+    );
+  }
 
-    if (squad === "West" && westManager) {
-      setWestManager({
-        ...westManager,
-        managerName: option.name,
-        managerEmail: option.email,
-        source: "manual",
-      });
-    }
+  function selectManagerFromPicker(
+    squad: Squad,
+    type: "manager" | "coManager",
+    option: PickerOption
+  ) {
+    const current = squad === "East" ? eastManager : westManager;
+    if (!current) return;
+
+    const updated = type === "manager"
+      ? {
+          ...current,
+          managerName: option.name,
+          managerEmail: option.email,
+          source: "manual",
+        }
+      : {
+          ...current,
+          coManagerName: option.name,
+          coManagerEmail: option.email,
+          source: "manual",
+        };
+
+    if (squad === "East") setEastManager(updated);
+    else setWestManager(updated);
   }
 
   async function saveManagers() {
@@ -328,6 +337,8 @@ export default function ManagerConfigScreen() {
         ...eastManager,
         managerName: "",
         managerEmail: "",
+        coManagerName: "",
+        coManagerEmail: "",
         password: "",
       });
     }
@@ -337,6 +348,8 @@ export default function ManagerConfigScreen() {
         ...westManager,
         managerName: "",
         managerEmail: "",
+        coManagerName: "",
+        coManagerEmail: "",
         password: "",
       });
     }
@@ -344,7 +357,13 @@ export default function ManagerConfigScreen() {
     setSaveMessage("Selections cleared. Tap Save Managers to confirm.");
   }
 
-  function renderManagerPicker(squad: Squad, selectedName: string) {
+  function renderManagerPicker(
+    squad: Squad,
+    type: "manager" | "coManager",
+    selectedName: string
+  ) {
+    const isCoManager = type === "coManager";
+
     return (
       <Pressable
         style={[
@@ -354,12 +373,16 @@ export default function ManagerConfigScreen() {
         onPress={() =>
           setPickerContext({
             squad,
-            options: getCaptainOptions(),
+            type,
+            options: isCoManager ? getCoCaptainOptions() : getCaptainOptions(),
           })
         }
       >
         <Text style={styles.managerPickerButtonText}>
-          {selectedName || `Select ${squad} Manager`}
+          {selectedName ||
+            (isCoManager
+              ? `Select ${squad} Co-Manager`
+              : `Select ${squad} Manager`)}
         </Text>
 
         <Text style={styles.managerPickerArrow}>▼</Text>
@@ -414,7 +437,15 @@ export default function ManagerConfigScreen() {
 
         <View style={styles.squadContent}>
           <Text style={styles.label}>Manager</Text>
-          {renderManagerPicker(squad, manager.managerName)}
+          {renderManagerPicker(squad, "manager", manager.managerName)}
+
+          <Text style={styles.label}>Co-Manager Access</Text>
+          {renderManagerPicker(squad, "coManager", manager.coManagerName)}
+
+          <Text style={styles.helperText}>
+            Co-Manager access is limited to LeagueApps co-captains and does not
+            change the manager name displayed elsewhere in the app.
+          </Text>
 
           <Text style={styles.manualLabel}>Manager Name</Text>
           <TextInput
@@ -614,7 +645,7 @@ export default function ManagerConfigScreen() {
       />
 
       <Text style={styles.modalTitle}>
-        Select {pickerContext?.squad} Manager
+        Select {pickerContext?.squad} {pickerContext?.type === "coManager" ? "Co-Manager" : "Manager"}
       </Text>
 
       {pickerContext?.options.length ? (
@@ -624,7 +655,11 @@ export default function ManagerConfigScreen() {
             style={styles.pickerOption}
             onPress={() => {
               if (!pickerContext) return;
-              selectManagerFromPicker(pickerContext.squad, option);
+              selectManagerFromPicker(
+                pickerContext.squad,
+                pickerContext.type,
+                option
+              );
               setPickerContext(null);
             }}
           >
@@ -633,7 +668,7 @@ export default function ManagerConfigScreen() {
         ))
       ) : (
         <Text style={styles.noCaptainText}>
-          No assigned captain options found.
+          No eligible options found.
         </Text>
       )}
 
