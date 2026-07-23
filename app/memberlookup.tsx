@@ -28,6 +28,12 @@ type MemberResult = {
   email: string;
   role: string;
   teams: TeamSummary[];
+  smsPreference?: {
+    hasPreference?: boolean;
+    enabled?: boolean;
+    status?: "enabled" | "disabled" | "pending";
+    updatedAt?: string;
+  };
 };
 
 export default function MemberLookupScreen() {
@@ -38,6 +44,7 @@ export default function MemberLookupScreen() {
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [impersonating, setImpersonating] = useState(false);
   const [message, setMessage] = useState("");
+  const [updatingSms, setUpdatingSms] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -125,6 +132,24 @@ export default function MemberLookupScreen() {
       setConfirmVisible(false);
     } finally {
       setImpersonating(false);
+    }
+  }
+
+  async function updateSmsPreference(member: MemberResult, enabled: boolean) {
+    try {
+      setUpdatingSms(true);
+      const response = await adminFetch(`${API_BASE}/api/admin/members/sms-preference`, {
+        method: "POST",
+        body: JSON.stringify({ email: member.email, enabled }),
+      });
+      const json = await response.json();
+      if (!response.ok || !json?.ok) throw new Error(json?.message || "SMS preference could not be updated.");
+      setResults((current) => current.map((item) => item.email === member.email ? { ...item, smsPreference: json.smsPreference } : item));
+      setMessage(`SMS notifications ${enabled ? "enabled" : "disabled"} for ${member.name}.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "SMS preference could not be updated.");
+    } finally {
+      setUpdatingSms(false);
     }
   }
 
@@ -242,6 +267,32 @@ export default function MemberLookupScreen() {
                     +{member.teams.length - 3} additional assignment(s)
                   </Text>
                 )}
+
+                <View style={styles.smsStatusBox}>
+                  <View style={styles.smsStatusRow}>
+                    <Ionicons
+                      name={member.smsPreference?.enabled ? "checkmark-circle" : "remove-circle-outline"}
+                      size={18}
+                      color={member.smsPreference?.enabled ? "#15803d" : "#b45309"}
+                    />
+                    <Text style={styles.smsStatusText}>
+                      SMS: {member.smsPreference?.status === "enabled" ? "Enabled" : member.smsPreference?.status === "disabled" ? "Disabled" : "No Preference"}
+                    </Text>
+                  </View>
+                  {!!member.smsPreference?.updatedAt && (
+                    <Text style={styles.smsUpdatedText}>
+                      Updated {new Date(member.smsPreference.updatedAt).toLocaleString()}
+                    </Text>
+                  )}
+                  <View style={styles.smsButtonRow}>
+                    <Pressable disabled={updatingSms} style={[styles.smsActionButton, styles.smsEnableButton]} onPress={(event) => { event.stopPropagation(); updateSmsPreference(member, true); }}>
+                      <Text style={styles.smsActionText}>Enable</Text>
+                    </Pressable>
+                    <Pressable disabled={updatingSms} style={[styles.smsActionButton, styles.smsDisableButton]} onPress={(event) => { event.stopPropagation(); updateSmsPreference(member, false); }}>
+                      <Text style={styles.smsActionText}>Disable</Text>
+                    </Pressable>
+                  </View>
+                </View>
               </View>
 
               <Ionicons name="chevron-forward" size={22} color="#9ca3af" />
@@ -484,6 +535,22 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     marginTop: 4,
   },
+  smsStatusBox: {
+    marginTop: 9,
+    backgroundColor: "#f8fafc",
+    borderRadius: 10,
+    padding: 9,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  smsStatusRow: { flexDirection: "row", alignItems: "center" },
+  smsStatusText: { color: "#374151", fontSize: 12, fontWeight: "900", marginLeft: 5 },
+  smsUpdatedText: { color: "#6b7280", fontSize: 10, fontWeight: "700", marginTop: 3 },
+  smsButtonRow: { flexDirection: "row", marginTop: 7 },
+  smsActionButton: { flex: 1, borderRadius: 8, paddingVertical: 7, alignItems: "center" },
+  smsEnableButton: { backgroundColor: "#15803d", marginRight: 4 },
+  smsDisableButton: { backgroundColor: "#6b7280", marginLeft: 4 },
+  smsActionText: { color: "#ffffff", fontSize: 11, fontWeight: "900" },
   emptyCard: {
     backgroundColor: "#ffffff",
     borderRadius: 18,

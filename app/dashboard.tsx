@@ -823,6 +823,24 @@ async function sendHelpRequest() {
           </Pressable>
 
 
+          {managerData && (
+            <Pressable
+              style={styles.announcerButton}
+              onPress={() => router.push("/announcer")}
+            >
+              <View style={styles.buttonContentRow}>
+                <Ionicons
+                  name="baseball-outline"
+                  size={22}
+                  color="#ffffff"
+                  style={{ marginRight: 8 }}
+                />
+
+                <Text style={styles.announcerButtonText}>Live Game View</Text>
+              </View>
+            </Pressable>
+          )}
+
           <Pressable
             style={styles.changePasswordButton}
             onPress={() => router.push("/changepassword")}
@@ -856,24 +874,6 @@ async function sendHelpRequest() {
               <Text style={styles.settingsListButtonText}>Settings</Text>
             </View>
           </Pressable>
-
-          {managerData && (
-            <Pressable
-              style={styles.announcerButton}
-              onPress={() => router.push("/announcer")}
-            >
-              <View style={styles.buttonContentRow}>
-                <Ionicons
-                  name="mic-outline"
-                  size={22}
-                  color="#ffffff"
-                  style={{ marginRight: 8 }}
-                />
-
-                <Text style={styles.announcerButtonText}>Live Game View</Text>
-              </View>
-            </Pressable>
-          )}
 {managerData && (
   <Pressable
     style={styles.helpButton}
@@ -1590,7 +1590,7 @@ primaryButton: {
 
   announcerButton: {
     marginTop: 12,
-    backgroundColor: "#6b7280",
+    backgroundColor: "#1e40af",
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",

@@ -51,6 +51,15 @@ type OperationsData = {
   waivers?: {
     signedCount?: number;
   };
+  communications?: {
+    smsEnabled?: number;
+    smsDisabled?: number;
+    smsPending?: number;
+    optInRate?: number;
+    emailsSent?: number;
+    smsSent?: number;
+    failedMessages?: number;
+  };
   tournament?: {
     divisionCount?: number;
     assignedManagerCount?: number;
@@ -205,6 +214,14 @@ export default function DiagnosticsScreen() {
       `Cached Players: ${data?.rosterCache?.rosterCount ?? 0}`,
       `LeagueApps Records: ${data?.rosterCache?.rawRecordCount ?? 0}`,
       `Last Cache Refresh: ${formatDateTime(data?.rosterCache?.refreshedAt)}`,
+      "",
+      "COMMUNICATIONS",
+      `Emails Sent: ${data?.communications?.emailsSent ?? 0}`,
+      `SMS Sent: ${data?.communications?.smsSent ?? 0}`,
+      `SMS Enabled: ${data?.communications?.smsEnabled ?? 0}`,
+      `SMS Disabled: ${data?.communications?.smsDisabled ?? 0}`,
+      `SMS Opt-In Rate: ${data?.communications?.optInRate ?? 0}%`,
+      `Failed Messages: ${data?.communications?.failedMessages ?? 0}`,
       "",
       "DIVISION CONFIGURATION",
       ...(data?.divisionConfig || []).map(
@@ -418,6 +435,18 @@ export default function DiagnosticsScreen() {
                   Last LeagueApps refresh:{" "}
                   {formatDateTime(data?.rosterCache?.refreshedAt)}
                 </Text>
+              </SectionCard>
+
+              <SectionCard title="Communications" defaultExpanded={false}>
+                <View style={styles.metricGrid}>
+                  <MetricCard label="Emails Sent" value={String(data?.communications?.emailsSent ?? 0)} icon="mail-outline" />
+                  <MetricCard label="SMS Sent" value={String(data?.communications?.smsSent ?? 0)} icon="chatbubble-ellipses-outline" />
+                  <MetricCard label="SMS Enabled" value={String(data?.communications?.smsEnabled ?? 0)} icon="checkmark-circle-outline" status="good" />
+                  <MetricCard label="SMS Disabled" value={String(data?.communications?.smsDisabled ?? 0)} icon="remove-circle-outline" status="warning" />
+                  <MetricCard label="Opt-In Rate" value={`${data?.communications?.optInRate ?? 0}%`} icon="analytics-outline" />
+                  <MetricCard label="Failed Messages" value={String(data?.communications?.failedMessages ?? 0)} icon="alert-circle-outline" status={(data?.communications?.failedMessages ?? 0) > 0 ? "bad" : "good"} />
+                </View>
+                <ActionButton label="Open Communications Center" icon="mail-unread-outline" backgroundColor="#0f766e" onPress={() => router.push("/communications")} />
               </SectionCard>
 
               <SectionCard title="Current Manager Context" defaultExpanded={false}>

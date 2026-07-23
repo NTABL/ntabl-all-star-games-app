@@ -117,8 +117,8 @@ export default function CommunicationsHubScreen() {
             </Text>
 
             <View style={styles.statusRow}>
-              <Ionicons name="time-outline" size={18} color="#b45309" />
-              <Text style={styles.pendingStatus}>Awaiting Twilio Approval</Text>
+              <Ionicons name="shield-checkmark-outline" size={18} color="#15803d" />
+              <Text style={styles.readyStatus}>Consent Controls Active</Text>
             </View>
 
             <TouchableOpacity
