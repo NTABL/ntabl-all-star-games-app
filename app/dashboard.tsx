@@ -139,6 +139,7 @@ export default function Dashboard() {
   const [smsEnabled, setSmsEnabled] = useState(false);
   const [smsPreferenceSaving, setSmsPreferenceSaving] = useState(false);
   const [showSmsConsentModal, setShowSmsConsentModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const isTabletLayout = width >= 700;
   const isShortScreen = height < 760;
   const isPlayer =
@@ -822,80 +823,6 @@ async function sendHelpRequest() {
           </Pressable>
 
 
-          {smsPreferenceLoaded && managerData && (
-            <View
-              style={[
-                styles.card,
-                styles.smsPreferenceCard,
-                isTabletLayout && styles.cardTablet,
-              ]}
-            >
-              <View style={styles.smsPreferenceHeader}>
-                <View style={styles.smsPreferenceIcon}>
-                  <Ionicons
-                    name="chatbubble-ellipses-outline"
-                    size={27}
-                    color="#ffffff"
-                  />
-                </View>
-
-                <View style={styles.smsPreferenceHeadingWrap}>
-                  <Text style={styles.smsPreferenceTitle}>
-                    Text Message Notifications
-                  </Text>
-                  <Text
-                    style={[
-                      styles.smsPreferenceStatus,
-                      smsEnabled
-                        ? styles.smsPreferenceStatusEnabled
-                        : styles.smsPreferenceStatusDisabled,
-                    ]}
-                  >
-                    {smsEnabled ? "Enabled" : "Disabled"}
-                  </Text>
-                </View>
-              </View>
-
-              <Text style={styles.smsPreferenceDescription}>
-                Receive NTABL All-Star selection notices, schedule changes,
-                weather alerts, reminders, and other event updates by text.
-              </Text>
-
-              <Text style={styles.smsPreferenceDisclosure}>
-                Message frequency varies. Message and data rates may apply.
-                Reply STOP to opt out or HELP for assistance.
-              </Text>
-
-              <Pressable
-                style={[
-                  styles.smsPreferenceButton,
-                  smsEnabled
-                    ? styles.smsPreferenceDisableButton
-                    : styles.smsPreferenceEnableButton,
-                  smsPreferenceSaving && { opacity: 0.55 },
-                ]}
-                disabled={smsPreferenceSaving}
-                onPress={() => saveSmsPreference(!smsEnabled)}
-              >
-                <View style={styles.buttonContentRow}>
-                  <Ionicons
-                    name={smsEnabled ? "notifications-off-outline" : "notifications-outline"}
-                    size={21}
-                    color="#ffffff"
-                    style={{ marginRight: 7 }}
-                  />
-                  <Text style={styles.smsPreferenceButtonText}>
-                    {smsPreferenceSaving
-                      ? "Saving..."
-                      : smsEnabled
-                      ? "Disable SMS Notifications"
-                      : "Enable SMS Notifications"}
-                  </Text>
-                </View>
-              </Pressable>
-            </View>
-          )}
-
           <Pressable
             style={styles.changePasswordButton}
             onPress={() => router.push("/changepassword")}
@@ -911,6 +838,22 @@ async function sendHelpRequest() {
               <Text style={styles.changePasswordButtonText}>
                 Change Password
               </Text>
+            </View>
+          </Pressable>
+
+          <Pressable
+            style={styles.settingsListButton}
+            onPress={() => setShowSettingsModal(true)}
+          >
+            <View style={styles.buttonContentRow}>
+              <Ionicons
+                name="settings-outline"
+                size={22}
+                color="#ffffff"
+                style={{ marginRight: 8 }}
+              />
+
+              <Text style={styles.settingsListButtonText}>Settings</Text>
             </View>
           </Pressable>
 
@@ -1161,6 +1104,112 @@ async function sendHelpRequest() {
           </Text>
         </Pressable>
       </View>
+    </View>
+  </View>
+</Modal>
+
+
+<Modal
+  visible={showSettingsModal}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setShowSettingsModal(false)}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.settingsModal}>
+      <View style={styles.settingsModalHeader}>
+        <View style={styles.settingsModalIcon}>
+          <Ionicons name="settings-outline" size={30} color="#ffffff" />
+        </View>
+
+        <View style={styles.settingsModalHeadingWrap}>
+          <Text style={styles.settingsModalTitle}>Settings</Text>
+          <Text style={styles.settingsModalSubtitle}>
+            Manage your notification preferences.
+          </Text>
+        </View>
+      </View>
+
+      {smsPreferenceLoaded && managerData ? (
+        <View style={styles.settingsSection}>
+          <View style={styles.settingsSectionHeader}>
+            <Ionicons
+              name="chatbubble-ellipses-outline"
+              size={24}
+              color="#15803d"
+              style={{ marginRight: 9 }}
+            />
+            <View style={styles.settingsSectionHeadingWrap}>
+              <Text style={styles.settingsSectionTitle}>
+                Text Message Notifications
+              </Text>
+              <Text
+                style={[
+                  styles.settingsStatus,
+                  smsEnabled
+                    ? styles.smsPreferenceStatusEnabled
+                    : styles.smsPreferenceStatusDisabled,
+                ]}
+              >
+                {smsEnabled ? "Enabled" : "Disabled"}
+              </Text>
+            </View>
+          </View>
+
+          <Text style={styles.settingsDescription}>
+            Receive NTABL All-Star selection notices, schedule changes,
+            weather alerts, reminders, and other event updates by text.
+          </Text>
+
+          <Text style={styles.settingsDisclosure}>
+            Message frequency varies. Message and data rates may apply. Reply
+            STOP to opt out or HELP for assistance.
+          </Text>
+
+          <Pressable
+            style={[
+              styles.settingsSmsButton,
+              smsEnabled
+                ? styles.smsPreferenceDisableButton
+                : styles.smsPreferenceEnableButton,
+              smsPreferenceSaving && { opacity: 0.55 },
+            ]}
+            disabled={smsPreferenceSaving}
+            onPress={() => saveSmsPreference(!smsEnabled)}
+          >
+            <View style={styles.buttonContentRow}>
+              <Ionicons
+                name={
+                  smsEnabled
+                    ? "notifications-off-outline"
+                    : "notifications-outline"
+                }
+                size={20}
+                color="#ffffff"
+                style={{ marginRight: 7 }}
+              />
+              <Text style={styles.settingsSmsButtonText}>
+                {smsPreferenceSaving
+                  ? "Saving..."
+                  : smsEnabled
+                  ? "Disable SMS Notifications"
+                  : "Enable SMS Notifications"}
+              </Text>
+            </View>
+          </Pressable>
+        </View>
+      ) : (
+        <Text style={styles.settingsLoadingText}>
+          Loading notification preferences...
+        </Text>
+      )}
+
+      <Pressable
+        style={styles.settingsCloseButton}
+        onPress={() => setShowSettingsModal(false)}
+      >
+        <Text style={styles.settingsCloseButtonText}>Close</Text>
+      </Pressable>
     </View>
   </View>
 </Modal>
@@ -1525,6 +1574,20 @@ primaryButton: {
     fontWeight: "700",
   },
 
+  settingsListButton: {
+    marginTop: 12,
+    backgroundColor: "#6b7280",
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+
+  settingsListButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+
   announcerButton: {
     marginTop: 12,
     backgroundColor: "#6b7280",
@@ -1848,41 +1911,71 @@ supportErrorButton: {
 
 
 
-smsPreferenceCard: {
-  borderWidth: 2,
-  borderColor: "#bbf7d0",
+settingsModal: {
+  ...modalStyles.card,
 },
 
-smsPreferenceHeader: {
+settingsModalHeader: {
   flexDirection: "row",
   alignItems: "center",
-  marginBottom: 12,
+  marginBottom: 18,
 },
 
-smsPreferenceIcon: {
-  width: 50,
-  height: 50,
-  borderRadius: 25,
-  backgroundColor: "#15803d",
+settingsModalIcon: {
+  width: 56,
+  height: 56,
+  borderRadius: 28,
+  backgroundColor: "#6b7280",
   alignItems: "center",
   justifyContent: "center",
   marginRight: 12,
 },
 
-smsPreferenceHeadingWrap: {
+settingsModalHeadingWrap: {
   flex: 1,
 },
 
-smsPreferenceTitle: {
+settingsModalTitle: {
   color: "#1f4e9e",
-  fontSize: 20,
+  fontSize: 25,
   fontWeight: "900",
 },
 
-smsPreferenceStatus: {
+settingsModalSubtitle: {
+  color: "#6b7280",
   fontSize: 13,
+  fontWeight: "700",
+  marginTop: 2,
+},
+
+settingsSection: {
+  width: "100%",
+  backgroundColor: "#f8fafc",
+  borderWidth: 1,
+  borderColor: "#d1d5db",
+  borderRadius: 14,
+  padding: 15,
+},
+
+settingsSectionHeader: {
+  flexDirection: "row",
+  alignItems: "center",
+},
+
+settingsSectionHeadingWrap: {
+  flex: 1,
+},
+
+settingsSectionTitle: {
+  color: "#1f4e9e",
+  fontSize: 18,
   fontWeight: "900",
-  marginTop: 3,
+},
+
+settingsStatus: {
+  fontSize: 12,
+  fontWeight: "900",
+  marginTop: 2,
 },
 
 smsPreferenceStatusEnabled: {
@@ -1893,22 +1986,23 @@ smsPreferenceStatusDisabled: {
   color: "#c62828",
 },
 
-smsPreferenceDescription: {
+settingsDescription: {
   color: "#374151",
   fontSize: 14,
   lineHeight: 20,
   fontWeight: "700",
+  marginTop: 13,
 },
 
-smsPreferenceDisclosure: {
+settingsDisclosure: {
   color: "#6b7280",
   fontSize: 12,
   lineHeight: 18,
-  fontWeight: "700",
-  marginTop: 10,
+  fontWeight: "600",
+  marginTop: 9,
 },
 
-smsPreferenceButton: {
+settingsSmsButton: {
   marginTop: 15,
   borderRadius: 11,
   paddingVertical: 13,
@@ -1923,10 +2017,33 @@ smsPreferenceDisableButton: {
   backgroundColor: "#6b7280",
 },
 
-smsPreferenceButtonText: {
+settingsSmsButtonText: {
   color: "#ffffff",
   fontSize: 15,
-  fontWeight: "900",
+  fontWeight: "700",
+},
+
+settingsLoadingText: {
+  color: "#6b7280",
+  fontSize: 14,
+  fontWeight: "700",
+  textAlign: "center",
+  paddingVertical: 22,
+},
+
+settingsCloseButton: {
+  alignSelf: "center",
+  backgroundColor: "#d1d5db",
+  borderRadius: 10,
+  paddingVertical: 11,
+  paddingHorizontal: 34,
+  marginTop: 16,
+},
+
+settingsCloseButtonText: {
+  color: "#111827",
+  fontSize: 15,
+  fontWeight: "800",
 },
 
 smsConsentModal: {
