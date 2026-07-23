@@ -1263,6 +1263,17 @@ async function sendHelpRequest() {
 
       <Pressable
         style={[
+          styles.smsConsentLaterButton,
+          smsPreferenceSaving && { opacity: 0.55 },
+        ]}
+        disabled={smsPreferenceSaving}
+        onPress={() => setShowSmsConsentModal(false)}
+      >
+        <Text style={styles.smsConsentLaterText}>Ask Me Later</Text>
+      </Pressable>
+
+      <Pressable
+        style={[
           styles.smsConsentDeclineButton,
           smsPreferenceSaving && { opacity: 0.55 },
         ]}
@@ -2105,6 +2116,21 @@ smsConsentEnableButton: {
 smsConsentButtonText: {
   color: "#ffffff",
   fontSize: 16,
+  fontWeight: "900",
+},
+
+smsConsentLaterButton: {
+  width: "100%",
+  backgroundColor: "#6b7280",
+  borderRadius: 11,
+  paddingVertical: 13,
+  alignItems: "center",
+  marginTop: 9,
+},
+
+smsConsentLaterText: {
+  color: "#ffffff",
+  fontSize: 15,
   fontWeight: "900",
 },
 
