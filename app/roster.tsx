@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-  FlatList,
   Image,
   Modal,
   Pressable,
@@ -952,33 +951,37 @@ showToast("Roster Cleared!");
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.screen}>
-        <View
-          style={[
+        <ScrollView
+          contentContainerStyle={[
             styles.container,
             isTabletLayout && styles.containerTablet,
             isShortScreen && styles.containerShort,
           ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           {renderHeader()}
           {renderTeamHeader()}
 
           {!isPlayer && renderProgressBar()}
 
-          <FlatList
-            data={players}
-            extraData={{ selected, jerseys, positions }}
-            keyExtractor={(item) => String(item.id)}
-            contentContainerStyle={[
+          <View
+            style={[
               styles.listContent,
               isTabletLayout && styles.listContentTablet,
             ]}
-            ListEmptyComponent={
+          >
+            {players.length === 0 ? (
               <Text style={styles.emptyText}>No roster players found.</Text>
-            }
-            renderItem={({ item }) => renderPlayerCard(item)}
-            ListFooterComponent={renderActionFooter}
-            showsVerticalScrollIndicator={false}
-          />
+            ) : (
+              players.map((item) => (
+                <View key={String(item.id)}>{renderPlayerCard(item)}</View>
+              ))
+            )}
+
+            {renderActionFooter()}
+          </View>
+        </ScrollView>
 <Modal
   visible={showInstructions}
   transparent
@@ -1160,7 +1163,6 @@ showToast("Roster Cleared!");
               </Pressable>
             </Pressable>
           </Modal>
-        </View>
 
         {showSubmittedSplash && (
           <View style={styles.submittedSplash}>
@@ -1256,7 +1258,7 @@ const styles = StyleSheet.create({
   },
 
   container: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 20,
