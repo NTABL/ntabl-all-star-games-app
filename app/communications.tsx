@@ -109,7 +109,7 @@ export default function CommunicationsHubScreen() {
               />
             </View>
 
-            <Text style={styles.cardTitle}>Text Message Communications</Text>
+            <Text style={styles.cardTitle}>Text Communications</Text>
 
             <Text style={styles.cardDescription}>
               Send live SMS alerts, reminders, schedule changes, and urgent

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Image,
   Modal,
@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 import { getManagerContext } from "../stores/store";
-import { API_BASE } from "../utils/appconfig";
+import { adminFetch, API_BASE } from "../utils/appconfig";
 import { modalStyles } from "../utils/modalStyles";
 
 const DEFAULT_MAX_POSITION_PLAYERS = 5;
@@ -138,9 +138,9 @@ export default function RosterScreen() {
   const [showSubmissionWarning, setShowSubmissionWarning] = useState(false);
   const [submissionWarnings, setSubmissionWarnings] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [autoSaveStatus, setAutoSaveStatus] = useState("Auto-Save Enabled");
-  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const autoSaveReady = useRef(false);
+  const [adminOverrideAdditional, setAdminOverrideAdditional] = useState(0);
+  const [showAdminOverridePicker, setShowAdminOverridePicker] = useState(false);
+  const [savingAdminOverride, setSavingAdminOverride] = useState(false);
 
   const { width, height } = useWindowDimensions();
   const isTabletLayout = width >= 700;
@@ -153,7 +153,9 @@ export default function RosterScreen() {
     managerData?.rules?.maxPitchers ?? DEFAULT_MAX_PITCHERS
   );
 
-const maxTotal = maxPositionPlayers + maxPitchers;
+const configuredMaxTotal = maxPositionPlayers + maxPitchers;
+const maxTotal = configuredMaxTotal + adminOverrideAdditional;
+const isAdminImpersonating = managerData?.isImpersonating === true;
 
 const selectedPlayers = selected
   .map((id) => players.find((player) => String(player.id) === String(id)))
@@ -172,31 +174,6 @@ function playerLabel(count: number, singular: string, plural: string) {
   useEffect(() => {
     loadScreen();
   }, []);
-
-  useEffect(() => {
-    if (loading || isPlayer) return;
-
-    if (!autoSaveReady.current) {
-      autoSaveReady.current = true;
-      return;
-    }
-
-    if (autoSaveTimer.current) {
-      clearTimeout(autoSaveTimer.current);
-    }
-
-    setAutoSaveStatus("Unsaved Changes");
-
-    autoSaveTimer.current = setTimeout(() => {
-      saveDraft(true);
-    }, 2000);
-
-    return () => {
-      if (autoSaveTimer.current) {
-        clearTimeout(autoSaveTimer.current);
-      }
-    };
-  }, [selected, jerseys, positions, loading, isPlayer]);
 
   function showToast(
     message: string,
@@ -275,6 +252,12 @@ function playerLabel(count: number, singular: string, plural: string) {
       const json = await response.json();
       const backendPlayers = Array.isArray(json?.players) ? json.players : [];
 
+      setAdminOverrideAdditional(
+        Number.isInteger(Number(json?.adminOverrideAdditional))
+          ? Math.min(9, Math.max(0, Number(json.adminOverrideAdditional)))
+          : 0
+      );
+
       if (json?.ok && backendPlayers.length > 0 && manager?.role !== "player") {
         const backendJerseys: { [key: string]: string } = {};
         const backendPositions: { [key: string]: string } = {};
@@ -311,6 +294,57 @@ function playerLabel(count: number, singular: string, plural: string) {
       console.log(e);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function setAdminSelectionOverride(value: number) {
+    if (!isAdminImpersonating || savingAdminOverride) return;
+
+    const nextValue = Math.min(9, Math.max(0, Math.trunc(Number(value) || 0)));
+
+    try {
+      setSavingAdminOverride(true);
+
+      const response = await adminFetch(
+        `${API_BASE}/api/admin/manager-selection-override`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            teamName: managerData?.teamName || "",
+            division: managerData?.division || "",
+            additionalSelections: nextValue,
+          }),
+        }
+      );
+
+      const json = await response.json();
+
+      if (!response.ok || !json?.ok) {
+        throw new Error(
+          json?.message || "Admin selection override could not be saved."
+        );
+      }
+
+      setAdminOverrideAdditional(nextValue);
+      setShowAdminOverridePicker(false);
+      showToast(
+        nextValue > 0
+          ? `Admin override set to +${nextValue}.`
+          : "Admin override removed."
+      );
+    } catch (e) {
+      console.log("ADMIN SELECTION OVERRIDE ERROR:", e);
+      showToast(
+        e instanceof Error
+          ? e.message
+          : "Admin selection override could not be saved.",
+        "error"
+      );
+    } finally {
+      setSavingAdminOverride(false);
     }
   }
 
@@ -364,9 +398,8 @@ if (prev.length >= maxTotal) {
     });
   }
 
-async function saveDraft(isAutoSave = false) {
+async function saveDraft() {
   try {
-    if (isAutoSave) setAutoSaveStatus("Saving...");
     const manager = await getManagerContext();
 
     const response = await fetch(`${API_BASE}/api/manager/save-draft`, {
@@ -388,22 +421,10 @@ async function saveDraft(isAutoSave = false) {
       throw new Error(json?.message || json?.error || "Draft save failed.");
     }
 
-    if (isAutoSave) {
-      setAutoSaveStatus(`Auto-Saved at ${new Date().toLocaleTimeString([], {
-        hour: "numeric",
-        minute: "2-digit",
-      })}`);
-    } else {
-      setAutoSaveStatus("Draft Saved");
-      showToast(selected.length === 0 ? "Draft Cleared!" : "Draft Saved!");
-    }
+    showToast(selected.length === 0 ? "Draft Cleared!" : "Draft Saved!");
   } catch (e) {
     console.log(e);
-    setAutoSaveStatus("Auto-Save Failed");
-
-    if (!isAutoSave) {
-      showToast("Draft could not be saved.", "error");
-    }
+    showToast("Draft could not be saved.", "error");
   }
 }
 
@@ -658,6 +679,58 @@ showToast("Roster Cleared!");
     );
   }
 
+  function renderAdminOverrideCard() {
+    if (!isAdminImpersonating || isPlayer) return null;
+
+    return (
+      <View style={styles.adminOverrideCard}>
+        <View style={styles.adminOverrideHeader}>
+          <Ionicons name="shield-checkmark" size={22} color="#ffffff" />
+          <Text style={styles.adminOverrideTitle}>ADMIN OVERRIDE</Text>
+        </View>
+
+        <Text style={styles.adminOverrideLabel}>
+          Additional Selections Allowed
+        </Text>
+
+        <TouchableOpacity
+          style={[
+            styles.adminOverrideSelector,
+            savingAdminOverride && { opacity: 0.55 },
+          ]}
+          disabled={savingAdminOverride}
+          onPress={() => setShowAdminOverridePicker(true)}
+        >
+          <Text style={styles.adminOverrideSelectorText}>
+            +{adminOverrideAdditional}
+          </Text>
+          <Ionicons name="chevron-down" size={20} color="#111827" />
+        </TouchableOpacity>
+
+        <View style={styles.adminOverrideTotalsRow}>
+          <View style={styles.adminOverrideTotalBlock}>
+            <Text style={styles.adminOverrideTotalLabel}>Configured</Text>
+            <Text style={styles.adminOverrideTotalValue}>
+              {configuredMaxTotal}
+            </Text>
+          </View>
+
+          <View style={styles.adminOverrideTotalBlock}>
+            <Text style={styles.adminOverrideTotalLabel}>Override</Text>
+            <Text style={styles.adminOverrideTotalValue}>
+              +{adminOverrideAdditional}
+            </Text>
+          </View>
+
+          <View style={styles.adminOverrideTotalBlock}>
+            <Text style={styles.adminOverrideTotalLabel}>Effective</Text>
+            <Text style={styles.adminOverrideEffectiveValue}>{maxTotal}</Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   function renderProgressBar() {
     const percent = Math.min(selected.length / maxTotal, 1);
 
@@ -834,28 +907,20 @@ showToast("Roster Cleared!");
 
     return (
       <View style={styles.actionFooter}>
+        {isAdminImpersonating && adminOverrideAdditional > 0 && (
+          <View style={styles.adminOverrideActiveBadge}>
+            <Ionicons name="shield-checkmark" size={18} color="#9a3412" />
+            <Text style={styles.adminOverrideActiveText}>
+              ADMIN OVERRIDE ACTIVE (+{adminOverrideAdditional})
+            </Text>
+          </View>
+        )}
+
         <Text style={styles.footerCounter}>
           {selected.length} of {maxTotal} Players Selected
         </Text>
 
-        <View style={styles.autoSaveRow}>
-          <Ionicons
-            name="cloud-done-outline"
-            size={17}
-            color={autoSaveStatus === "Auto-Save Failed" ? "#c62828" : "#15803d"}
-            style={{ marginRight: 6 }}
-          />
-          <Text
-            style={[
-              styles.autoSaveText,
-              autoSaveStatus === "Auto-Save Failed" && styles.autoSaveErrorText,
-            ]}
-          >
-            {autoSaveStatus}
-          </Text>
-        </View>
-
-        <TouchableOpacity style={styles.saveDraftButton} onPress={() => saveDraft(false)}>
+        <TouchableOpacity style={styles.saveDraftButton} onPress={saveDraft}>
           <View style={styles.buttonContentRow}>
             <Ionicons
               name="document-text-outline"
@@ -1172,6 +1237,64 @@ showToast("Roster Cleared!");
           </Modal>
 
           <Modal
+            visible={showAdminOverridePicker}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setShowAdminOverridePicker(false)}
+          >
+            <Pressable
+              style={styles.modalOverlay}
+              onPress={() => setShowAdminOverridePicker(false)}
+            >
+              <Pressable style={styles.modalCard}>
+                <Text style={styles.modalTitle}>
+                  Additional Selections Allowed
+                </Text>
+
+                {Array.from({ length: 10 }, (_, value) => value).map(
+                  (value) => (
+                    <TouchableOpacity
+                      key={value}
+                      style={[
+                        styles.modalOption,
+                        value === adminOverrideAdditional &&
+                          styles.adminOverrideSelectedOption,
+                      ]}
+                      disabled={savingAdminOverride}
+                      onPress={() => setAdminSelectionOverride(value)}
+                    >
+                      <Text
+                        style={[
+                          styles.modalOptionText,
+                          value === adminOverrideAdditional &&
+                            styles.adminOverrideSelectedOptionText,
+                        ]}
+                      >
+                        +{value}
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                )}
+
+                <TouchableOpacity
+                  style={styles.modalCancel}
+                  onPress={() => setShowAdminOverridePicker(false)}
+                >
+                  <View style={styles.buttonContentRow}>
+                    <Ionicons
+                      name="close-circle-outline"
+                      size={18}
+                      color="#ffffff"
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text style={styles.modalCancelText}>Cancel</Text>
+                  </View>
+                </TouchableOpacity>
+              </Pressable>
+            </Pressable>
+          </Modal>
+
+          <Modal
             visible={positionModalVisible}
             transparent
             animationType="fade"
@@ -1445,6 +1568,126 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
+  adminOverrideCard: {
+    backgroundColor: "#fff7ed",
+    borderColor: "#f97316",
+    borderWidth: 2,
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    elevation: 5,
+  },
+
+  adminOverrideHeader: {
+    backgroundColor: "#f97316",
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+    gap: 7,
+  },
+
+  adminOverrideTitle: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "900",
+  },
+
+  adminOverrideLabel: {
+    color: "#7c2d12",
+    fontSize: 14,
+    fontWeight: "900",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+
+  adminOverrideSelector: {
+    backgroundColor: "#ffffff",
+    borderColor: "#fdba74",
+    borderWidth: 1,
+    borderRadius: 11,
+    paddingVertical: 11,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  adminOverrideSelectorText: {
+    color: "#111827",
+    fontSize: 18,
+    fontWeight: "900",
+  },
+
+  adminOverrideTotalsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+
+  adminOverrideTotalBlock: {
+    flex: 1,
+    alignItems: "center",
+  },
+
+  adminOverrideTotalLabel: {
+    color: "#9a3412",
+    fontSize: 12,
+    fontWeight: "800",
+    marginBottom: 2,
+  },
+
+  adminOverrideTotalValue: {
+    color: "#111827",
+    fontSize: 18,
+    fontWeight: "900",
+  },
+
+  adminOverrideEffectiveValue: {
+    color: "#15803d",
+    fontSize: 20,
+    fontWeight: "900",
+  },
+
+  adminOverrideActiveBadge: {
+    backgroundColor: "#ffedd5",
+    borderColor: "#f97316",
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 10,
+    marginBottom: 10,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+  },
+
+  adminOverrideActiveText: {
+    color: "#9a3412",
+    fontSize: 13,
+    fontWeight: "900",
+    textAlign: "center",
+  },
+
+  adminOverrideSelectedOption: {
+    backgroundColor: "#fff7ed",
+  },
+
+  adminOverrideSelectedOptionText: {
+    color: "#ea580c",
+  },
+
   progressCard: {
     backgroundColor: "#ffffff",
     borderRadius: 18,
@@ -1674,24 +1917,6 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     textAlign: "center",
     marginBottom: 10,
-  },
-
-  autoSaveRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-  },
-
-  autoSaveText: {
-    color: "#15803d",
-    fontSize: 13,
-    fontWeight: "900",
-    textAlign: "center",
-  },
-
-  autoSaveErrorText: {
-    color: "#c62828",
   },
 
   saveDraftButton: {
