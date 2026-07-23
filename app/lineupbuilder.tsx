@@ -16,11 +16,7 @@ import {
   useWindowDimensions,
   View
 } from "react-native";
-import {
-  NestableDraggableFlatList,
-  NestableScrollContainer,
-  ScaleDecorator,
-} from "react-native-draggable-flatlist";
+import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { API_BASE } from "../utils/appconfig";
 import { modalStyles } from "../utils/modalStyles";
@@ -781,7 +777,7 @@ function leaveWithoutSaving() {
         </View>
 
         {battingLineup.length > 0 ? (
-<NestableDraggableFlatList
+<DraggableFlatList
   data={battingLineup}
   keyExtractor={(item) => item.id}
   scrollEnabled={false}
@@ -907,15 +903,17 @@ if (!json?.ok) {
       <Stack.Screen options={{ headerShown: false }} />
 
       <GestureHandlerRootView style={styles.screen}>
-<NestableScrollContainer
-  contentContainerStyle={[
-    styles.container,
-    isTabletLayout && styles.containerTablet,
-    isShortScreen && styles.containerShort,
-  ]}
-  showsVerticalScrollIndicator={false}
-  keyboardShouldPersistTaps="handled"
->
+<ScrollView
+          style={styles.screenScroll}
+          contentContainerStyle={[
+            styles.container,
+            isTabletLayout && styles.containerTablet,
+            isShortScreen && styles.containerShort,
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled
+        >
           {renderTopControls()}
 
           {renderHeroCard()}
@@ -946,7 +944,7 @@ if (!json?.ok) {
               NTABL All-Star App • Version 1.0
             </Text>
           </View>
-        </NestableScrollContainer>
+        </ScrollView>
       </GestureHandlerRootView>
 
       <Modal
@@ -1258,7 +1256,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#eef2f7",
   },
 
+  screenScroll: {
+    flex: 1,
+  },
+
   container: {
+    flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 70,
