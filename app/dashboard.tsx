@@ -135,6 +135,10 @@ export default function Dashboard() {
   const [supportModalMessage, setSupportModalMessage] = useState("");
   const [showTeamSwitcher, setShowTeamSwitcher] = useState(false);
   const [switchingTeam, setSwitchingTeam] = useState(false);
+  const [smsPreferenceLoaded, setSmsPreferenceLoaded] = useState(false);
+  const [smsEnabled, setSmsEnabled] = useState(false);
+  const [smsPreferenceSaving, setSmsPreferenceSaving] = useState(false);
+  const [showSmsConsentModal, setShowSmsConsentModal] = useState(false);
   const isTabletLayout = width >= 700;
   const isShortScreen = height < 760;
   const isPlayer =
@@ -209,6 +213,7 @@ async function loadScreen() {
     const manager = await getManagerContext();
     setManagerData(manager);
     await checkWaiverStatus(manager);
+    await loadSmsPreference(manager);
     console.log("MANAGER CONTEXT:", manager);
 
     const response = await fetch(`${API_BASE}/api/manager/submission-status`, {
@@ -248,6 +253,85 @@ try {
   } catch (e) {
     console.log(e);
     setStatus("Not Submitted");
+  }
+}
+
+
+async function loadSmsPreference(manager: any) {
+  const email = String(manager?.email || manager?.managerEmail || "")
+    .trim()
+    .toLowerCase();
+
+  if (!email) {
+    setSmsPreferenceLoaded(true);
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/api/sms-preferences?email=${encodeURIComponent(email)}`
+    );
+    const json = await response.json();
+
+    if (!response.ok || !json?.ok) {
+      throw new Error(json?.message || "SMS preference could not be loaded.");
+    }
+
+    setSmsEnabled(json.enabled === true);
+    setSmsPreferenceLoaded(true);
+
+    if (!json.hasPreference) {
+      setShowSmsConsentModal(true);
+    }
+  } catch (e) {
+    console.log("SMS PREFERENCE LOAD ERROR:", e);
+    setSmsPreferenceLoaded(true);
+  }
+}
+
+async function saveSmsPreference(enabled: boolean) {
+  const email = String(managerData?.email || managerData?.managerEmail || "")
+    .trim()
+    .toLowerCase();
+
+  if (!email || smsPreferenceSaving) return;
+
+  try {
+    setSmsPreferenceSaving(true);
+
+    const response = await fetch(`${API_BASE}/api/sms-preferences`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, enabled }),
+    });
+
+    const json = await response.json();
+
+    if (!response.ok || !json?.ok) {
+      throw new Error(json?.message || "SMS preference could not be saved.");
+    }
+
+    setSmsEnabled(enabled);
+    setShowSmsConsentModal(false);
+
+    showSupportMessage(
+      "success",
+      enabled ? "SMS Notifications Enabled" : "SMS Notifications Disabled",
+      enabled
+        ? "You are enrolled to receive NTABL All-Star text message updates. Reply STOP to any NTABL text to opt out."
+        : "You will not receive optional NTABL All-Star text message updates."
+    );
+  } catch (e) {
+    console.log("SMS PREFERENCE SAVE ERROR:", e);
+    showSupportMessage(
+      "error",
+      "Preference Not Saved",
+      e instanceof Error ? e.message : "SMS preference could not be saved."
+    );
+  } finally {
+    setSmsPreferenceSaving(false);
   }
 }
 
@@ -737,6 +821,81 @@ async function sendHelpRequest() {
             </View>
           </Pressable>
 
+
+          {smsPreferenceLoaded && managerData && (
+            <View
+              style={[
+                styles.card,
+                styles.smsPreferenceCard,
+                isTabletLayout && styles.cardTablet,
+              ]}
+            >
+              <View style={styles.smsPreferenceHeader}>
+                <View style={styles.smsPreferenceIcon}>
+                  <Ionicons
+                    name="chatbubble-ellipses-outline"
+                    size={27}
+                    color="#ffffff"
+                  />
+                </View>
+
+                <View style={styles.smsPreferenceHeadingWrap}>
+                  <Text style={styles.smsPreferenceTitle}>
+                    Text Message Notifications
+                  </Text>
+                  <Text
+                    style={[
+                      styles.smsPreferenceStatus,
+                      smsEnabled
+                        ? styles.smsPreferenceStatusEnabled
+                        : styles.smsPreferenceStatusDisabled,
+                    ]}
+                  >
+                    {smsEnabled ? "Enabled" : "Disabled"}
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={styles.smsPreferenceDescription}>
+                Receive NTABL All-Star selection notices, schedule changes,
+                weather alerts, reminders, and other event updates by text.
+              </Text>
+
+              <Text style={styles.smsPreferenceDisclosure}>
+                Message frequency varies. Message and data rates may apply.
+                Reply STOP to opt out or HELP for assistance.
+              </Text>
+
+              <Pressable
+                style={[
+                  styles.smsPreferenceButton,
+                  smsEnabled
+                    ? styles.smsPreferenceDisableButton
+                    : styles.smsPreferenceEnableButton,
+                  smsPreferenceSaving && { opacity: 0.55 },
+                ]}
+                disabled={smsPreferenceSaving}
+                onPress={() => saveSmsPreference(!smsEnabled)}
+              >
+                <View style={styles.buttonContentRow}>
+                  <Ionicons
+                    name={smsEnabled ? "notifications-off-outline" : "notifications-outline"}
+                    size={21}
+                    color="#ffffff"
+                    style={{ marginRight: 7 }}
+                  />
+                  <Text style={styles.smsPreferenceButtonText}>
+                    {smsPreferenceSaving
+                      ? "Saving..."
+                      : smsEnabled
+                      ? "Disable SMS Notifications"
+                      : "Enable SMS Notifications"}
+                  </Text>
+                </View>
+              </Pressable>
+            </View>
+          )}
+
           <Pressable
             style={styles.changePasswordButton}
             onPress={() => router.push("/changepassword")}
@@ -1002,6 +1161,67 @@ async function sendHelpRequest() {
           </Text>
         </Pressable>
       </View>
+    </View>
+  </View>
+</Modal>
+
+
+<Modal
+  visible={showSmsConsentModal}
+  transparent
+  animationType="fade"
+  onRequestClose={() => {}}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.smsConsentModal}>
+      <View style={styles.smsConsentIcon}>
+        <Ionicons
+          name="chatbubble-ellipses-outline"
+          size={38}
+          color="#ffffff"
+        />
+      </View>
+
+      <Text style={styles.smsConsentTitle}>Stay Informed by Text</Text>
+
+      <Text style={styles.smsConsentMessage}>
+        Receive NTABL All-Star selection notifications, roster and schedule
+        updates, weather alerts, event reminders, waiver reminders, and account
+        notifications by SMS.
+      </Text>
+
+      <View style={styles.smsConsentDisclosureBox}>
+        <Text style={styles.smsConsentDisclosure}>
+          By selecting Enable SMS Notifications, you agree to receive
+          tournament-related text messages from NTABL. Message frequency varies.
+          Message and data rates may apply. Reply STOP to opt out or HELP for
+          assistance.
+        </Text>
+      </View>
+
+      <Pressable
+        style={[
+          styles.smsConsentEnableButton,
+          smsPreferenceSaving && { opacity: 0.55 },
+        ]}
+        disabled={smsPreferenceSaving}
+        onPress={() => saveSmsPreference(true)}
+      >
+        <Text style={styles.smsConsentButtonText}>
+          {smsPreferenceSaving ? "Saving..." : "Enable SMS Notifications"}
+        </Text>
+      </Pressable>
+
+      <Pressable
+        style={[
+          styles.smsConsentDeclineButton,
+          smsPreferenceSaving && { opacity: 0.55 },
+        ]}
+        disabled={smsPreferenceSaving}
+        onPress={() => saveSmsPreference(false)}
+      >
+        <Text style={styles.smsConsentDeclineText}>No Thanks</Text>
+      </Pressable>
     </View>
   </View>
 </Modal>
@@ -1625,6 +1845,166 @@ supportErrorButton: {
   backgroundColor: "#c62828",
 },
 
+
+
+
+smsPreferenceCard: {
+  borderWidth: 2,
+  borderColor: "#bbf7d0",
+},
+
+smsPreferenceHeader: {
+  flexDirection: "row",
+  alignItems: "center",
+  marginBottom: 12,
+},
+
+smsPreferenceIcon: {
+  width: 50,
+  height: 50,
+  borderRadius: 25,
+  backgroundColor: "#15803d",
+  alignItems: "center",
+  justifyContent: "center",
+  marginRight: 12,
+},
+
+smsPreferenceHeadingWrap: {
+  flex: 1,
+},
+
+smsPreferenceTitle: {
+  color: "#1f4e9e",
+  fontSize: 20,
+  fontWeight: "900",
+},
+
+smsPreferenceStatus: {
+  fontSize: 13,
+  fontWeight: "900",
+  marginTop: 3,
+},
+
+smsPreferenceStatusEnabled: {
+  color: "#15803d",
+},
+
+smsPreferenceStatusDisabled: {
+  color: "#c62828",
+},
+
+smsPreferenceDescription: {
+  color: "#374151",
+  fontSize: 14,
+  lineHeight: 20,
+  fontWeight: "700",
+},
+
+smsPreferenceDisclosure: {
+  color: "#6b7280",
+  fontSize: 12,
+  lineHeight: 18,
+  fontWeight: "700",
+  marginTop: 10,
+},
+
+smsPreferenceButton: {
+  marginTop: 15,
+  borderRadius: 11,
+  paddingVertical: 13,
+  alignItems: "center",
+},
+
+smsPreferenceEnableButton: {
+  backgroundColor: "#15803d",
+},
+
+smsPreferenceDisableButton: {
+  backgroundColor: "#6b7280",
+},
+
+smsPreferenceButtonText: {
+  color: "#ffffff",
+  fontSize: 15,
+  fontWeight: "900",
+},
+
+smsConsentModal: {
+  ...modalStyles.card,
+  alignItems: "center",
+},
+
+smsConsentIcon: {
+  width: 72,
+  height: 72,
+  borderRadius: 36,
+  backgroundColor: "#15803d",
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: 12,
+},
+
+smsConsentTitle: {
+  color: "#1f4e9e",
+  fontSize: 25,
+  fontWeight: "900",
+  textAlign: "center",
+},
+
+smsConsentMessage: {
+  color: "#374151",
+  fontSize: 15,
+  lineHeight: 21,
+  fontWeight: "700",
+  textAlign: "center",
+  marginTop: 9,
+},
+
+smsConsentDisclosureBox: {
+  width: "100%",
+  backgroundColor: "#eff6ff",
+  borderRadius: 12,
+  padding: 13,
+  marginTop: 14,
+},
+
+smsConsentDisclosure: {
+  color: "#1e3a8a",
+  fontSize: 12,
+  lineHeight: 18,
+  fontWeight: "700",
+  textAlign: "center",
+},
+
+smsConsentEnableButton: {
+  width: "100%",
+  backgroundColor: "#15803d",
+  borderRadius: 11,
+  paddingVertical: 14,
+  alignItems: "center",
+  marginTop: 16,
+},
+
+smsConsentButtonText: {
+  color: "#ffffff",
+  fontSize: 16,
+  fontWeight: "900",
+},
+
+smsConsentDeclineButton: {
+  width: "100%",
+  backgroundColor: "#e5e7eb",
+  borderRadius: 11,
+  paddingVertical: 13,
+  alignItems: "center",
+  marginTop: 9,
+},
+
+smsConsentDeclineText: {
+  color: "#374151",
+  fontSize: 15,
+  fontWeight: "900",
+},
 
 teamSwitcherCard: {
   backgroundColor: "#ffffff",
