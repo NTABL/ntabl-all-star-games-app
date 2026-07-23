@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, Stack } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Image,
   Modal,
@@ -138,6 +138,9 @@ export default function RosterScreen() {
   const [showSubmissionWarning, setShowSubmissionWarning] = useState(false);
   const [submissionWarnings, setSubmissionWarnings] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState("Auto-Save Enabled");
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoSaveReady = useRef(false);
 
   const { width, height } = useWindowDimensions();
   const isTabletLayout = width >= 700;
@@ -169,6 +172,31 @@ function playerLabel(count: number, singular: string, plural: string) {
   useEffect(() => {
     loadScreen();
   }, []);
+
+  useEffect(() => {
+    if (loading || isPlayer) return;
+
+    if (!autoSaveReady.current) {
+      autoSaveReady.current = true;
+      return;
+    }
+
+    if (autoSaveTimer.current) {
+      clearTimeout(autoSaveTimer.current);
+    }
+
+    setAutoSaveStatus("Unsaved Changes");
+
+    autoSaveTimer.current = setTimeout(() => {
+      saveDraft(true);
+    }, 2000);
+
+    return () => {
+      if (autoSaveTimer.current) {
+        clearTimeout(autoSaveTimer.current);
+      }
+    };
+  }, [selected, jerseys, positions, loading, isPlayer]);
 
   function showToast(
     message: string,
@@ -336,8 +364,9 @@ if (prev.length >= maxTotal) {
     });
   }
 
-async function saveDraft() {
+async function saveDraft(isAutoSave = false) {
   try {
+    if (isAutoSave) setAutoSaveStatus("Saving...");
     const manager = await getManagerContext();
 
     const response = await fetch(`${API_BASE}/api/manager/save-draft`, {
@@ -359,10 +388,22 @@ async function saveDraft() {
       throw new Error(json?.message || json?.error || "Draft save failed.");
     }
 
-    showToast(selected.length === 0 ? "Draft Cleared!" : "Draft Saved!");
+    if (isAutoSave) {
+      setAutoSaveStatus(`Auto-Saved at ${new Date().toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+      })}`);
+    } else {
+      setAutoSaveStatus("Draft Saved");
+      showToast(selected.length === 0 ? "Draft Cleared!" : "Draft Saved!");
+    }
   } catch (e) {
     console.log(e);
-    showToast("Draft could not be saved.", "error");
+    setAutoSaveStatus("Auto-Save Failed");
+
+    if (!isAutoSave) {
+      showToast("Draft could not be saved.", "error");
+    }
   }
 }
 
@@ -797,7 +838,24 @@ showToast("Roster Cleared!");
           {selected.length} of {maxTotal} Players Selected
         </Text>
 
-        <TouchableOpacity style={styles.saveDraftButton} onPress={saveDraft}>
+        <View style={styles.autoSaveRow}>
+          <Ionicons
+            name="cloud-done-outline"
+            size={17}
+            color={autoSaveStatus === "Auto-Save Failed" ? "#c62828" : "#15803d"}
+            style={{ marginRight: 6 }}
+          />
+          <Text
+            style={[
+              styles.autoSaveText,
+              autoSaveStatus === "Auto-Save Failed" && styles.autoSaveErrorText,
+            ]}
+          >
+            {autoSaveStatus}
+          </Text>
+        </View>
+
+        <TouchableOpacity style={styles.saveDraftButton} onPress={() => saveDraft(false)}>
           <View style={styles.buttonContentRow}>
             <Ionicons
               name="document-text-outline"
@@ -1616,6 +1674,24 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     textAlign: "center",
     marginBottom: 10,
+  },
+
+  autoSaveRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+
+  autoSaveText: {
+    color: "#15803d",
+    fontSize: 13,
+    fontWeight: "900",
+    textAlign: "center",
+  },
+
+  autoSaveErrorText: {
+    color: "#c62828",
   },
 
   saveDraftButton: {
