@@ -16,7 +16,11 @@ import {
   useWindowDimensions,
   View
 } from "react-native";
-import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
+import {
+  NestableDraggableFlatList,
+  NestableScrollContainer,
+  ScaleDecorator,
+} from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { API_BASE } from "../utils/appconfig";
 import { modalStyles } from "../utils/modalStyles";
@@ -777,24 +781,24 @@ function leaveWithoutSaving() {
         </View>
 
         {battingLineup.length > 0 ? (
-          <DraggableFlatList
-            data={battingLineup}
-            keyExtractor={(item) => item.id}
-            scrollEnabled={false}
-            activationDistance={12}
-            autoscrollThreshold={80}
-            autoscrollSpeed={90}
-            dragItemOverflow
-            onDragEnd={({ data }) => {
-              setBattingOrderIds(data.map((player) => player.id));
-              markLineupChanged();
-            }}
-renderItem={({ item, getIndex, drag, isActive }) => {
-  const index = getIndex() ?? 0;
+<NestableDraggableFlatList
+  data={battingLineup}
+  keyExtractor={(item) => item.id}
+  scrollEnabled={false}
+  activationDistance={12}
+  autoscrollThreshold={80}
+  autoscrollSpeed={90}
+  dragItemOverflow
+  onDragEnd={({ data }) => {
+    setBattingOrderIds(data.map((player) => player.id));
+    markLineupChanged();
+  }}
+  renderItem={({ item, getIndex, drag, isActive }) => {
+    const index = getIndex() ?? 0;
 
-  return renderPlayer(item, true, index + 1, drag, isActive);
-}}
-          />
+    return renderPlayer(item, true, index + 1, drag, isActive);
+  }}
+/>
         ) : (
           <Text style={styles.emptyText}>No Batting Players Selected.</Text>
         )}
@@ -903,8 +907,7 @@ if (!json?.ok) {
       <Stack.Screen options={{ headerShown: false }} />
 
       <GestureHandlerRootView style={styles.screen}>
-<ScrollView
-  style={styles.screenScroll}
+<NestableScrollContainer
   contentContainerStyle={[
     styles.container,
     isTabletLayout && styles.containerTablet,
@@ -912,7 +915,6 @@ if (!json?.ok) {
   ]}
   showsVerticalScrollIndicator={false}
   keyboardShouldPersistTaps="handled"
-  nestedScrollEnabled
 >
           {renderTopControls()}
 
@@ -944,7 +946,7 @@ if (!json?.ok) {
               NTABL All-Star App • Version 1.0
             </Text>
           </View>
-        </ScrollView>
+        </NestableScrollContainer>
       </GestureHandlerRootView>
 
       <Modal
@@ -1255,10 +1257,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#eef2f7",
   },
-
-  screenScroll: {
-  flex: 1,
-},
 
   container: {
     paddingHorizontal: 20,
