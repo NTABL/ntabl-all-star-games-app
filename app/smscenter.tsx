@@ -151,8 +151,8 @@ export default function SmsCenterScreen() {
             >
               <View style={styles.buttonContentRow}>
                 <Ionicons
-                  name="arrow-back-outline"
-                  size={18}
+                  name="chevron-back"
+                  size={20}
                   color="#ffffff"
                   style={styles.buttonIcon}
                 />
@@ -184,7 +184,7 @@ export default function SmsCenterScreen() {
               resizeMode="contain"
             />
 
-            <Text style={styles.title}>Text Message Communications</Text>
+            <Text style={styles.title}>Text Communications</Text>
 
             <Text style={styles.subtitle}>
               Send live SMS messages through the NTABL Twilio account.
@@ -288,7 +288,7 @@ export default function SmsCenterScreen() {
           </View>
 
           <Text style={styles.versionFooter}>
-            NTABL All-Star App • Text Message Communications
+            NTABL All-Star App • Text Communications
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   },
 
   backButton: {
-    backgroundColor: "#c62828",
+    backgroundColor: "#2563eb",
     borderRadius: 9,
     paddingVertical: 8,
     paddingHorizontal: 14,
