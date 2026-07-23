@@ -6,6 +6,7 @@ import {
   Image,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -986,48 +987,56 @@ showToast("Roster Cleared!");
 >
   <View style={styles.instructionsOverlay}>
     <View style={styles.instructionsModalCard}>
-      <Image
-        source={require("../assets/NTABL-Logo.png")}
-        style={styles.instructionsLogo}
-        resizeMode="contain"
-      />
+      <ScrollView
+        style={styles.instructionsScrollView}
+        contentContainerStyle={styles.instructionsScrollContent}
+        showsVerticalScrollIndicator
+      >
+        <Image
+          source={require("../assets/NTABL-Logo.png")}
+          style={styles.instructionsLogo}
+          resizeMode="contain"
+        />
 
-      <Text style={styles.instructionsTitle}>Instructions</Text>
+        <Text style={styles.instructionsTitle}>Instructions</Text>
 
-      <Text style={styles.instructionsText}>
-        1. Select players from your team roster below who will participate in the{" "}
-        <Text style={styles.boldText}>All-Star Game</Text> by clicking the{" "}
-        <Text style={styles.boldText}>Select</Text> button next to each All-Star
-        player&apos;s name.
-      </Text>
+        <Text style={styles.instructionsText}>
+          1. Select players from your team roster below who will participate in
+          the <Text style={styles.boldText}>All-Star Game</Text> by clicking the{" "}
+          <Text style={styles.boldText}>Select</Text> button next to each
+          All-Star player&apos;s name.
+        </Text>
 
-<Text style={styles.instructionsText}>
-  2. Your division may submit up to{" "}
-  <Text style={styles.redBoldText}>{maxTotal}</Text>{" "}
-  <Text style={styles.boldText}>total players</Text>. The recommended mix is{" "}
-  <Text style={styles.redBoldText}>{maxPositionPlayers}</Text>{" "}
-  <Text style={styles.boldText}>Position Players</Text> and{" "}
-  <Text style={styles.redBoldText}>{maxPitchers}</Text>{" "}
-  <Text style={styles.boldText}>Pitchers</Text>, but you may adjust that mix.
-</Text>
+        <Text style={styles.instructionsText}>
+          2. Your division may submit up to{" "}
+          <Text style={styles.redBoldText}>{maxTotal}</Text>{" "}
+          <Text style={styles.boldText}>total players</Text>. The recommended
+          mix is{" "}
+          <Text style={styles.redBoldText}>{maxPositionPlayers}</Text>{" "}
+          <Text style={styles.boldText}>Position Players</Text> and{" "}
+          <Text style={styles.redBoldText}>{maxPitchers}</Text>{" "}
+          <Text style={styles.boldText}>Pitchers</Text>, but you may adjust that
+          mix.
+        </Text>
 
-      <Text style={styles.instructionsText}>
-        3. Use your finger or mouse to{" "}
-        <Text style={styles.underlineText}>scroll down</Text> your team&apos;s
-        roster to select additional players.
-      </Text>
+        <Text style={styles.instructionsText}>
+          3. Use your finger or mouse to{" "}
+          <Text style={styles.underlineText}>scroll down</Text> your team&apos;s
+          roster to select additional players.
+        </Text>
 
-      <Text style={styles.instructionsText}>
-        4. Please verify each player&apos;s{" "}
-        <Text style={styles.boldText}>Jersey Number</Text> and{" "}
-        <Text style={styles.boldText}>Position</Text>. Missing information will
-        be identified before submission, but you may still continue.
-      </Text>
+        <Text style={styles.instructionsText}>
+          4. Please verify each player&apos;s{" "}
+          <Text style={styles.boldText}>Jersey Number</Text> and{" "}
+          <Text style={styles.boldText}>Position</Text>. Missing information
+          will be identified before submission, but you may still continue.
+        </Text>
 
-      <Text style={styles.instructionsText}>
-        5. Once completed, scroll down to select{" "}
-        <Text style={styles.greenBoldText}>Submit All-Stars</Text>.
-      </Text>
+        <Text style={styles.instructionsText}>
+          5. Once completed, scroll down to select{" "}
+          <Text style={styles.greenBoldText}>Submit All-Stars</Text>.
+        </Text>
+      </ScrollView>
 
       <Pressable
         style={styles.instructionsOkButton}
@@ -1940,7 +1949,16 @@ instructionsOverlay: {
 },
 
 instructionsModalCard: {
-  ...modalStyles.compactCard,
+    ...modalStyles.compactCard,
+    maxHeight: "88%",
+},
+
+instructionsScrollView: {
+    flexShrink: 1,
+},
+
+instructionsScrollContent: {
+    paddingBottom: 8,
 },
 
 instructionsLogo: {

@@ -305,48 +305,54 @@ export default function AppSubmittedScreen() {
           </View>
         </ScrollView>
 
-        <Modal
-          visible={showInstructions}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowInstructions(false)}
-        >
-          <View style={styles.instructionsOverlay}>
-            <View style={styles.instructionsModalCard}>
-              <Image
-                source={require("../assets/NTABL-Logo.png")}
-                style={styles.instructionsLogo}
-                resizeMode="contain"
-              />
+<Modal
+  visible={showInstructions}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setShowInstructions(false)}
+>
+  <View style={styles.instructionsOverlay}>
+    <View style={styles.instructionsModalCard}>
+      <ScrollView
+        style={styles.instructionsScrollView}
+        contentContainerStyle={styles.instructionsScrollContent}
+        showsVerticalScrollIndicator
+      >
+        <Image
+          source={require("../assets/NTABL-Logo.png")}
+          style={styles.instructionsLogo}
+          resizeMode="contain"
+        />
 
-              <Text style={styles.instructionsTitle}>Instructions</Text>
+        <Text style={styles.instructionsTitle}>Instructions</Text>
 
-              <Text style={styles.instructionsText}>
-                1. To <Text style={styles.boldText}>Edit</Text>, use your finger
-                or a mouse to scroll down to the bottom of your players list.
-              </Text>
+        <Text style={styles.instructionsText}>
+          1. To <Text style={styles.boldText}>Edit</Text>, use your finger or a
+          mouse to scroll down to the bottom of your players list.
+        </Text>
 
-              <Text style={styles.instructionsText}>
-                2. Select the{" "}
-                <Text style={styles.blueBoldText}>Edit All-Star Roster</Text>{" "}
-                button to edit your <Text style={styles.boldText}>All-Star Selections</Text>.
-              </Text>
+        <Text style={styles.instructionsText}>
+          2. Select the{" "}
+          <Text style={styles.blueBoldText}>Edit All-Star Roster</Text> button
+          to edit your <Text style={styles.boldText}>All-Star Selections</Text>.
+        </Text>
 
-              <Text style={styles.instructionsText}>
-                3. Be sure to scroll down after making edits to{" "}
-                <Text style={styles.greenBoldText}>Submit All-Stars</Text> when
-                completed.
-              </Text>
+        <Text style={styles.instructionsText}>
+          3. Be sure to scroll down after making edits to{" "}
+          <Text style={styles.greenBoldText}>Submit All-Stars</Text> when
+          completed.
+        </Text>
+      </ScrollView>
 
-              <Pressable
-                style={styles.instructionsOkButton}
-                onPress={() => setShowInstructions(false)}
-              >
-                <Text style={styles.instructionsOkButtonText}>OK, Got It!</Text>
-              </Pressable>
-            </View>
-          </View>
-        </Modal>
+      <Pressable
+        style={styles.instructionsOkButton}
+        onPress={() => setShowInstructions(false)}
+      >
+        <Text style={styles.instructionsOkButtonText}>OK, Got It!</Text>
+      </Pressable>
+    </View>
+  </View>
+</Modal>
       </View>
     </>
   );
@@ -660,6 +666,15 @@ instructionsOverlay: {
 
 instructionsModalCard: {
   ...modalStyles.compactCard,
+  maxHeight: "88%",
+},
+
+instructionsScrollView: {
+  flexShrink: 1,
+},
+
+instructionsScrollContent: {
+  paddingBottom: 8,
 },
 
 instructionsLogo: {

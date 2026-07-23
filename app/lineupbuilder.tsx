@@ -1057,71 +1057,78 @@ if (!json?.ok) {
         </View>
       </Modal>
 
-      <Modal
-        visible={showInstructions}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowInstructions(false)}
+     <Modal
+  visible={showInstructions}
+  transparent
+  animationType="fade"
+  onRequestClose={() => setShowInstructions(false)}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.instructionsModalCard}>
+      <ScrollView
+        style={styles.instructionsScrollView}
+        contentContainerStyle={styles.instructionsScrollContent}
+        showsVerticalScrollIndicator
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.instructionsModalCard}>
-<Image
-  source={require("../assets/NTABL-Logo.png")}
-  style={styles.instructionsLogo}
-  resizeMode="contain"
-/>
+        <Image
+          source={require("../assets/NTABL-Logo.png")}
+          style={styles.instructionsLogo}
+          resizeMode="contain"
+        />
 
-<Text style={styles.modalTitle}>Instructions</Text>
+        <Text style={styles.modalTitle}>Instructions</Text>
 
-            <Text style={styles.instructionsText}>
-              1. Tap <Text style={styles.boldText}>Edit</Text> to update player
-              number or position.
-            </Text>
+        <Text style={styles.instructionsText}>
+          1. Tap <Text style={styles.boldText}>Edit</Text> to update player
+          number or position.
+        </Text>
 
-            <Text style={styles.instructionsText}>
-              2. Use the <Text style={styles.boldText}>Batting</Text> toggle to
-              move players between the active batting lineup and non-lineup substitutes.
-            </Text>
+        <Text style={styles.instructionsText}>
+          2. Use the <Text style={styles.boldText}>Batting</Text> toggle to
+          move players between the active batting lineup and non-lineup
+          substitutes.
+        </Text>
 
-<Text style={styles.instructionsText}>
-  3. Scroll the screen normally by swiping anywhere on a player card. To change
-  batting order, press and hold the{" "}
-  <Ionicons
-    name="reorder-three-outline"
-    size={18}
-    color="#1f4e9e"
-  />{" "}
-  <Text style={styles.boldText}>Hold & Drag</Text> handle.
-</Text>
+        <Text style={styles.instructionsText}>
+          3. Scroll the screen normally by swiping anywhere on a player card.
+          To change batting order, press and hold the{" "}
+          <Ionicons
+            name="reorder-three-outline"
+            size={18}
+            color="#1f4e9e"
+          />{" "}
+          <Text style={styles.boldText}>Hold & Drag</Text> handle.
+        </Text>
 
-            <Text style={styles.instructionsText}>
-              4. Use the <Text style={styles.boldText}>Sub</Text> button to swap a batting
-              player with a substitute.
-            </Text>
+        <Text style={styles.instructionsText}>
+          4. Use the <Text style={styles.boldText}>Sub</Text> button to swap a
+          batting player with a substitute.
+        </Text>
 
-            <Text style={styles.instructionsText}>
-              5. Tap <Text style={styles.greenBoldText}>Save Lineup</Text>.
-              Lineup Changes Auto-Save After 10 Seconds of Inactivity.
-            </Text>
+        <Text style={styles.instructionsText}>
+          5. Tap <Text style={styles.greenBoldText}>Save Lineup</Text>.
+          Lineup Changes Auto-Save After 10 Seconds of Inactivity.
+        </Text>
+      </ScrollView>
 
-            <Pressable
-              style={styles.gotItButton}
-              onPress={() => setShowInstructions(false)}
-            >
-              <View style={styles.buttonContentRow}>
-                <Ionicons
-                  name="checkmark-circle-outline"
-                  size={22}
-                  color="#ffffff"
-                  style={{ marginRight: 8 }}
-                />
+      <Pressable
+        style={styles.gotItButton}
+        onPress={() => setShowInstructions(false)}
+      >
+        <View style={styles.buttonContentRow}>
+          <Ionicons
+            name="checkmark-circle-outline"
+            size={22}
+            color="#ffffff"
+            style={{ marginRight: 8 }}
+          />
 
-                <Text style={styles.gotItButtonText}>Got It</Text>
-              </View>
-            </Pressable>
-          </View>
+          <Text style={styles.gotItButtonText}>Got It</Text>
         </View>
-      </Modal>
+      </Pressable>
+    </View>
+  </View>
+</Modal>
 
       <Modal
         visible={!!subTargetPlayer}
@@ -1750,8 +1757,17 @@ positionPickerCard: {
   ...modalStyles.compactCard,
 },
 
-  instructionsModalCard: {
+instructionsModalCard: {
   ...modalStyles.compactCard,
+  maxHeight: "88%",
+},
+
+instructionsScrollView: {
+  flexShrink: 1,
+},
+
+instructionsScrollContent: {
+  paddingBottom: 8,
 },
 
 subModalCard: {
