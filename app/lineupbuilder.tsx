@@ -903,17 +903,17 @@ if (!json?.ok) {
       <Stack.Screen options={{ headerShown: false }} />
 
       <GestureHandlerRootView style={styles.screen}>
-        <ScrollView
-          contentContainerStyle={[
-            styles.container,
-            isTabletLayout && styles.containerTablet,
-            isShortScreen && styles.containerShort,
-          ]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          directionalLockEnabled
-          stickyHeaderIndices={activeTab === "manager" ? [2] : []}
-        >
+<ScrollView
+  style={styles.screenScroll}
+  contentContainerStyle={[
+    styles.container,
+    isTabletLayout && styles.containerTablet,
+    isShortScreen && styles.containerShort,
+  ]}
+  showsVerticalScrollIndicator={false}
+  keyboardShouldPersistTaps="handled"
+  nestedScrollEnabled
+>
           {renderTopControls()}
 
           {renderHeroCard()}
@@ -1255,6 +1255,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#eef2f7",
   },
+
+  screenScroll: {
+  flex: 1,
+},
 
   container: {
     paddingHorizontal: 20,
