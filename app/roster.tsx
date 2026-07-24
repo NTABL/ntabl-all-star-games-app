@@ -1086,6 +1086,7 @@ showToast("Roster Cleared!");
           {renderHeader()}
           {renderTeamHeader()}
 
+          {renderAdminOverrideCard()}
           {!isPlayer && renderProgressBar()}
 
           <View
