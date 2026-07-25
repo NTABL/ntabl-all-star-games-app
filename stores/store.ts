@@ -43,7 +43,8 @@ export async function switchManagerAssignment(assignmentKey: string) {
     : [];
 
   const selected = assignments.find(
-    (assignment: any) => assignment?.assignmentKey === assignmentKey
+    (assignment: any) =>
+      String(assignment?.assignmentKey || "") === String(assignmentKey || "")
   );
 
   if (!selected) return null;
@@ -51,7 +52,14 @@ export async function switchManagerAssignment(assignmentKey: string) {
   const nextContext = {
     ...selected,
     assignments,
-    activeAssignmentKey: assignmentKey,
+    activeAssignmentKey: selected.assignmentKey,
+    isImpersonating:
+      selected?.isImpersonating === true || current?.isImpersonating === true,
+    impersonatedBy: selected?.impersonatedBy || current?.impersonatedBy || "",
+    impersonationStartedAt:
+      selected?.impersonationStartedAt ||
+      current?.impersonationStartedAt ||
+      "",
   };
 
   await setManagerContext(nextContext);

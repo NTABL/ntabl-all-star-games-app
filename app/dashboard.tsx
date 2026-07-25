@@ -593,11 +593,13 @@ async function sendHelpRequest() {
     ]}
   >
     <View style={styles.teamSwitcherTextWrap}>
-      <Text style={styles.teamSwitcherLabel}>
-        CURRENT {isPlayer ? "PLAYER" : "TEAM"} ASSIGNMENT
-      </Text>
+      <Text style={styles.teamSwitcherLabel}>CURRENT ASSIGNMENT</Text>
       <Text style={styles.teamSwitcherTeam}>{managerData?.teamName || ""}</Text>
       <Text style={styles.teamSwitcherDivision}>{managerData?.division || ""}</Text>
+      <Text style={styles.teamSwitcherRole}>
+        {isPlayer ? "Player" : "Team Manager"}
+        {managerData?.isSelectedAllStar ? " • Selected All-Star" : ""}
+      </Text>
     </View>
 
     <Pressable
@@ -611,7 +613,7 @@ async function sendHelpRequest() {
           color="#ffffff"
           style={{ marginRight: 6 }}
         />
-        <Text style={styles.switchTeamButtonText}>Switch Team</Text>
+        <Text style={styles.switchTeamButtonText}>Switch Assignment</Text>
       </View>
     </Pressable>
   </View>
@@ -930,9 +932,9 @@ async function sendHelpRequest() {
         style={{ marginBottom: 8 }}
       />
 
-      <Text style={styles.teamSwitcherTitle}>Select Team</Text>
+      <Text style={styles.teamSwitcherTitle}>Select Assignment</Text>
       <Text style={styles.teamSwitcherMessage}>
-        Choose the team and division you want to access.
+        Choose the team, division, and role you want to access.
       </Text>
 
       <View style={styles.assignmentList}>
@@ -966,6 +968,8 @@ async function sendHelpRequest() {
                 <Text style={styles.assignmentRoleName}>
                   {String(assignment.role || "player").toLowerCase() === "manager"
                     ? "Team Manager"
+                    : assignment.isSelectedAllStar
+                    ? "Player • Selected All-Star"
                     : "Player"}
                 </Text>
               </View>
@@ -2192,6 +2196,13 @@ teamSwitcherDivision: {
   fontSize: 13,
   fontWeight: "700",
   marginTop: 2,
+},
+
+teamSwitcherRole: {
+  color: "#1f4e9e",
+  fontSize: 12,
+  fontWeight: "900",
+  marginTop: 4,
 },
 
 switchTeamButton: {
