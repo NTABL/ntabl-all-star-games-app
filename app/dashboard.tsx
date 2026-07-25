@@ -321,7 +321,7 @@ async function saveSmsPreference(enabled: boolean) {
       "success",
       enabled ? "SMS Notifications Enabled" : "SMS Notifications Disabled",
       enabled
-        ? "You are enrolled to receive NTABL All-Star text message updates. Reply STOP to any NTABL text to opt out."
+        ? "You are now subscribed to receive recurring NTABL All-Star text message updates regarding selections, schedules, weather alerts, waiver reminders, and account notifications. Message frequency varies. Msg & data rates may apply. Reply HELP for help or STOP to cancel."
         : "You will not receive optional NTABL All-Star text message updates."
     );
   } catch (e) {
@@ -1231,20 +1231,20 @@ async function sendHelpRequest() {
         />
       </View>
 
-      <Text style={styles.smsConsentTitle}>Stay Informed by Text</Text>
+      <Text style={styles.smsConsentTitle}>Enable SMS Notifications</Text>
 
       <Text style={styles.smsConsentMessage}>
-        Receive NTABL All-Star selection notifications, roster and schedule
-        updates, weather alerts, event reminders, waiver reminders, and account
-        notifications by SMS.
+        Receive recurring NTABL All-Star text messages about selections, rosters,
+        schedules, weather delays, waiver reminders, account notices, and other
+        event-related updates.
       </Text>
 
       <View style={styles.smsConsentDisclosureBox}>
         <Text style={styles.smsConsentDisclosure}>
-          By selecting Enable SMS Notifications, you agree to receive
-          tournament-related text messages from NTABL. Message frequency varies.
-          Message and data rates may apply. Reply STOP to opt out or HELP for
-          assistance.
+          By selecting Enable SMS Notifications, you consent to receive recurring
+          automated text messages from NTABL. Message frequency varies. Msg & data
+          rates may apply. Reply STOP to opt out or HELP for assistance. Consent is
+          not a condition of participation.
         </Text>
       </View>
 
