@@ -5,8 +5,10 @@ import {
   ActivityIndicator,
   Image,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -251,6 +253,7 @@ export default function EmailCenterScreen() {
   const [showHistory, setShowHistory] = useState(false);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [showMissingEmails, setShowMissingEmails] = useState(false);
+  const [missingEmailActionMessage, setMissingEmailActionMessage] = useState("");
 
   useEffect(() => {
     loadRecipients();
@@ -271,6 +274,135 @@ export default function EmailCenterScreen() {
   );
 
   const missingEmailCount = missingEmailRecipients.length;
+
+  function getMissingEmailListText() {
+    const rows = missingEmailRecipients.map((recipient, index) => {
+      const role =
+        recipient.roleLabel ||
+        (recipient.role === "manager" ? "All-Star Manager" : "Player");
+      const team = recipient.teamName || "Team Not Listed";
+      const division =
+        recipient.divisionName || recipient.divisionId || "Division Not Listed";
+      const squadName = recipient.squad || "Squad Not Listed";
+
+      return `${index + 1}. ${recipient.name || "Unnamed Recipient"}\n${role}\n${team}\n${division} • ${squadName}`;
+    });
+
+    return `Missing Email Addresses (${missingEmailCount})\n\n${rows.join(
+      "\n\n"
+    )}`;
+  }
+
+  function escapeCsvValue(value: string) {
+    const text = String(value || "");
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+
+  function getMissingEmailCsv() {
+    const header = ["Name", "Role", "Team", "Division", "Squad"];
+    const rows = missingEmailRecipients.map((recipient) => [
+      recipient.name || "Unnamed Recipient",
+      recipient.roleLabel ||
+        (recipient.role === "manager" ? "All-Star Manager" : "Player"),
+      recipient.teamName || "",
+      recipient.divisionName || recipient.divisionId || "",
+      recipient.squad || "",
+    ]);
+
+    return [header, ...rows]
+      .map((row) => row.map((value) => escapeCsvValue(value)).join(","))
+      .join("\r\n");
+  }
+
+  async function copyMissingEmailList() {
+    if (missingEmailCount === 0) {
+      setMissingEmailActionMessage("There are no missing email recipients to copy.");
+      return;
+    }
+
+    const text = getMissingEmailListText();
+
+    try {
+      if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(text);
+        setMissingEmailActionMessage(
+          `${missingEmailCount} missing recipient${
+            missingEmailCount === 1 ? "" : "s"
+          } copied to the clipboard.`
+        );
+        return;
+      }
+
+      await Share.share({
+        title: "Missing Email Addresses",
+        message: text,
+      });
+      setMissingEmailActionMessage("The missing recipient list is ready to share.");
+    } catch (error: any) {
+      setMissingEmailActionMessage(
+        error?.message || "The missing recipient list could not be copied."
+      );
+    }
+  }
+
+  async function exportMissingEmailCsv() {
+    if (missingEmailCount === 0) {
+      setMissingEmailActionMessage("There are no missing email recipients to export.");
+      return;
+    }
+
+    const csv = getMissingEmailCsv();
+    const fileName = "Missing_Email_Recipients.csv";
+
+    try {
+      if (Platform.OS === "web" && typeof document !== "undefined") {
+        const blob = new Blob(["\ufeff", csv], {
+          type: "text/csv;charset=utf-8;",
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        setMissingEmailActionMessage(`${fileName} was downloaded.`);
+        return;
+      }
+
+      await Share.share({
+        title: fileName,
+        message: csv,
+      });
+      setMissingEmailActionMessage("The CSV data is ready to share.");
+    } catch (error: any) {
+      setMissingEmailActionMessage(
+        error?.message || "The CSV file could not be exported."
+      );
+    }
+  }
+
+  async function refreshMissingEmailRecipients() {
+    setMissingEmailActionMessage("");
+    await loadRecipients();
+    setMissingEmailActionMessage("The missing email list has been refreshed.");
+  }
+
+  function openMissingEmailList() {
+    setMissingEmailActionMessage("");
+
+    if (missingEmailCount === 0) {
+      showResult(
+        "success",
+        "No Missing Emails",
+        "Every matching recipient has an email address available."
+      );
+      return;
+    }
+
+    setShowMissingEmails(true);
+  }
 
   function selectAudience(nextAudience: Audience) {
     setActiveTemplateId(null);
@@ -533,11 +665,19 @@ export default function EmailCenterScreen() {
               <Text style={styles.dashboardLabel}>Email Ready</Text>
             </View>
 
-            <View style={styles.dashboardCard}>
+            <Pressable
+              style={[
+                styles.dashboardCard,
+                styles.missingEmailDashboardCard,
+                missingEmailCount === 0 && styles.dashboardCardDisabled,
+              ]}
+              onPress={openMissingEmailList}
+            >
               <Ionicons name="warning-outline" size={24} color="#f97316" />
               <Text style={styles.dashboardNumber}>{missingEmailCount}</Text>
               <Text style={styles.dashboardLabel}>Missing Email</Text>
-            </View>
+              <Text style={styles.dashboardActionText}>View List</Text>
+            </Pressable>
 
             <Pressable
               style={[styles.dashboardCard, styles.historyDashboardCard]}
@@ -952,7 +1092,7 @@ export default function EmailCenterScreen() {
 
                 <Pressable
                   style={styles.viewMissingButton}
-                  onPress={() => setShowMissingEmails(true)}
+                  onPress={openMissingEmailList}
                 >
                   <View style={styles.buttonRow}>
                     <Ionicons
@@ -1023,6 +1163,12 @@ export default function EmailCenterScreen() {
               </View>
             </View>
 
+            <View style={styles.missingEmailCountBadge}>
+              <Text style={styles.missingEmailCountBadgeText}>
+                {missingEmailCount} Recipient{missingEmailCount === 1 ? "" : "s"}
+              </Text>
+            </View>
+
             <ScrollView
               style={styles.missingEmailList}
               showsVerticalScrollIndicator={false}
@@ -1054,9 +1200,51 @@ export default function EmailCenterScreen() {
               ))}
             </ScrollView>
 
+            {missingEmailActionMessage ? (
+              <View style={styles.missingEmailActionMessageBox}>
+                <Ionicons
+                  name="information-circle-outline"
+                  size={18}
+                  color="#1d4ed8"
+                />
+                <Text style={styles.missingEmailActionMessageText}>
+                  {missingEmailActionMessage}
+                </Text>
+              </View>
+            ) : null}
+
+            <View style={styles.missingEmailActionGrid}>
+              <Pressable
+                style={[styles.missingEmailActionButton, styles.copyListButton]}
+                onPress={copyMissingEmailList}
+              >
+                <Ionicons name="copy-outline" size={19} color="#ffffff" />
+                <Text style={styles.missingEmailActionButtonText}>Copy List</Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.missingEmailActionButton, styles.exportCsvButton]}
+                onPress={exportMissingEmailCsv}
+              >
+                <Ionicons name="document-outline" size={19} color="#ffffff" />
+                <Text style={styles.missingEmailActionButtonText}>Export CSV</Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.missingEmailActionButton, styles.refreshListButton]}
+                onPress={refreshMissingEmailRecipients}
+              >
+                <Ionicons name="refresh-outline" size={19} color="#ffffff" />
+                <Text style={styles.missingEmailActionButtonText}>Refresh</Text>
+              </Pressable>
+            </View>
+
             <Pressable
               style={styles.closeButton}
-              onPress={() => setShowMissingEmails(false)}
+              onPress={() => {
+                setMissingEmailActionMessage("");
+                setShowMissingEmails(false);
+              }}
             >
               <View style={styles.buttonRow}>
                 <Ionicons
@@ -1344,6 +1532,19 @@ const styles = StyleSheet.create({
   historyDashboardCard: {
     borderWidth: 1,
     borderColor: "#ddd6fe",
+  },
+  missingEmailDashboardCard: {
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+  },
+  dashboardCardDisabled: {
+    opacity: 0.72,
+  },
+  dashboardActionText: {
+    color: "#c2410c",
+    fontSize: 11,
+    fontWeight: "900",
+    marginTop: 5,
   },
   dashboardNumber: {
     color: "#111827",
@@ -1824,9 +2025,24 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 10,
   },
+  missingEmailCountBadge: {
+    alignSelf: "center",
+    backgroundColor: "#fff7ed",
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+    borderRadius: 999,
+    paddingVertical: 7,
+    paddingHorizontal: 13,
+    marginBottom: 10,
+  },
+  missingEmailCountBadgeText: {
+    color: "#c2410c",
+    fontSize: 13,
+    fontWeight: "900",
+  },
   missingEmailList: {
     width: "100%",
-    maxHeight: 430,
+    maxHeight: 360,
   },
   missingEmailRecipientCard: {
     flexDirection: "row",
@@ -1860,6 +2076,56 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     marginTop: 2,
+  },
+  missingEmailActionMessageBox: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#eff6ff",
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 10,
+  },
+  missingEmailActionMessageText: {
+    flex: 1,
+    color: "#1e3a8a",
+    fontSize: 12,
+    fontWeight: "800",
+    marginLeft: 7,
+  },
+  missingEmailActionGrid: {
+    width: "100%",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 10,
+  },
+  missingEmailActionButton: {
+    flexGrow: 1,
+    minWidth: "30%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+  },
+  copyListButton: {
+    backgroundColor: "#1d4ed8",
+  },
+  exportCsvButton: {
+    backgroundColor: "#15803d",
+  },
+  refreshListButton: {
+    backgroundColor: "#7c3aed",
+  },
+  missingEmailActionButtonText: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "900",
+    marginLeft: 6,
   },
   confirmSendButton: {
     width: "100%",
