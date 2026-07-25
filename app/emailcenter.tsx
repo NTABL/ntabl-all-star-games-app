@@ -250,6 +250,7 @@ export default function EmailCenterScreen() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  const [showMissingEmails, setShowMissingEmails] = useState(false);
 
   useEffect(() => {
     loadRecipients();
@@ -264,7 +265,12 @@ export default function EmailCenterScreen() {
     [recipients]
   );
 
-  const missingEmailCount = recipients.length - withEmail.length;
+  const missingEmailRecipients = useMemo(
+    () => recipients.filter((recipient) => !recipient.email),
+    [recipients]
+  );
+
+  const missingEmailCount = missingEmailRecipients.length;
 
   function selectAudience(nextAudience: Audience) {
     setActiveTemplateId(null);
@@ -937,11 +943,30 @@ export default function EmailCenterScreen() {
             </Text>
 
             {missingEmailCount > 0 && (
-              <Text style={styles.missingNotice}>
-                {missingEmailCount} matching recipient
-                {missingEmailCount === 1 ? " has" : "s have"} no email address
-                and will be skipped.
-              </Text>
+              <View style={styles.missingNoticeBox}>
+                <Text style={styles.missingNotice}>
+                  {missingEmailCount} matching recipient
+                  {missingEmailCount === 1 ? " has" : "s have"} no email address
+                  and will be skipped.
+                </Text>
+
+                <Pressable
+                  style={styles.viewMissingButton}
+                  onPress={() => setShowMissingEmails(true)}
+                >
+                  <View style={styles.buttonRow}>
+                    <Ionicons
+                      name="people-outline"
+                      size={18}
+                      color="#ffffff"
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text style={styles.viewMissingButtonText}>
+                      View Missing Email{missingEmailCount === 1 ? "" : "s"}
+                    </Text>
+                  </View>
+                </Pressable>
+              </View>
             )}
 
             <Pressable
@@ -974,6 +999,73 @@ export default function EmailCenterScreen() {
                   style={{ marginRight: 6 }}
                 />
                 <Text style={styles.cancelButtonText}>Cancel</Text>
+              </View>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showMissingEmails}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowMissingEmails(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.missingEmailModalCard}>
+            <View style={styles.missingEmailHeader}>
+              <Ionicons name="warning-outline" size={34} color="#c2410c" />
+              <View style={styles.missingEmailHeaderText}>
+                <Text style={styles.modalTitle}>Missing Email Addresses</Text>
+                <Text style={styles.modalSubtitle}>
+                  These recipients will be skipped when the email is sent.
+                </Text>
+              </View>
+            </View>
+
+            <ScrollView
+              style={styles.missingEmailList}
+              showsVerticalScrollIndicator={false}
+            >
+              {missingEmailRecipients.map((recipient) => (
+                <View key={recipient.key} style={styles.missingEmailRecipientCard}>
+                  <View style={styles.missingEmailRecipientIcon}>
+                    <Ionicons
+                      name={recipient.role === "manager" ? "people-outline" : "person-outline"}
+                      size={22}
+                      color="#ffffff"
+                    />
+                  </View>
+
+                  <View style={styles.missingEmailRecipientText}>
+                    <Text style={styles.missingEmailRecipientName}>
+                      {recipient.name || "Unnamed Recipient"}
+                    </Text>
+                    <Text style={styles.missingEmailRecipientDetails}>
+                      {recipient.roleLabel || (recipient.role === "manager" ? "All-Star Manager" : "Player")}
+                      {recipient.teamName ? ` • ${recipient.teamName}` : ""}
+                    </Text>
+                    <Text style={styles.missingEmailRecipientDetails}>
+                      {recipient.divisionName || recipient.divisionId || "Division Not Listed"}
+                      {recipient.squad ? ` • ${recipient.squad}` : ""}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+
+            <Pressable
+              style={styles.closeButton}
+              onPress={() => setShowMissingEmails(false)}
+            >
+              <View style={styles.buttonRow}>
+                <Ionicons
+                  name="close-circle-outline"
+                  size={19}
+                  color="#ffffff"
+                  style={{ marginRight: 6 }}
+                />
+                <Text style={styles.closeButtonText}>Close</Text>
               </View>
             </Pressable>
           </View>
@@ -1684,15 +1776,90 @@ const styles = StyleSheet.create({
     color: "#0f766e",
     fontWeight: "900",
   },
+  missingNoticeBox: {
+    width: "100%",
+    backgroundColor: "#fff7ed",
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 13,
+  },
   missingNotice: {
     color: "#c2410c",
     fontSize: 13,
     fontWeight: "800",
     textAlign: "center",
+    marginBottom: 9,
+  },
+  viewMissingButton: {
+    backgroundColor: "#c2410c",
+    borderRadius: 9,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: "center",
+  },
+  viewMissingButtonText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  missingEmailModalCard: {
+    width: "92%",
+    maxWidth: 620,
+    maxHeight: "82%",
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: "#000000",
+    shadowOpacity: 0.2,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 10,
+  },
+  missingEmailHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  missingEmailHeaderText: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  missingEmailList: {
+    width: "100%",
+    maxHeight: 430,
+  },
+  missingEmailRecipientCard: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#fff7ed",
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 13,
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 9,
+  },
+  missingEmailRecipientIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 999,
+    backgroundColor: "#c2410c",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 11,
+  },
+  missingEmailRecipientText: {
+    flex: 1,
+  },
+  missingEmailRecipientName: {
+    color: "#111827",
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  missingEmailRecipientDetails: {
+    color: "#6b7280",
+    fontSize: 12,
+    fontWeight: "700",
+    marginTop: 2,
   },
   confirmSendButton: {
     width: "100%",
