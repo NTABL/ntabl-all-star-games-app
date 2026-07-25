@@ -40,6 +40,18 @@ type Division = {
   name: string;
 };
 
+type EmailSendResult = {
+  key: string;
+  name: string;
+  email: string;
+  status: "sent" | "failed";
+  error?: string;
+  code?: string;
+  command?: string;
+  response?: string;
+  responseCode?: number | null;
+};
+
 type CommunicationHistoryEntry = {
   id: string;
   channel: string;
@@ -52,6 +64,8 @@ type CommunicationHistoryEntry = {
   failedCount: number;
   test: boolean;
   createdAt: string;
+  results?: EmailSendResult[];
+  retryOf?: string;
 };
 
 type MessageTemplate = {
@@ -254,6 +268,11 @@ export default function EmailCenterScreen() {
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [showMissingEmails, setShowMissingEmails] = useState(false);
   const [missingEmailActionMessage, setMissingEmailActionMessage] = useState("");
+  const [showFailedEmails, setShowFailedEmails] = useState(false);
+  const [failedEmailResults, setFailedEmailResults] = useState<EmailSendResult[]>([]);
+  const [failedEmailEntryId, setFailedEmailEntryId] = useState("");
+  const [failedEmailActionMessage, setFailedEmailActionMessage] = useState("");
+  const [retryingFailedEmails, setRetryingFailedEmails] = useState(false);
 
   useEffect(() => {
     loadRecipients();
@@ -404,6 +423,125 @@ export default function EmailCenterScreen() {
     setShowMissingEmails(true);
   }
 
+  function getFailureReason(item: EmailSendResult) {
+    return item.response || item.error || item.code || "The email provider did not return a detailed reason.";
+  }
+
+  function openFailedEmailList(results: EmailSendResult[], entryId = "") {
+    const failed = (Array.isArray(results) ? results : []).filter(
+      (item) => item.status === "failed"
+    );
+
+    setFailedEmailResults(failed);
+    setFailedEmailEntryId(entryId);
+    setFailedEmailActionMessage("");
+    setShowFailedEmails(true);
+  }
+
+  function getFailedEmailCsv() {
+    const header = ["Name", "Email", "Code", "Response Code", "Reason"];
+    const rows = failedEmailResults.map((item) => [
+      item.name || "Recipient",
+      item.email || "",
+      item.code || "",
+      item.responseCode ? String(item.responseCode) : "",
+      getFailureReason(item),
+    ]);
+
+    return [header, ...rows]
+      .map((row) => row.map((value) => escapeCsvValue(value)).join(","))
+      .join("\r\n");
+  }
+
+  async function copyFailedEmailList() {
+    const text = failedEmailResults
+      .map(
+        (item, index) =>
+          `${index + 1}. ${item.name || "Recipient"}\n${item.email || "No email"}\n${getFailureReason(item)}`
+      )
+      .join("\n\n");
+
+    try {
+      if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(`Failed Email Recipients (${failedEmailResults.length})\n\n${text}`);
+        setFailedEmailActionMessage("Failed recipient details copied to the clipboard.");
+      } else {
+        await Share.share({ title: "Failed Email Recipients", message: text });
+        setFailedEmailActionMessage("The failed recipient list is ready to share.");
+      }
+    } catch (error: any) {
+      setFailedEmailActionMessage(error?.message || "The failed recipient list could not be copied.");
+    }
+  }
+
+  async function exportFailedEmailCsv() {
+    const csv = getFailedEmailCsv();
+    const fileName = "Failed_Email_Recipients.csv";
+
+    try {
+      if (Platform.OS === "web" && typeof document !== "undefined") {
+        const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        setFailedEmailActionMessage(`${fileName} was downloaded.`);
+      } else {
+        await Share.share({ title: fileName, message: csv });
+        setFailedEmailActionMessage("The failed recipient CSV is ready to share.");
+      }
+    } catch (error: any) {
+      setFailedEmailActionMessage(error?.message || "The failed recipient CSV could not be exported.");
+    }
+  }
+
+  async function retryFailedEmails() {
+    if (!failedEmailEntryId) {
+      setFailedEmailActionMessage("Retry is only available from Communication History or immediately after a send.");
+      return;
+    }
+
+    try {
+      setRetryingFailedEmails(true);
+      setFailedEmailActionMessage("");
+
+      const response = await adminFetch(
+        `${API_BASE}/api/admin/communications/email/retry-failed`,
+        {
+          method: "POST",
+          body: JSON.stringify({ entryId: failedEmailEntryId }),
+        }
+      );
+      const json = await response.json();
+
+      if (!response.ok || !json?.ok) {
+        throw new Error(json?.message || "Failed recipients could not be retried.");
+      }
+
+      const stillFailed = Array.isArray(json.results)
+        ? json.results.filter((item: EmailSendResult) => item.status === "failed")
+        : [];
+
+      setFailedEmailResults(stillFailed);
+      setFailedEmailEntryId(json.entryId || "");
+      setFailedEmailActionMessage(json.message || "Retry completed.");
+      await loadHistory();
+
+      if (stillFailed.length === 0) {
+        setShowFailedEmails(false);
+        showResult("success", "Retry Complete", json.message || "All failed recipients were sent successfully.");
+      }
+    } catch (error: any) {
+      setFailedEmailActionMessage(error?.message || "Failed recipients could not be retried.");
+    } finally {
+      setRetryingFailedEmails(false);
+    }
+  }
+
   function selectAudience(nextAudience: Audience) {
     setActiveTemplateId(null);
     setAudience(nextAudience);
@@ -552,6 +690,10 @@ export default function EmailCenterScreen() {
         throw new Error(json?.message || "Email could not be sent.");
       }
 
+      const failedResults = Array.isArray(json.results)
+        ? json.results.filter((item: EmailSendResult) => item.status === "failed")
+        : [];
+
       showResult(
         json.failedCount > 0 ? "warning" : "success",
         sendTest ? "Test Email Sent" : "Email Complete",
@@ -560,6 +702,10 @@ export default function EmailCenterScreen() {
             json.sentCount === 1 ? "" : "s"
           } sent.`
       );
+
+      if (failedResults.length > 0) {
+        openFailedEmailList(failedResults, json.entryId || "");
+      }
 
       await loadRecipients();
       await loadHistory();
@@ -1261,6 +1407,93 @@ export default function EmailCenterScreen() {
       </Modal>
 
       <Modal
+        visible={showFailedEmails}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowFailedEmails(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.failedEmailModalCard}>
+            <View style={styles.missingEmailHeader}>
+              <Ionicons name="alert-circle-outline" size={34} color="#c62828" />
+              <View style={styles.missingEmailHeaderText}>
+                <Text style={styles.modalTitle}>Failed Email Recipients</Text>
+                <Text style={styles.modalSubtitle}>
+                  Review the provider error, then retry only these recipients.
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.failedEmailCountBadge}>
+              <Text style={styles.failedEmailCountBadgeText}>
+                {failedEmailResults.length} Failed Recipient{failedEmailResults.length === 1 ? "" : "s"}
+              </Text>
+            </View>
+
+            <ScrollView style={styles.failedEmailList} showsVerticalScrollIndicator={false}>
+              {failedEmailResults.map((item) => (
+                <View key={`${item.key}:${item.email}`} style={styles.failedEmailRecipientCard}>
+                  <Ionicons name="close-circle" size={25} color="#c62828" />
+                  <View style={styles.failedEmailRecipientText}>
+                    <Text style={styles.failedEmailRecipientName}>{item.name || "Recipient"}</Text>
+                    <Text style={styles.failedEmailAddress}>{item.email || "No email address"}</Text>
+                    <Text style={styles.failedEmailReason}>{getFailureReason(item)}</Text>
+                    {(item.code || item.responseCode) ? (
+                      <Text style={styles.failedEmailCode}>
+                        {[item.code, item.responseCode ? `SMTP ${item.responseCode}` : ""].filter(Boolean).join(" • ")}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+
+            {failedEmailActionMessage ? (
+              <View style={styles.missingEmailActionMessageBox}>
+                <Ionicons name="information-circle-outline" size={18} color="#1d4ed8" />
+                <Text style={styles.missingEmailActionMessageText}>{failedEmailActionMessage}</Text>
+              </View>
+            ) : null}
+
+            <View style={styles.missingEmailActionGrid}>
+              <Pressable style={[styles.missingEmailActionButton, styles.copyListButton]} onPress={copyFailedEmailList}>
+                <Ionicons name="copy-outline" size={19} color="#ffffff" />
+                <Text style={styles.missingEmailActionButtonText}>Copy List</Text>
+              </Pressable>
+              <Pressable style={[styles.missingEmailActionButton, styles.exportCsvButton]} onPress={exportFailedEmailCsv}>
+                <Ionicons name="document-outline" size={19} color="#ffffff" />
+                <Text style={styles.missingEmailActionButtonText}>Export CSV</Text>
+              </Pressable>
+            </View>
+
+            <Pressable
+              style={[styles.retryFailedButton, retryingFailedEmails && styles.disabledButton]}
+              onPress={retryFailedEmails}
+              disabled={retryingFailedEmails || !failedEmailEntryId || failedEmailResults.length === 0}
+            >
+              {retryingFailedEmails ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <View style={styles.buttonRow}>
+                  <Ionicons name="refresh-circle-outline" size={21} color="#ffffff" style={{ marginRight: 7 }} />
+                  <Text style={styles.retryFailedButtonText}>
+                    Retry Only {failedEmailResults.length} Failed Recipient{failedEmailResults.length === 1 ? "" : "s"}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
+
+            <Pressable style={styles.closeButton} onPress={() => setShowFailedEmails(false)}>
+              <View style={styles.buttonRow}>
+                <Ionicons name="close-circle-outline" size={19} color="#ffffff" style={{ marginRight: 6 }} />
+                <Text style={styles.closeButtonText}>Close</Text>
+              </View>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
         visible={showHistory}
         transparent
         animationType="fade"
@@ -1292,7 +1525,16 @@ export default function EmailCenterScreen() {
                   </Text>
                 ) : (
                   history.map((entry) => (
-                    <View key={entry.id} style={styles.historyEntry}>
+                    <Pressable
+                      key={entry.id}
+                      style={styles.historyEntry}
+                      onPress={() => {
+                        const failed = Array.isArray(entry.results)
+                          ? entry.results.filter((item) => item.status === "failed")
+                          : [];
+                        if (failed.length > 0) openFailedEmailList(failed, entry.id);
+                      }}
+                    >
                       <View style={styles.historyEntryIcon}>
                         <Ionicons
                           name={entry.test ? "flask-outline" : "mail-outline"}
@@ -1318,12 +1560,15 @@ export default function EmailCenterScreen() {
                       <View style={styles.historyStats}>
                         <Text style={styles.historySent}>{entry.sentCount} sent</Text>
                         {entry.failedCount > 0 && (
-                          <Text style={styles.historyFailed}>
-                            {entry.failedCount} failed
-                          </Text>
+                          <>
+                            <Text style={styles.historyFailed}>
+                              {entry.failedCount} failed
+                            </Text>
+                            <Text style={styles.historyViewFailed}>View</Text>
+                          </>
                         )}
                       </View>
-                    </View>
+                    </Pressable>
                   ))
                 )}
               </ScrollView>
@@ -2126,6 +2371,95 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "900",
     marginLeft: 6,
+  },
+  historyViewFailed: {
+    color: "#1d4ed8",
+    fontSize: 11,
+    fontWeight: "900",
+    marginTop: 3,
+  },
+  failedEmailModalCard: {
+    width: "92%",
+    maxWidth: 680,
+    maxHeight: "88%",
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: "#000000",
+    shadowOpacity: 0.2,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 10,
+  },
+  failedEmailCountBadge: {
+    alignSelf: "center",
+    backgroundColor: "#fef2f2",
+    borderWidth: 1,
+    borderColor: "#fecaca",
+    borderRadius: 999,
+    paddingVertical: 7,
+    paddingHorizontal: 13,
+    marginBottom: 10,
+  },
+  failedEmailCountBadgeText: {
+    color: "#c62828",
+    fontSize: 13,
+    fontWeight: "900",
+  },
+  failedEmailList: {
+    width: "100%",
+    maxHeight: 390,
+  },
+  failedEmailRecipientCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#fef2f2",
+    borderWidth: 1,
+    borderColor: "#fecaca",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 9,
+  },
+  failedEmailRecipientText: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  failedEmailRecipientName: {
+    color: "#111827",
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  failedEmailAddress: {
+    color: "#1d4ed8",
+    fontSize: 12,
+    fontWeight: "800",
+    marginTop: 2,
+  },
+  failedEmailReason: {
+    color: "#991b1b",
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 17,
+    marginTop: 5,
+  },
+  failedEmailCode: {
+    color: "#6b7280",
+    fontSize: 11,
+    fontWeight: "800",
+    marginTop: 4,
+  },
+  retryFailedButton: {
+    width: "100%",
+    backgroundColor: "#c62828",
+    borderRadius: 11,
+    paddingVertical: 13,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  retryFailedButtonText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "900",
   },
   confirmSendButton: {
     width: "100%",
