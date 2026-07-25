@@ -74,57 +74,19 @@ export default function AnnouncerItineraryScreen(){
   }
  }
 
- function normalize(value:string){
-  return (value||"").trim().toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
- }
-
  async function cloneToOtherGames(){
   if(!game)return;
   try{
    setCloning(true);
-
-   const listResponse=await adminFetch(`${API_BASE}/api/admin/announcer-schedules`);
-   const listJson=await listResponse.json();
-   if(!listResponse.ok||!listJson?.ok)throw new Error(listJson?.message||"Could not load the other announcer games.");
-
-   const listedGames:Game[]=Array.isArray(listJson.games)
-    ? listJson.games
-    : Array.isArray(listJson.schedules)
-     ? listJson.schedules
-     : [];
-
-   const targets=listedGames.filter(g=>g?.id&&g.id!==game.id);
-   if(!targets.length)throw new Error("No other announcer games were found to clone into.");
-
-   let cloned=0;
-   for(const targetSummary of targets){
-    const detailResponse=await adminFetch(`${API_BASE}/api/admin/announcer-schedules/${targetSummary.id}`);
-    const detailJson=await detailResponse.json();
-    if(!detailResponse.ok||!detailJson?.ok||!detailJson?.game)throw new Error(detailJson?.message||`Could not load ${targetSummary.title||"another game"}.`);
-
-    const targetGame:Game=detailJson.game;
-    const updatedItems=(targetGame.items||[]).map((targetItem,targetIndex)=>{
-     const sourceItem=
-      game.items.find(source=>source.id===targetItem.id)||
-      game.items.find(source=>normalize(source.title)===normalize(targetItem.title))||
-      game.items[targetIndex];
-
-     return sourceItem
-      ? {...targetItem,announcerScript:sourceItem.announcerScript||""}
-      : targetItem;
-    });
-
-    const updatedGame={...targetGame,items:updatedItems};
-    const saveResponse=await adminFetch(`${API_BASE}/api/admin/announcer-schedules/${targetGame.id}`,{
-     method:"POST",
-     body:JSON.stringify({game:updatedGame})
-    });
-    const saveJson=await saveResponse.json();
-    if(!saveResponse.ok||!saveJson?.ok)throw new Error(saveJson?.message||`Could not save ${targetGame.title||"another game"}.`);
-    cloned++;
-   }
-
-   show("success","Scripts Cloned",`The Announcer Script text was cloned to ${cloned} other game${cloned===1?"":"s"}.`);
+   const r=await adminFetch(`${API_BASE}/api/admin/announcer-schedules/${game.id}/clone`,{
+    method:"POST",
+    body:JSON.stringify({
+     items:game.items.map(item=>({announcerScript:item.announcerScript||""}))
+    })
+   });
+   const j=await r.json();
+   if(!r.ok||!j?.ok)throw new Error(j?.message||"Could not clone the announcer scripts to the other games.");
+   show("success","Scripts Cloned",j.message||"The Announcer Script text was cloned to the other games.");
   }catch(e:any){
    show("error","Clone Failed",e?.message||"Could not clone the announcer scripts to the other games.");
   }finally{
