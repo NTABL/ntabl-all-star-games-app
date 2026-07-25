@@ -142,6 +142,17 @@ Thank you,
 NTABL`,
 };
 
+const INSERT_FIELDS = [
+  { label: "First Name", value: "{FirstName}" }, { label: "Full Name", value: "{Name}" },
+  { label: "Division", value: "{Division}" }, { label: "Squad", value: "{Squad}" },
+  { label: "Team", value: "{Team}" }, { label: "Role", value: "{Role}" },
+  { label: "Dugout", value: "{Dugout}" }, { label: "Opponent", value: "{Opponent}" },
+  { label: "Game Title", value: "{GameTitle}" }, { label: "Game Number", value: "{GameNumber}" },
+  { label: "Arrival Time", value: "{ArrivalTime}" }, { label: "Game Time", value: "{GameTime}" },
+  { label: "Venue", value: "{Venue}" }, { label: "Field", value: "{Field}" },
+  { label: "Event Date", value: "{EventDate}" },
+];
+
 const MESSAGE_TEMPLATES: MessageTemplate[] = [
   {
     id: "waiver-reminder",
@@ -295,6 +306,10 @@ export default function EmailCenterScreen() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function insertField(value: string) {
+    setMessage((current) => `${current}${current && !current.endsWith(" ") ? " " : ""}${value}`);
   }
 
   function applyTemplate(template: MessageTemplate) {
@@ -694,6 +709,16 @@ export default function EmailCenterScreen() {
               placeholderTextColor="#9ca3af"
             />
 
+            <Text style={styles.inputLabel}>Insert Personalized Field</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.insertFieldRow}>
+              {INSERT_FIELDS.map((field) => (
+                <Pressable key={field.value} style={styles.insertFieldButton} onPress={() => insertField(field.value)}>
+                  <Ionicons name="add-circle-outline" size={16} color="#1d4ed8" />
+                  <Text style={styles.insertFieldText}>{field.label}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+
             <Text style={styles.inputLabel}>Message</Text>
             <TextInput
               value={message}
@@ -705,10 +730,7 @@ export default function EmailCenterScreen() {
               placeholderTextColor="#9ca3af"
             />
 
-            <Text style={styles.templateHelp}>
-              Available fields: {"{FirstName}"}, {"{Name}"}, {"{Division}"},{" "}
-              {"{Squad}"}, {"{Team}"}, {"{Role}"}
-            </Text>
+            <Text style={styles.templateHelp}>Tap a field above to add it to the end of your message. Each field is personalized separately for every recipient.</Text>
           </View>
 <View style={styles.sectionCard}>
             <Text style={styles.sectionTitle}>4. Test and Send</Text>
@@ -1361,6 +1383,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "900",
   },
+  insertFieldRow: { gap: 8, paddingBottom: 13 },
+  insertFieldButton: { flexDirection: "row", alignItems: "center", backgroundColor: "#eff6ff", borderWidth: 1, borderColor: "#bfdbfe", borderRadius: 999, paddingVertical: 8, paddingHorizontal: 11 },
+  insertFieldText: { color: "#1e3a8a", fontSize: 12, fontWeight: "900", marginLeft: 5 },
   inputLabel: {
     color: "#374151",
     fontSize: 14,

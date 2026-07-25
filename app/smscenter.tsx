@@ -18,6 +18,8 @@ import {
 import { isAdminLoggedIn } from "../stores/adminstore";
 import { adminFetch, API_BASE } from "../utils/appconfig";
 
+const INSERT_FIELDS = ["{FirstName}", "{Name}", "{Division}", "{Squad}", "{Team}", "{Role}", "{Dugout}", "{Opponent}", "{GameTitle}", "{GameNumber}", "{ArrivalTime}", "{GameTime}", "{Venue}", "{Field}", "{EventDate}"];
+
 export default function SmsCenterScreen() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [message, setMessage] = useState(
@@ -226,6 +228,15 @@ export default function SmsCenterScreen() {
             <Text style={styles.helperText}>
               Enter a valid 10-digit U.S. mobile number.
             </Text>
+
+            <Text style={styles.label}>Insert Personalized Field</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.insertFieldRow}>
+              {INSERT_FIELDS.map((field) => (
+                <TouchableOpacity key={field} style={styles.insertFieldButton} onPress={() => setMessage((current) => `${current}${current && !current.endsWith(" ") ? " " : ""}${field}`)} disabled={sending}>
+                  <Text style={styles.insertFieldText}>{field}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
 
             <Text style={styles.label}>Test Message</Text>
             <TextInput
@@ -479,6 +490,9 @@ const styles = StyleSheet.create({
     color: "#6b7280",
   },
 
+  insertFieldRow: { gap: 8, paddingBottom: 16 },
+  insertFieldButton: { backgroundColor: "#ecfdf5", borderWidth: 1, borderColor: "#a7f3d0", borderRadius: 999, paddingVertical: 8, paddingHorizontal: 11 },
+  insertFieldText: { color: "#166534", fontSize: 12, fontWeight: "900" },
   label: {
     fontSize: 14,
     fontWeight: "800",

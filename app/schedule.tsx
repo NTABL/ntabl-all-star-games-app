@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { getManagerContext } from "../stores/store";
 import { API_BASE } from "../utils/appconfig";
 
 type ScheduleItem = {
@@ -76,9 +77,11 @@ function findItem(game: GameSchedule, term: string) {
 export default function ScheduleScreen() {
   const [schedule, setSchedule] = useState<ScheduleConfig | null>(null);
   const [loading, setLoading] = useState(true);
+  const [memberContext, setMemberContext] = useState<any>(null);
 
   useEffect(() => {
     loadSchedule();
+    getManagerContext().then(setMemberContext).catch(() => setMemberContext(null));
   }, []);
 
   async function loadSchedule() {
@@ -191,6 +194,36 @@ export default function ScheduleScreen() {
               const arrival = findItem(game, "arrive");
               const start = findItem(game, "game begins");
               const end = findItem(game, "game end");
+              const memberSquad = String(
+                memberContext?.squad || memberContext?.allStarManagerAccess?.squad || ""
+              );
+              const memberDivisionIds = Array.isArray(
+                memberContext?.allStarManagerAccess?.divisionIds
+              )
+                ? memberContext.allStarManagerAccess.divisionIds.map(String)
+                : [
+                    memberContext?.divisionId,
+                    memberContext?.division,
+                    memberContext?.league,
+                  ]
+                    .filter(Boolean)
+                    .map(String);
+              const normalizedMemberDivisions = memberDivisionIds.map((value: string) =>
+                value.toLowerCase()
+              );
+              const isMemberGame = game.divisionIds.some((divisionId) =>
+                normalizedMemberDivisions.some(
+                  (value: string) =>
+                    value === String(divisionId).toLowerCase() ||
+                    value.includes(String(divisionId).toLowerCase())
+                )
+              );
+              const assignedDugout =
+                memberSquad === "East"
+                  ? game.eastDugout
+                  : memberSquad === "West"
+                  ? game.westDugout
+                  : "";
 
               return (
                 <Pressable
@@ -229,6 +262,18 @@ export default function ScheduleScreen() {
                     <Text style={styles.divisionText}>
                       {game.divisionIds.join(" • ").toUpperCase()}
                     </Text>
+
+                    {isMemberGame && (memberSquad === "East" || memberSquad === "West") && (
+                      <View style={styles.assignmentCard}>
+                        <Ionicons name="person-circle-outline" size={24} color="#1f4e9e" />
+                        <View style={styles.assignmentTextArea}>
+                          <Text style={styles.assignmentHeading}>YOUR ASSIGNMENT</Text>
+                          <Text style={styles.assignmentValue}>
+                            {memberSquad.toUpperCase()} • {assignedDugout || "Dugout TBD"}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
 
                     <View style={styles.dugoutRow}>
                       <View style={styles.dugoutItem}>
@@ -440,6 +485,13 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     marginTop: 4,
   },
+  assignmentCard: {
+    flexDirection: "row", alignItems: "center", backgroundColor: "#dbeafe",
+    borderWidth: 1, borderColor: "#93c5fd", borderRadius: 12, padding: 10, marginTop: 12,
+  },
+  assignmentTextArea: { flex: 1, marginLeft: 9 },
+  assignmentHeading: { color: "#1e3a8a", fontSize: 10, fontWeight: "900" },
+  assignmentValue: { color: "#111827", fontSize: 16, fontWeight: "900", marginTop: 2 },
   dugoutRow: {
     flexDirection: "row",
     alignItems: "stretch",
