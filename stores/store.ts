@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const MANAGER_KEY = "ntabl_manager_context";
+const ADMIN_CONTEXT_KEY = "ntabl_pre_impersonation_context";
 
 let managerCache: any = null;
 
@@ -21,7 +22,18 @@ export async function getManagerContext() {
 
 export async function clearManagerContext() {
   managerCache = null;
-  await AsyncStorage.removeItem(MANAGER_KEY);
+  await AsyncStorage.multiRemove([MANAGER_KEY, ADMIN_CONTEXT_KEY]);
+}
+
+export async function beginImpersonation(impersonatedContext: any) {
+  const current = await getManagerContext();
+
+  if (current && !current?.isImpersonating) {
+    await AsyncStorage.setItem(ADMIN_CONTEXT_KEY, JSON.stringify(current));
+  }
+
+  await setManagerContext(impersonatedContext);
+  return impersonatedContext;
 }
 
 export async function switchManagerAssignment(assignmentKey: string) {
@@ -46,7 +58,6 @@ export async function switchManagerAssignment(assignmentKey: string) {
   return nextContext;
 }
 
-
 export async function exitImpersonation() {
   const current = await getManagerContext();
 
@@ -54,6 +65,15 @@ export async function exitImpersonation() {
     return false;
   }
 
-  await clearManagerContext();
+  const savedAdminContext = await AsyncStorage.getItem(ADMIN_CONTEXT_KEY);
+
+  if (!savedAdminContext) {
+    await clearManagerContext();
+    return false;
+  }
+
+  const restoredContext = JSON.parse(savedAdminContext);
+  await setManagerContext(restoredContext);
+  await AsyncStorage.removeItem(ADMIN_CONTEXT_KEY);
   return true;
 }

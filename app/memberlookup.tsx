@@ -12,7 +12,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { setManagerContext } from "../stores/store";
+import { beginImpersonation } from "../stores/store";
 import { adminFetch, API_BASE } from "../utils/appconfig";
 import { modalStyles } from "../utils/modalStyles";
 
@@ -123,7 +123,7 @@ export default function MemberLookupScreen() {
         return;
       }
 
-      await setManagerContext(json.manager);
+      await beginImpersonation(json.manager);
       setConfirmVisible(false);
       router.replace("/dashboard");
     } catch (error) {
@@ -316,7 +316,7 @@ export default function MemberLookupScreen() {
             <Ionicons
               name="shield-checkmark-outline"
               size={52}
-              color="#7c3aed"
+              color="#1d4ed8"
               style={{ marginBottom: 8 }}
             />
 
@@ -330,8 +330,7 @@ export default function MemberLookupScreen() {
             </Text>
 
             <Text style={styles.modalMessage}>
-              You will temporarily view the app using this member’s account context.
-              A prominent Admin Impersonation banner will remain visible until you exit.
+              You will temporarily view the app using this member’s account context. All actions will use this member’s permissions until you exit impersonation. A prominent Admin Impersonation banner will remain visible.
             </Text>
 
             <Pressable
@@ -349,7 +348,7 @@ export default function MemberLookupScreen() {
                     color="#ffffff"
                     style={{ marginRight: 7 }}
                   />
-                  <Text style={styles.continueButtonText}>Continue as Member</Text>
+                  <Text style={styles.continueButtonText}>Begin Impersonation</Text>
                 </View>
               )}
             </Pressable>
@@ -487,7 +486,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 999,
-    backgroundColor: "#7c3aed",
+    backgroundColor: "#1d4ed8",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -510,7 +509,7 @@ const styles = StyleSheet.create({
   },
   roleBadge: {
     alignSelf: "flex-start",
-    backgroundColor: "#ede9fe",
+    backgroundColor: "#dbeafe",
     borderRadius: 999,
     paddingVertical: 4,
     paddingHorizontal: 9,
@@ -518,7 +517,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   roleBadgeText: {
-    color: "#6d28d9",
+    color: "#1e40af",
     fontSize: 11,
     fontWeight: "900",
     textTransform: "uppercase",
@@ -530,7 +529,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   moreTeamsText: {
-    color: "#7c3aed",
+    color: "#1d4ed8",
     fontSize: 12,
     fontWeight: "900",
     marginTop: 4,

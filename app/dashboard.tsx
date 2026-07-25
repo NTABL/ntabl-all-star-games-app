@@ -348,10 +348,17 @@ async function handleLogout() {
 
 async function handleExitImpersonation() {
   try {
-    await exitImpersonation();
+    const restored = await exitImpersonation();
+
+    if (!restored) {
+      router.replace("/login");
+      return;
+    }
+
     router.replace("/admin");
   } catch (e) {
     console.log(e);
+    router.replace("/login");
   }
 }
 
@@ -525,28 +532,21 @@ async function sendHelpRequest() {
             </View>
           )}
 
-          <View style={styles.headerRow}>
-            <Pressable
-              onPress={
-                managerData?.isImpersonating
-                  ? handleExitImpersonation
-                  : handleLogout
-              }
-              style={styles.logoutButton}
-            >
-              <View style={styles.smallButtonRow}>
-                <Ionicons
-                  name="log-out-outline"
-                  size={16}
-                  color="#ffffff"
-                  style={{ marginRight: 5 }}
-                />
-                <Text style={styles.logoutText}>
-                  {managerData?.isImpersonating ? "Exit Admin View" : "Logout"}
-                </Text>
-              </View>
-            </Pressable>
-          </View>
+          {!managerData?.isImpersonating && (
+            <View style={styles.headerRow}>
+              <Pressable onPress={handleLogout} style={styles.logoutButton}>
+                <View style={styles.smallButtonRow}>
+                  <Ionicons
+                    name="log-out-outline"
+                    size={16}
+                    color="#ffffff"
+                    style={{ marginRight: 5 }}
+                  />
+                  <Text style={styles.logoutText}>Logout</Text>
+                </View>
+              </Pressable>
+            </View>
+          )}
 
 <View
   style={[
@@ -1356,7 +1356,9 @@ container: {
 },
 
   impersonationBanner: {
-    backgroundColor: "#7c3aed",
+    backgroundColor: "#facc15",
+    borderWidth: 2,
+    borderColor: "#111827",
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -1377,14 +1379,14 @@ container: {
   },
 
   impersonationLabel: {
-    color: "#ffffff",
+    color: "#111827",
     fontSize: 12,
     fontWeight: "900",
     letterSpacing: 0.8,
   },
 
   impersonationName: {
-    color: "#ffffff",
+    color: "#111827",
     fontSize: 15,
     fontWeight: "800",
     marginTop: 2,
@@ -1392,13 +1394,15 @@ container: {
 
   exitImpersonationButton: {
     backgroundColor: "#ffffff",
+    borderWidth: 2,
+    borderColor: "#111827",
     borderRadius: 9,
     paddingVertical: 8,
     paddingHorizontal: 14,
   },
 
   exitImpersonationButtonText: {
-    color: "#7c3aed",
+    color: "#111827",
     fontSize: 13,
     fontWeight: "900",
   },
