@@ -249,6 +249,7 @@ export default function EmailCenterScreen() {
   const [historySummary, setHistorySummary] = useState<any>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
 
   useEffect(() => {
     loadRecipients();
@@ -266,6 +267,7 @@ export default function EmailCenterScreen() {
   const missingEmailCount = recipients.length - withEmail.length;
 
   function selectAudience(nextAudience: Audience) {
+    setActiveTemplateId(null);
     setAudience(nextAudience);
     setSubject(
       nextAudience === "missing-waivers"
@@ -313,11 +315,16 @@ export default function EmailCenterScreen() {
   }
 
   function applyTemplate(template: MessageTemplate) {
+    setActiveTemplateId(template.id);
     setSubject(template.subject);
     setMessage(template.message);
 
     if (template.id === "waiver-reminder") {
       setAudience("missing-waivers");
+    } else if (template.id === "selection-congratulations") {
+      setAudience("players");
+    } else if (template.id === "general-announcement") {
+      setAudience("everyone");
     }
   }
 
@@ -549,19 +556,49 @@ export default function EmailCenterScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.templateRow}
             >
-              {MESSAGE_TEMPLATES.map((template) => (
-                <Pressable
-                  key={template.id}
-                  style={styles.templateCard}
-                  onPress={() => applyTemplate(template)}
-                >
-                  <View style={styles.templateIcon}>
-                    <Ionicons name={template.icon} size={23} color="#ffffff" />
-                  </View>
-                  <Text style={styles.templateName}>{template.name}</Text>
-                  <Text style={styles.templateAction}>Use Template</Text>
-                </Pressable>
-              ))}
+              {MESSAGE_TEMPLATES.map((template) => {
+                const active = activeTemplateId === template.id;
+
+                return (
+                  <Pressable
+                    key={template.id}
+                    style={[
+                      styles.templateCard,
+                      active && styles.templateCardActive,
+                    ]}
+                    onPress={() => applyTemplate(template)}
+                  >
+                    <View
+                      style={[
+                        styles.templateIcon,
+                        active && styles.templateIconActive,
+                      ]}
+                    >
+                      <Ionicons
+                        name={active ? "checkmark-circle" : template.icon}
+                        size={23}
+                        color="#ffffff"
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.templateName,
+                        active && styles.templateNameActive,
+                      ]}
+                    >
+                      {template.name}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.templateAction,
+                        active && styles.templateActionActive,
+                      ]}
+                    >
+                      {active ? "Selected" : "Use Template"}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </ScrollView>
           </View>
 
@@ -703,7 +740,10 @@ export default function EmailCenterScreen() {
             <Text style={styles.inputLabel}>Subject</Text>
             <TextInput
               value={subject}
-              onChangeText={setSubject}
+              onChangeText={(value) => {
+                setActiveTemplateId(null);
+                setSubject(value);
+              }}
               style={styles.subjectInput}
               placeholder="Email subject"
               placeholderTextColor="#9ca3af"
@@ -722,7 +762,10 @@ export default function EmailCenterScreen() {
             <Text style={styles.inputLabel}>Message</Text>
             <TextInput
               value={message}
-              onChangeText={setMessage}
+              onChangeText={(value) => {
+                setActiveTemplateId(null);
+                setMessage(value);
+              }}
               style={styles.messageInput}
               multiline
               textAlignVertical="top"
@@ -1236,6 +1279,11 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     padding: 13,
   },
+  templateCardActive: {
+    backgroundColor: "#0f766e",
+    borderColor: "#0f766e",
+    borderWidth: 2,
+  },
   templateIcon: {
     width: 42,
     height: 42,
@@ -1245,17 +1293,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 11,
   },
+  templateIconActive: {
+    backgroundColor: "rgba(255,255,255,0.22)",
+  },
   templateName: {
     color: "#111827",
     fontSize: 15,
     fontWeight: "900",
     lineHeight: 20,
   },
+  templateNameActive: {
+    color: "#ffffff",
+  },
   templateAction: {
     color: "#0f766e",
     fontSize: 12,
     fontWeight: "900",
     marginTop: 8,
+  },
+  templateActionActive: {
+    color: "#ccfbf1",
   },
   sectionCard: {
     backgroundColor: "#ffffff",
