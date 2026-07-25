@@ -100,8 +100,8 @@ export default function AnnouncerItineraryScreen(){
    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
     <View style={styles.topRow}>
      <Pressable style={styles.back} onPress={()=>router.back()}>
-      <Ionicons name="arrow-back" size={18} color="#fff"/>
-      <Text style={styles.buttonText}>Configure Announcer</Text>
+      <Ionicons name="chevron-back" size={18} color="#fff"/>
+      <Text style={styles.buttonText}>Back</Text>
      </Pressable>
      <Pressable style={styles.sync} onPress={sync} disabled={syncing}>
       {syncing?<ActivityIndicator color="#fff" size="small"/>:<Ionicons name="refresh" size={18} color="#fff"/>}
@@ -216,5 +216,12 @@ const styles=StyleSheet.create({
  modalIconWrap:{width:"100%",alignItems:"center",justifyContent:"center"},
  modalTitle:{color:"#1f4e9e",fontWeight:"900",fontSize:22,textAlign:"center",marginTop:8},
  modalBody:{color:"#4b5563",fontWeight:"700",textAlign:"center",marginVertical:10},
- ok:{backgroundColor:"#1d4ed8",borderRadius:10,paddingVertical:11,paddingHorizontal:28}
+ ok:{
+  backgroundColor:"#1d4ed8",
+  borderRadius:10,
+  paddingVertical:11,
+  width:"100%",
+  alignItems:"center",
+  justifyContent:"center"
+}
 });
