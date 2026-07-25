@@ -218,7 +218,7 @@ export default function AdminScreen() {
         style={{ marginRight: 8 }}
       />
 
-      <Text style={styles.buttonText}>Configure Password</Text>
+      <Text style={styles.buttonText}>Configure Announcer</Text>
     </View>
   </TouchableOpacity>
 </View>

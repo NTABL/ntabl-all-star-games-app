@@ -192,10 +192,10 @@ setUsername(json.announcer?.username || "Announcer");
               resizeMode="contain"
             />
 
-            <Text style={styles.title}>Announcer Configuration</Text>
+            <Text style={styles.title}>Configure Announcer</Text>
 
             <Text style={styles.subtitle}>
-              Configure Announcer Credentials
+              Configure Login Information and Game Itineraries
             </Text>
           </View>
 
@@ -354,6 +354,36 @@ setUsername(json.announcer?.username || "Announcer");
                 )}
               </Pressable>
 
+
+              <View style={styles.itinerarySectionCard}>
+                <View style={styles.itinerarySectionHeader}>
+                  <Ionicons name="list-outline" size={28} color="#7c3aed" />
+                  <View style={{ flex: 1, marginLeft: 10 }}>
+                    <Text style={styles.itinerarySectionTitle}>Announcer Itinerary</Text>
+                    <Text style={styles.itinerarySectionSubtitle}>Select a game to edit PA notes and the run-of-show script.</Text>
+                  </View>
+                </View>
+
+                {[
+                  { id: "game1", number: 1, title: "60+ All-Stars", color: "#7c3aed" },
+                  { id: "game2", number: 2, title: "45+ All-Stars", color: "#1d4ed8" },
+                  { id: "game3", number: 3, title: "30+ / Rookie Prospects", color: "#c62828" },
+                  { id: "game4", number: 4, title: "18+ All-Stars", color: "#15803d" },
+                ].map((game) => (
+                  <Pressable
+                    key={game.id}
+                    style={styles.itineraryGameButton}
+                    onPress={() => router.push({ pathname: "/announceritinerary", params: { gameId: game.id } })}
+                  >
+                    <View style={[styles.itineraryGameBadge, { backgroundColor: game.color }]}>
+                      <Text style={styles.itineraryGameBadgeText}>GAME {game.number}</Text>
+                    </View>
+                    <Text style={styles.itineraryGameTitle}>{game.title}</Text>
+                    <Ionicons name="chevron-forward-circle" size={27} color={game.color} />
+                  </Pressable>
+                ))}
+              </View>
+
               <Text style={styles.versionFooter}>
                 NTABL All-Star App • Version 1.0
               </Text>
@@ -406,6 +436,15 @@ setUsername(json.announcer?.username || "Announcer");
 }
 
 const styles = StyleSheet.create({
+  itinerarySectionCard: { backgroundColor: "#ffffff", borderRadius: 20, padding: 16, marginTop: 18, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
+  itinerarySectionHeader: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
+  itinerarySectionTitle: { color: "#1f4e9e", fontSize: 20, fontWeight: "900" },
+  itinerarySectionSubtitle: { color: "#6b7280", fontSize: 13, fontWeight: "700", marginTop: 2 },
+  itineraryGameButton: { flexDirection: "row", alignItems: "center", backgroundColor: "#f8fafc", borderWidth: 1, borderColor: "#e2e8f0", borderRadius: 14, padding: 12, marginTop: 9 },
+  itineraryGameBadge: { borderRadius: 8, paddingVertical: 6, paddingHorizontal: 8, marginRight: 10 },
+  itineraryGameBadgeText: { color: "#ffffff", fontSize: 11, fontWeight: "900" },
+  itineraryGameTitle: { flex: 1, color: "#111827", fontSize: 15, fontWeight: "900" },
+
   screen: {
     flex: 1,
     backgroundColor: "#eef2f7",

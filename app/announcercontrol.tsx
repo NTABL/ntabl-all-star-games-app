@@ -855,6 +855,26 @@ async function resetActiveGame() {
               </View>
             </Pressable>
 
+
+            <Pressable
+              style={styles.gameInformationTopButton}
+              onPress={() =>
+                router.push({
+                  pathname: "/announcerinformation",
+                  params: {
+                    gameId: selectedGame.id,
+                    divisionId: selectedGame.divisionId,
+                    gameTitle,
+                  },
+                })
+              }
+            >
+              <View style={styles.buttonContentRow}>
+                <Ionicons name="reader-outline" size={18} color="#ffffff" style={{ marginRight: 6 }} />
+                <Text style={styles.topButtonText}>Game Information</Text>
+              </View>
+            </Pressable>
+
             <Pressable
               style={styles.exitTopButton}
               onPress={() => router.replace("/login")}
@@ -1426,6 +1446,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 16,
+  },
+  gameInformationTopButton: {
+    backgroundColor: "#7c3aed",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
   },
   exitTopButton: {
     backgroundColor: "#c62828",
