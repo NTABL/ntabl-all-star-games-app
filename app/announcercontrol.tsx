@@ -141,8 +141,13 @@ export default function AnnouncerControlScreen() {
   const [showJerseyEditor, setShowJerseyEditor] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [editingSquad, setEditingSquad] = useState<Squad>("East");
+  const [playerNameDraft, setPlayerNameDraft] = useState("");
   const [jerseyNumberDraft, setJerseyNumberDraft] = useState("");
   const [savingJerseyNumber, setSavingJerseyNumber] = useState(false);
+  const [showManagerEditor, setShowManagerEditor] = useState(false);
+  const [editingManagerSquad, setEditingManagerSquad] = useState<Squad>("East");
+  const [managerNameDraft, setManagerNameDraft] = useState("");
+  const [savingManagerName, setSavingManagerName] = useState(false);
 
   const lastLineupSnapshot = useRef("");
   const { width } = useWindowDimensions();
@@ -363,16 +368,16 @@ return {
   ) {
 return JSON.stringify({
   eastBatting: eastBattingList.map(
-    (p) => `${p.id}-${p.battingOrder}-${p.jerseyNumber}`
+    (p) => `${p.id}-${p.battingOrder}-${p.jerseyNumber}-${p.name}`
   ),
   eastSubs: eastSubsList.map(
-    (p) => `${p.id}-${p.jerseyNumber}`
+    (p) => `${p.id}-${p.jerseyNumber}-${p.name}`
   ),
   westBatting: westBattingList.map(
-    (p) => `${p.id}-${p.battingOrder}-${p.jerseyNumber}`
+    (p) => `${p.id}-${p.battingOrder}-${p.jerseyNumber}-${p.name}`
   ),
   westSubs: westSubsList.map(
-    (p) => `${p.id}-${p.jerseyNumber}`
+    (p) => `${p.id}-${p.jerseyNumber}-${p.name}`
   ),
 });
   }
@@ -676,6 +681,7 @@ async function resetActiveGame() {
 function openJerseyEditor(player: Player, squad: Squad) {
   setEditingPlayer(player);
   setEditingSquad(squad);
+  setPlayerNameDraft(String(player.name || ""));
   setJerseyNumberDraft(String(player.jerseyNumber || ""));
   setShowJerseyEditor(true);
 }
@@ -685,6 +691,7 @@ function closeJerseyEditor() {
 
   setShowJerseyEditor(false);
   setEditingPlayer(null);
+  setPlayerNameDraft("");
   setJerseyNumberDraft("");
 }
 
@@ -694,49 +701,92 @@ async function saveJerseyNumber() {
   try {
     setSavingJerseyNumber(true);
 
-    const batting =
-      editingSquad === "East" ? eastBatting : westBatting;
-
-    const subs =
-      editingSquad === "East" ? eastSubs : westSubs;
+    const batting = editingSquad === "East" ? eastBatting : westBatting;
+    const subs = editingSquad === "East" ? eastSubs : westSubs;
 
     const updatedPlayers = [...batting, ...subs].map((player) =>
       player.id === editingPlayer.id
         ? {
             ...player,
+            name: playerNameDraft.trim() || player.name,
             jerseyNumber: jerseyNumberDraft.trim(),
           }
         : player
     );
 
-    const response = await adminFetch(
-      `${API_BASE}/api/lineups/save`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          divisionId: selectedGame.divisionId,
-          squad: editingSquad,
-          players: updatedPlayers,
-        }),
-      }
-    );
+    const response = await adminFetch(`${API_BASE}/api/lineups/save`, {
+      method: "POST",
+      body: JSON.stringify({
+        divisionId: selectedGame.divisionId,
+        squad: editingSquad,
+        players: updatedPlayers,
+      }),
+    });
 
     const json = await response.json();
 
     if (!json?.ok) {
-      console.log("JERSEY NUMBER SAVE FAILED:", json);
+      console.log("PLAYER SAVE FAILED:", json);
       return;
     }
 
     setShowJerseyEditor(false);
     setEditingPlayer(null);
+    setPlayerNameDraft("");
     setJerseyNumberDraft("");
 
     await loadLineupDataOnly();
   } catch (e) {
-    console.log("SAVE JERSEY NUMBER ERROR:", e);
+    console.log("SAVE PLAYER ERROR:", e);
   } finally {
     setSavingJerseyNumber(false);
+  }
+}
+
+function openManagerEditor(squad: Squad) {
+  setEditingManagerSquad(squad);
+  setManagerNameDraft(squad === "East" ? eastManager : westManager);
+  setShowManagerEditor(true);
+}
+
+function closeManagerEditor() {
+  if (savingManagerName) return;
+  setShowManagerEditor(false);
+  setManagerNameDraft("");
+}
+
+async function saveManagerName() {
+  try {
+    setSavingManagerName(true);
+
+    const players = editingManagerSquad === "East"
+      ? [...eastBatting, ...eastSubs]
+      : [...westBatting, ...westSubs];
+
+    const response = await adminFetch(`${API_BASE}/api/lineups/save`, {
+      method: "POST",
+      body: JSON.stringify({
+        divisionId: selectedGame.divisionId,
+        squad: editingManagerSquad,
+        players,
+        managerName: managerNameDraft.trim(),
+      }),
+    });
+
+    const json = await response.json();
+
+    if (!json?.ok) {
+      console.log("MANAGER NAME SAVE FAILED:", json);
+      return;
+    }
+
+    setShowManagerEditor(false);
+    setManagerNameDraft("");
+    await loadLineupDataOnly();
+  } catch (e) {
+    console.log("SAVE MANAGER NAME ERROR:", e);
+  } finally {
+    setSavingManagerName(false);
   }
 }
 
@@ -821,14 +871,27 @@ async function saveJerseyNumber() {
 </Pressable>
 
             <View style={styles.featuredNameRow}>
-              <Text
-                style={[
-                  isMain ? styles.playerNameLarge : styles.playerNameMedium,
-                  styles.featuredNameText,
-                ]}
+              <Pressable
+                onPress={() => openJerseyEditor(player, player.squad)}
+                style={styles.editableName}
+                accessibilityRole="button"
+                accessibilityLabel={`Edit player name for ${player.name}`}
               >
-                {player.name}
-              </Text>
+                <Text
+                  style={[
+                    isMain ? styles.playerNameLarge : styles.playerNameMedium,
+                    styles.featuredNameText,
+                  ]}
+                >
+                  {player.name}
+                </Text>
+                <Ionicons
+                  name="pencil-outline"
+                  size={isMain ? 17 : 14}
+                  color={isMain ? "#ffffff" : "#6b7280"}
+                  style={{ marginLeft: 5 }}
+                />
+              </Pressable>
               {renderPronunciationButton(player, !isMain, isMain)}
             </View>
 
@@ -892,9 +955,17 @@ async function saveJerseyNumber() {
 
         <View style={styles.compactPlayerInfo}>
           <View style={styles.compactNameRow}>
-            <Text style={[styles.compactPlayerName, styles.playerNameFlex]}>
-              {player.name}
-            </Text>
+            <Pressable
+              onPress={() => openJerseyEditor(player, squad)}
+              style={styles.compactEditableName}
+              accessibilityRole="button"
+              accessibilityLabel={`Edit player name for ${player.name}`}
+            >
+              <Text style={[styles.compactPlayerName, styles.playerNameFlex]}>
+                {player.name}
+              </Text>
+              <Ionicons name="pencil-outline" size={13} color="#6b7280" style={{ marginLeft: 5 }} />
+            </Pressable>
             {renderPronunciationButton(player, true)}
           </View>
           <Text style={styles.compactPlayerMeta}>
@@ -938,9 +1009,17 @@ async function saveJerseyNumber() {
 
         <View style={styles.compactPlayerInfo}>
           <View style={styles.compactNameRow}>
-            <Text style={[styles.compactPlayerName, styles.playerNameFlex]}>
-              {player.name}
-            </Text>
+            <Pressable
+              onPress={() => openJerseyEditor(player, squad)}
+              style={styles.compactEditableName}
+              accessibilityRole="button"
+              accessibilityLabel={`Edit player name for ${player.name}`}
+            >
+              <Text style={[styles.compactPlayerName, styles.playerNameFlex]}>
+                {player.name}
+              </Text>
+              <Ionicons name="pencil-outline" size={13} color="#6b7280" style={{ marginLeft: 5 }} />
+            </Pressable>
             {renderPronunciationButton(player, true)}
           </View>
           <Text style={styles.compactPlayerMeta}>
@@ -1050,9 +1129,17 @@ async function saveJerseyNumber() {
                     {visitorSquad === "East" ? "VISITOR" : "HOME"}
                   </Text>
                   <Text style={styles.broadcastDugout}>{eastDugout}</Text>
-                  <Text style={styles.broadcastManager}>
-                    Manager: {eastManager || "TBD"}
-                  </Text>
+                  <Pressable
+                    onPress={() => openManagerEditor("East")}
+                    style={styles.editableManager}
+                    accessibilityRole="button"
+                    accessibilityLabel="Edit East manager name"
+                  >
+                    <Text style={styles.broadcastManager}>
+                      Manager: {eastManager || "TBD"}
+                    </Text>
+                    <Ionicons name="pencil-outline" size={13} color="#cbd5e1" style={{ marginLeft: 5 }} />
+                  </Pressable>
                 </View>
 
                 <View style={styles.broadcastCenter}>
@@ -1091,9 +1178,17 @@ async function saveJerseyNumber() {
                     {visitorSquad === "West" ? "VISITOR" : "HOME"}
                   </Text>
                   <Text style={styles.broadcastDugout}>{westDugout}</Text>
-                  <Text style={styles.broadcastManager}>
-                    Manager: {westManager || "TBD"}
-                  </Text>
+                  <Pressable
+                    onPress={() => openManagerEditor("West")}
+                    style={styles.editableManager}
+                    accessibilityRole="button"
+                    accessibilityLabel="Edit West manager name"
+                  >
+                    <Text style={styles.broadcastManager}>
+                      Manager: {westManager || "TBD"}
+                    </Text>
+                    <Ionicons name="pencil-outline" size={13} color="#cbd5e1" style={{ marginLeft: 5 }} />
+                  </Pressable>
                 </View>
               </View>
 
@@ -1551,19 +1646,26 @@ async function saveJerseyNumber() {
 >
   <View style={styles.modalOverlay}>
     <View style={styles.jerseyEditorCard}>
-      <Text style={styles.modalTitle}>Edit Jersey Number</Text>
-
-      <Text style={styles.jerseyEditorPlayerName}>
-        {editingPlayer?.name || ""}
-      </Text>
+      <Text style={styles.modalTitle}>Edit Player</Text>
 
       <Text style={styles.jerseyEditorTeamName}>
         {editingPlayer?.teamName || ""}
       </Text>
 
-      <Text style={styles.jerseyEditorLabel}>
-        Jersey Number
-      </Text>
+      <Text style={styles.jerseyEditorLabel}>Player Name</Text>
+
+      <TextInput
+        value={playerNameDraft}
+        onChangeText={setPlayerNameDraft}
+        style={styles.playerNameEditorInput}
+        placeholder="Player Name"
+        placeholderTextColor="#9ca3af"
+        autoFocus
+        maxLength={80}
+        selectTextOnFocus
+      />
+
+      <Text style={styles.jerseyEditorLabel}>Jersey Number</Text>
 
       <TextInput
         value={jerseyNumberDraft}
@@ -1571,7 +1673,6 @@ async function saveJerseyNumber() {
         style={styles.jerseyEditorInput}
         placeholder="Number"
         placeholderTextColor="#9ca3af"
-        autoFocus
         maxLength={4}
         selectTextOnFocus
         onSubmitEditing={saveJerseyNumber}
@@ -1592,7 +1693,53 @@ async function saveJerseyNumber() {
           disabled={savingJerseyNumber}
         >
           <Text style={styles.cancelButtonText}>
-            {savingJerseyNumber ? "Saving..." : "Save Number"}
+            {savingJerseyNumber ? "Saving..." : "Save Player"}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  </View>
+</Modal>
+
+<Modal
+  visible={showManagerEditor}
+  transparent
+  animationType="fade"
+  onRequestClose={closeManagerEditor}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.jerseyEditorCard}>
+      <Text style={styles.modalTitle}>Edit Manager</Text>
+      <Text style={styles.jerseyEditorTeamName}>
+        {editingManagerSquad} All-Stars
+      </Text>
+      <Text style={styles.jerseyEditorLabel}>Manager Name</Text>
+      <TextInput
+        value={managerNameDraft}
+        onChangeText={setManagerNameDraft}
+        style={styles.playerNameEditorInput}
+        placeholder="Manager Name"
+        placeholderTextColor="#9ca3af"
+        autoFocus
+        maxLength={80}
+        selectTextOnFocus
+        onSubmitEditing={saveManagerName}
+      />
+      <View style={styles.confirmButtonRow}>
+        <Pressable
+          style={styles.confirmNoButton}
+          onPress={closeManagerEditor}
+          disabled={savingManagerName}
+        >
+          <Text style={styles.cancelButtonText}>Cancel</Text>
+        </Pressable>
+        <Pressable
+          style={styles.confirmYesButton}
+          onPress={saveManagerName}
+          disabled={savingManagerName}
+        >
+          <Text style={styles.cancelButtonText}>
+            {savingManagerName ? "Saving..." : "Save Manager"}
           </Text>
         </Pressable>
       </View>
@@ -2259,4 +2406,34 @@ jerseyEditorInput: {
   paddingHorizontal: 12,
   marginBottom: 20,
 },
+
+  editableName: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 1,
+  },
+  compactEditableName: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  editableManager: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 4,
+  },
+  playerNameEditorInput: {
+    borderWidth: 2,
+    borderColor: "#1f4e9e",
+    borderRadius: 10,
+    backgroundColor: "#ffffff",
+    color: "#111827",
+    fontSize: 18,
+    fontWeight: "800",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+  },
 });
