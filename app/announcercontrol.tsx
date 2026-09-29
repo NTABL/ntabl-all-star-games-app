@@ -133,6 +133,8 @@ export default function AnnouncerControlScreen() {
   const [showGamePicker, setShowGamePicker] = useState(false);
   const [showSwitchSidesConfirm, setShowSwitchSidesConfirm] = useState(false);
   const [showResetGameConfirm, setShowResetGameConfirm] = useState(false);
+  const [showResetAnnouncerConfirm, setShowResetAnnouncerConfirm] = useState(false);
+  const [resettingAnnouncerChanges, setResettingAnnouncerChanges] = useState(false);
   const [lastUpdatedDate, setLastUpdatedDate] = useState<Date | null>(null);
   const [refreshAge, setRefreshAge] = useState("Loading...");
   const [eastManager, setEastManager] = useState("");
@@ -678,6 +680,33 @@ async function resetActiveGame() {
   }
 }
 
+async function resetAnnouncerChanges() {
+  try {
+    setResettingAnnouncerChanges(true);
+
+    const response = await adminFetch(
+      `${API_BASE}/api/lineups/${selectedGame.divisionId}/reset-announcer-changes`,
+      { method: "POST" }
+    );
+
+    const json = await response.json();
+
+    if (!json?.ok) {
+      console.log("RESET ANNOUNCER CHANGES FAILED:", json);
+      return;
+    }
+
+    setShowResetAnnouncerConfirm(false);
+    await loadLineupDataOnly();
+    setLiveLabel("🟢 ANNOUNCER CHANGES RESET");
+    setTimeout(() => setLiveLabel("🟢 LIVE LINEUP FEED"), 2500);
+  } catch (e) {
+    console.log("RESET ANNOUNCER CHANGES ERROR:", e);
+  } finally {
+    setResettingAnnouncerChanges(false);
+  }
+}
+
 function openJerseyEditor(player: Player, squad: Squad) {
   setEditingPlayer(player);
   setEditingSquad(squad);
@@ -1102,6 +1131,22 @@ async function saveManagerName() {
             <Text style={styles.screenModeTitle}>Announcer Control</Text>
             <Text style={styles.liveStatusText}>{liveLabel}</Text>
             <Text style={styles.lastUpdatedText}>{refreshAge}</Text>
+
+            <Pressable
+              style={styles.resetAnnouncerButton}
+              onPress={() => setShowResetAnnouncerConfirm(true)}
+              disabled={resettingAnnouncerChanges}
+            >
+              <Ionicons
+                name="refresh-circle-outline"
+                size={18}
+                color="#ffffff"
+                style={{ marginRight: 6 }}
+              />
+              <Text style={styles.resetAnnouncerButtonText}>
+                Reset Player / Manager Changes
+              </Text>
+            </Pressable>
           </View>
 
           {loading ? (
@@ -1638,6 +1683,51 @@ async function saveManagerName() {
     </View>
   </View>
 </Modal>
+<Modal
+  visible={showResetAnnouncerConfirm}
+  transparent
+  animationType="fade"
+  onRequestClose={() => {
+    if (!resettingAnnouncerChanges) setShowResetAnnouncerConfirm(false);
+  }}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.gamePickerCard}>
+      <Text style={styles.modalTitle}>Reset Player / Manager Changes?</Text>
+
+      <Text style={styles.confirmText}>
+        This will restore player names, jersey numbers, and manager names to the original roster / assignment values for this game.
+
+        {"\n\n"}This will NOT change:
+        {"\n"}• Batting order
+        {"\n"}• Batting / substitute status
+        {"\n"}• Positions
+        {"\n"}• Score, inning, outs, or current batter
+      </Text>
+
+      <View style={styles.confirmButtonRow}>
+        <Pressable
+          style={styles.confirmNoButton}
+          onPress={() => setShowResetAnnouncerConfirm(false)}
+          disabled={resettingAnnouncerChanges}
+        >
+          <Text style={styles.cancelButtonText}>Cancel</Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.resetConfirmButton}
+          onPress={resetAnnouncerChanges}
+          disabled={resettingAnnouncerChanges}
+        >
+          <Text style={styles.cancelButtonText}>
+            {resettingAnnouncerChanges ? "Resetting..." : "Yes, Reset Changes"}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  </View>
+</Modal>
+
 <Modal
   visible={showJerseyEditor}
   transparent
@@ -2340,6 +2430,32 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "900",
     textAlign: "center",
+  },
+
+  resetAnnouncerButton: {
+    marginTop: 12,
+    backgroundColor: "#b45309",
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "center",
+  },
+
+  resetAnnouncerButtonText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "900",
+  },
+
+  resetConfirmButton: {
+    flex: 1,
+    backgroundColor: "#b45309",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
   },
 
   editableJersey: {
