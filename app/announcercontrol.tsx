@@ -212,6 +212,14 @@ useFocusEffect(() => {
     activeGameState.currentBatterIndex + 2
   );
 
+  const eastPitcher = [...eastBatting, ...eastSubs].find(
+    (player) => String(player.position || "").toUpperCase().split(/[\s,/.-]+/).includes("P")
+  ) || null;
+  const westPitcher = [...westBatting, ...westSubs].find(
+    (player) => String(player.position || "").toUpperCase().split(/[\s,/.-]+/).includes("P")
+  ) || null;
+  const defensiveSquad: Squad = activeSquad === "East" ? "West" : "East";
+
   useEffect(() => {
     const requestedId = String(params.gameId || "");
     const requestedDivision = String(params.divisionId || "");
@@ -1105,20 +1113,24 @@ async function saveManagerName() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.topActionRow}>
-            <Pressable
-              style={styles.changeGameTopButton}
-              onPress={() => router.replace("/announcercontrol-games")}
-            >
-              <View style={styles.buttonContentRow}>
-                <Ionicons
-                  name="calendar-outline"
-                  size={18}
-                  color="#ffffff"
-                  style={{ marginRight: 6 }}
-                />
-                <Text style={styles.topButtonText}>Change Game</Text>
-              </View>
-            </Pressable>
+            {controlView === "lineups" ? (
+              <Pressable
+                style={styles.changeGameTopButton}
+                onPress={() => router.replace("/announcercontrol-games")}
+              >
+                <View style={styles.buttonContentRow}>
+                  <Ionicons name="calendar-outline" size={18} color="#ffffff" style={{ marginRight: 6 }} />
+                  <Text style={styles.topButtonText}>Change Game</Text>
+                </View>
+              </Pressable>
+            ) : (
+              <Pressable style={styles.lineupsTopButton} onPress={() => setControlView("lineups")}>
+                <View style={styles.buttonContentRow}>
+                  <Ionicons name="arrow-back-outline" size={18} color="#ffffff" style={{ marginRight: 6 }} />
+                  <Text style={styles.topButtonText}>Lineups</Text>
+                </View>
+              </Pressable>
+            )}
 
 
             <Pressable
@@ -1151,7 +1163,7 @@ async function saveManagerName() {
             </View>
 
             <Text style={styles.gameTitle}>{gameTitle}</Text>
-            <Text style={styles.screenModeTitle}>Announcer Control</Text>
+            <Text style={styles.screenModeTitle}>{controlView === "lineups" ? "TEAM LINEUPS" : "GAME CONTROL"}</Text>
             <Text style={styles.liveStatusText}>{liveLabel}</Text>
             <Text style={styles.lastUpdatedText}>{refreshAge}</Text>
 
@@ -1174,15 +1186,7 @@ async function saveManagerName() {
                   <Text style={styles.undoEditsButtonText}>Undo Edits</Text>
                 </Pressable>
               </View>
-            ) : (
-              <Pressable
-                style={styles.lineupsNavButton}
-                onPress={() => setControlView("lineups")}
-              >
-                <Ionicons name="list-outline" size={18} color="#ffffff" style={{ marginRight: 6 }} />
-                <Text style={styles.gameControlNavButtonText}>Lineups</Text>
-              </Pressable>
-            )}
+            ) : null}
           </View>
 
           {loading ? (
@@ -1211,7 +1215,7 @@ async function saveManagerName() {
                   <View style={[styles.panelHeaderTeam, styles.eastHeader]}>
                     <Text style={styles.panelHeaderText}>EAST BATTING LINEUP ({eastBatting.length})</Text>
                   </View>
-                  {eastBatting.length > 0 ? eastBatting.map((player, index) => renderCompactPlayerRow(player, "East", index, -1)) : (
+                  {eastBatting.length > 0 ? eastBatting.map((player, index) => renderCompactPlayerRow(player, "East", index, eastGameState.currentBatterIndex)) : (
                     <Text style={styles.emptyPanelText}>No saved batting lineup yet.</Text>
                   )}
 
@@ -1241,7 +1245,7 @@ async function saveManagerName() {
                   <View style={[styles.panelHeaderTeam, styles.westHeader]}>
                     <Text style={styles.panelHeaderText}>WEST BATTING LINEUP ({westBatting.length})</Text>
                   </View>
-                  {westBatting.length > 0 ? westBatting.map((player, index) => renderCompactPlayerRow(player, "West", index, -1)) : (
+                  {westBatting.length > 0 ? westBatting.map((player, index) => renderCompactPlayerRow(player, "West", index, westGameState.currentBatterIndex)) : (
                     <Text style={styles.emptyPanelText}>No saved batting lineup yet.</Text>
                   )}
 
@@ -1256,437 +1260,87 @@ async function saveManagerName() {
             </>
           ) : (
             <>
-              <View
-                style={[
-                  styles.broadcastScoreboard,
-                  !isWideScreen && styles.mobileScoreboard,
-                  { borderColor: gameAccentColor },
-                ]}
-              >
-                <View style={styles.broadcastTeamColumn}>
-                  <Image
-                    source={require("../assets/East.png")}
-                    style={styles.broadcastLogo}
-                    resizeMode="contain"
-                  />
-                  <Text style={styles.broadcastEastLabel}>EAST</Text>
-                  <Text style={styles.homeVisitorLabel}>
-                    {visitorSquad === "East" ? "VISITOR" : "HOME"}
-                  </Text>
-                  <Text style={styles.broadcastDugout}>{eastDugout}</Text>
-                  <Pressable
-                    onPress={() => openManagerEditor("East")}
-                    style={styles.editableManager}
-                    accessibilityRole="button"
-                    accessibilityLabel="Edit East manager name"
-                  >
-                    <Text style={styles.broadcastManager}>
-                      Manager: {eastManager || "TBD"}
-                    </Text>
-                    <Ionicons name="pencil-outline" size={13} color="#cbd5e1" style={{ marginLeft: 5 }} />
-                  </Pressable>
+              <View style={[styles.newGameBoard, !isWideScreen && styles.newGameBoardMobile, { borderColor: gameAccentColor }]}>
+                <View style={styles.inningBanner}>
+                  <Text style={styles.inningBannerText}>{activeGameState.half.toUpperCase()} {activeGameState.inning}</Text>
                 </View>
 
-                <View style={styles.broadcastCenter}>
-                  <Text style={styles.broadcastScore}>
-                    {Number(activeGameState.eastScore || 0)}
-                    <Text style={styles.broadcastDash}> - </Text>
-                    {Number(activeGameState.westScore || 0)}
-                  </Text>
-
-                  <Text style={styles.broadcastInning}>
-                    {activeGameState.half.toUpperCase()} {activeGameState.inning}
-                  </Text>
-                  <Text style={styles.battingRoleText}>
-                    {battingSquadForHalf.toUpperCase()} BATTING
-                  </Text>
-
-                  <Text style={styles.broadcastOutDots}>
-                    {"●".repeat(Number(activeGameState.outs || 0))}
-                    {"○".repeat(3 - Number(activeGameState.outs || 0))}
-                  </Text>
-
-                  <Text style={styles.broadcastOutText}>
-                    {Number(activeGameState.outs || 0)}{" "}
-                    {Number(activeGameState.outs || 0) === 1 ? "OUT" : "OUTS"}
-                  </Text>
-                </View>
-
-                <View style={styles.broadcastTeamColumn}>
-                  <Image
-                    source={require("../assets/West.png")}
-                    style={styles.broadcastLogo}
-                    resizeMode="contain"
-                  />
-                  <Text style={styles.broadcastWestLabel}>WEST</Text>
-                  <Text style={styles.homeVisitorLabel}>
-                    {visitorSquad === "West" ? "VISITOR" : "HOME"}
-                  </Text>
-                  <Text style={styles.broadcastDugout}>{westDugout}</Text>
-                  <Pressable
-                    onPress={() => openManagerEditor("West")}
-                    style={styles.editableManager}
-                    accessibilityRole="button"
-                    accessibilityLabel="Edit West manager name"
-                  >
-                    <Text style={styles.broadcastManager}>
-                      Manager: {westManager || "TBD"}
-                    </Text>
-                    <Ionicons name="pencil-outline" size={13} color="#cbd5e1" style={{ marginLeft: 5 }} />
-                  </Pressable>
-                </View>
-              </View>
-
-              <View
-                style={[
-                  styles.desktopWorkspace,
-                  !isWideScreen && styles.desktopWorkspaceMobile,
-                ]}
-              >
-                <View
-                  style={[
-                    styles.featureColumn,
-                    !isWideScreen && styles.mobileColumn,
-                  ]}
-                >
-                  <View style={styles.panelCard}>
-                    <View
-                      style={[
-                        styles.panelHeaderTeam,
-                        activeSquad === "East"
-                          ? styles.eastHeader
-                          : styles.westHeader,
-                      ]}
-                    >
-                      <Text style={styles.panelHeaderText}>NOW BATTING</Text>
-                    </View>
-
-                    <View
-                      style={[
-                        styles.activeSquadStrip,
-                        activeSquad === "East"
-                          ? styles.eastStrip
-                          : styles.westStrip,
-                      ]}
-                    >
-                      <Image
-                        source={
-                          activeSquad === "East"
-                            ? require("../assets/East.png")
-                            : require("../assets/West.png")
-                        }
-                        style={styles.activeSquadMiniLogo}
-                        resizeMode="contain"
-                      />
-                      <Text style={styles.activeSquadStripText}>
-                        {activeSquad.toUpperCase()} BATTING
-                      </Text>
-                    </View>
-
-                    {renderFeaturedPlayer(
-                      "NOW BATTING",
-                      currentBatter,
-                      activeGameState.currentBatterIndex + 1,
-                      true
-                    )}
-
-                    <View style={styles.upNextRow}>
-                      <View style={styles.upNextColumn}>
-                        {renderFeaturedPlayer(
-                          "ON DECK",
-                          onDeckBatter,
-                          activeGameState.currentBatterIndex + 2
-                        )}
-                      </View>
-                      <View style={styles.upNextColumn}>
-                        {renderFeaturedPlayer(
-                          "IN THE HOLE",
-                          inHoleBatter,
-                          activeGameState.currentBatterIndex + 3
-                        )}
-                      </View>
-                    </View>
-
-                    <View style={styles.controlButtonRow}>
-                      <Pressable
-                        style={styles.previousButton}
-                        onPress={() => moveBatter("previous")}
-                        disabled={savingGameState || !activeBatting.length}
-                      >
-                        <Text style={styles.controlButtonText}>
-                          ‹ Previous Batter
-                        </Text>
-                      </Pressable>
-
-                      <Pressable
-                        style={styles.nextButton}
-                        onPress={() => moveBatter("next")}
-                        disabled={savingGameState || !activeBatting.length}
-                      >
-                        <Text style={styles.controlButtonText}>
-                          Next Batter ›
-                        </Text>
-                      </Pressable>
-                    </View>
-                  </View>
-
-                </View>
-
-                <View
-                  style={[
-                    styles.lineupColumn,
-                    !isWideScreen && styles.mobileColumn,
-                  ]}
-                >
-                  <View style={styles.panelCard}>
-                    <View
-                      style={[
-                        styles.panelHeaderTeam,
-                        activeSquad === "East" ? styles.eastHeader : styles.westHeader,
-                      ]}
-                    >
-                      <Text style={styles.panelHeaderText}>
-                        {activeSquad.toUpperCase()} BATTING LINEUP ({activeBatting.length})
-                      </Text>
-                    </View>
-
-                    {activeBatting.length > 0 ? (
-                      activeBatting.map((player, index) =>
-                        renderCompactPlayerRow(
-                          player,
-                          activeSquad,
-                          index,
-                          activeGameState.currentBatterIndex
-                        )
-                      )
-                    ) : (
-                      <Text style={styles.emptyPanelText}>No saved batting lineup yet.</Text>
-                    )}
-
-                    <Text style={styles.lineupManagerFooter}>
-                      Manager: {activeSquad === "East" ? eastManager || "TBD" : westManager || "TBD"}
-                    </Text>
-                  </View>
-                </View>
-
-                <View
-                  style={[
-                    styles.sideColumn,
-                    !isWideScreen && styles.mobileColumn,
-                  ]}
-                >
-                  <View style={styles.gameControlsCard}>
-                    <View style={styles.panelHeaderGreen}>
-                      <Text style={styles.panelHeaderText}>GAME CONTROL</Text>
-                    </View>
-
-                    <View style={styles.homeVisitorControl}>
-                      <View style={styles.homeVisitorAssignments}>
-                        <View style={styles.assignmentPill}>
-                          <Text style={styles.assignmentLabel}>VISITOR / TOP</Text>
-                          <Text
-                            style={[
-                              styles.assignmentTeam,
-                              visitorSquad === "East"
-                                ? styles.assignmentEast
-                                : styles.assignmentWest,
-                            ]}
-                          >
-                            {visitorSquad}
-                          </Text>
-                        </View>
-
-                        <Ionicons
-                          name="swap-horizontal-outline"
-                          size={22}
-                          color="#4b5563"
-                        />
-
-                        <View style={styles.assignmentPill}>
-                          <Text style={styles.assignmentLabel}>HOME / BOTTOM</Text>
-                          <Text
-                            style={[
-                              styles.assignmentTeam,
-                              homeSquad === "East"
-                                ? styles.assignmentEast
-                                : styles.assignmentWest,
-                            ]}
-                          >
-                            {homeSquad}
-                          </Text>
-                        </View>
-                      </View>
-
-                      <Pressable
-                        style={styles.swapHomeVisitorButton}
-                        onPress={swapHomeAndVisitor}
-                        disabled={savingGameState}
-                      >
-                        <Ionicons
-                          name="swap-horizontal"
-                          size={18}
-                          color="#ffffff"
-                          style={{ marginRight: 6 }}
-                        />
-                        <Text style={styles.swapHomeVisitorButtonText}>
-                          Swap Home & Visitor
-                        </Text>
-                      </Pressable>
-                    </View>
-
-                    <View style={styles.squadToggleRow}>
-                      <Pressable
-                        style={[
-                          styles.squadToggleButton,
-                          activeSquad === "East" && styles.eastActiveButton,
-                        ]}
-                        onPress={() => setActiveSquad("East")}
-                      >
-                        <Text
-                          style={[
-                            styles.squadToggleText,
-                            activeSquad === "East" && styles.activeToggleText,
-                          ]}
-                        >
-                          East Batting
-                        </Text>
-                      </Pressable>
-
-                      <Pressable
-                        style={[
-                          styles.squadToggleButton,
-                          activeSquad === "West" && styles.westActiveButton,
-                        ]}
-                        onPress={() => setActiveSquad("West")}
-                      >
-                        <Text
-                          style={[
-                            styles.squadToggleText,
-                            activeSquad === "West" && styles.activeToggleText,
-                          ]}
-                        >
-                          West Batting
-                        </Text>
-                      </Pressable>
-                    </View>
-
-                    <View style={styles.scoreControlGrid}>
-                      <View style={styles.scoreControlTeam}>
-                        <Text style={styles.eastControlLabel}>EAST SCORE</Text>
-                        <View style={styles.scoreControlRow}>
-                          <Pressable
-                            style={styles.scoreButton}
-                            onPress={() => updateScore("East", -1)}
-                          >
-                            <Text style={styles.scoreButtonText}>−</Text>
-                          </Pressable>
-                          <Text style={styles.scoreValue}>
-                            {Number(activeGameState.eastScore || 0)}
-                          </Text>
-                          <Pressable
-                            style={styles.scoreButton}
-                            onPress={() => updateScore("East", 1)}
-                          >
-                            <Text style={styles.scoreButtonText}>+</Text>
-                          </Pressable>
-                        </View>
-                      </View>
-
-                      <View style={styles.scoreControlTeam}>
-                        <Text style={styles.westControlLabel}>WEST SCORE</Text>
-                        <View style={styles.scoreControlRow}>
-                          <Pressable
-                            style={styles.scoreButton}
-                            onPress={() => updateScore("West", -1)}
-                          >
-                            <Text style={styles.scoreButtonText}>−</Text>
-                          </Pressable>
-                          <Text style={styles.scoreValue}>
-                            {Number(activeGameState.westScore || 0)}
-                          </Text>
-                          <Pressable
-                            style={styles.scoreButton}
-                            onPress={() => updateScore("West", 1)}
-                          >
-                            <Text style={styles.scoreButtonText}>+</Text>
-                          </Pressable>
-                        </View>
-                      </View>
-                    </View>
-
-                    <View style={styles.controlActionGrid}>
-                      <Pressable style={styles.addOutButton} onPress={addOut}>
-                        <Text style={styles.gameManagementButtonText}>+1 Out</Text>
-                      </Pressable>
-                      <Pressable style={styles.clearOutsButton} onPress={clearOuts}>
-                        <Text style={styles.gameManagementButtonText}>Clear Outs</Text>
-                      </Pressable>
-                      <Pressable
-                        style={styles.switchSidesButton}
-                        onPress={() => setShowSwitchSidesConfirm(true)}
-                      >
-                        <Text style={styles.gameManagementButtonText}>End Half-Inning</Text>
-                      </Pressable>
-                      <Pressable style={styles.previousHalfButton} onPress={goBackHalfInning}>
-                        <Text style={styles.gameManagementButtonText}>Previous Half</Text>
-                      </Pressable>
-                      <Pressable
-                        style={styles.resetGameButton}
-                        onPress={() => setShowResetGameConfirm(true)}
-                      >
-                        <Text style={styles.gameManagementButtonText}>Restart Game</Text>
-                      </Pressable>
-                    </View>
-                  </View>
-
-                  <View style={styles.panelCard}>
-                    <View
-                      style={[
-                        styles.panelHeaderTeam,
-                        activeSquad === "East" ? styles.eastHeader : styles.westHeader,
-                      ]}
-                    >
-                      <Text style={styles.panelHeaderText}>
-                        {activeSquad.toUpperCase()} SUBSTITUTES
-                      </Text>
-                    </View>
-
-                    {(activeSquad === "East" ? eastSubs : westSubs).length > 0 ? (
-                      (activeSquad === "East" ? eastSubs : westSubs).map(
-                        (player) => renderCompactSubRow(player, activeSquad)
-                      )
-                    ) : (
-                      <Text style={styles.emptyPanelText}>No substitutes listed.</Text>
-                    )}
-                  </View>
-
-                  <View style={styles.panelCard}>
-                    <View
-                      style={[
-                        styles.panelHeaderTeam,
-                        activeSquad === "East" ? styles.westHeader : styles.eastHeader,
-                      ]}
-                    >
-                      <Text style={styles.panelHeaderText}>
-                        {activeSquad === "East" ? "WEST" : "EAST"} LINEUP
-                      </Text>
-                    </View>
-
-                    <Pressable
-                      style={styles.opposingLineupButton}
-                      onPress={() =>
-                        setActiveSquad(activeSquad === "East" ? "West" : "East")
-                      }
-                    >
-                      <Text style={styles.opposingLineupButtonText}>
-                        View {activeSquad === "East" ? "West" : "East"} Lineup
-                      </Text>
-                      <Ionicons name="chevron-forward-outline" size={22} color="#1f4e9e" />
+                <View style={[styles.gameBoardColumns, !isWideScreen && styles.gameBoardColumnsMobile]}>
+                  <View style={[styles.teamControlColumn, !isWideScreen && styles.teamControlColumnMobile]}>
+                    <Image source={require("../assets/East.png")} style={styles.gameTeamLogo} resizeMode="contain" />
+                    <Text style={styles.gameEastName}>EAST</Text>
+                    <Text style={styles.homeVisitorLabel}>{visitorSquad === "East" ? "VISITOR" : "HOME"}</Text>
+                    <Text style={styles.gameScoreLarge}>{Number(activeGameState.eastScore || 0)}</Text>
+                    <Text style={styles.gameDugout}>{eastDugout}</Text>
+                    <Pressable onPress={() => openManagerEditor("East")} style={styles.gameManagerEdit}>
+                      <Text style={styles.gameManagerText}>Manager: {eastManager || "TBD"}</Text>
+                      <Ionicons name="pencil-outline" size={15} color="#cbd5e1" style={{ marginLeft: 6 }} />
                     </Pressable>
+                    <View style={styles.teamScoreControls}>
+                      <Pressable style={styles.teamControlButtonRed} onPress={() => updateScore("East", -1)}><Text style={styles.teamControlButtonText}>− Score</Text></Pressable>
+                      <Pressable style={styles.teamControlButtonGreen} onPress={() => updateScore("East", 1)}><Text style={styles.teamControlButtonText}>+ Score</Text></Pressable>
+                    </View>
+                    <View style={styles.outDisplayRow}><Text style={styles.outDots}>{"●".repeat(Number(activeGameState.outs || 0))}{"○".repeat(3 - Number(activeGameState.outs || 0))}</Text><Text style={styles.outCountText}>{Number(activeGameState.outs || 0)} OUTS</Text></View>
+                    <View style={styles.sideButtonGrid}>
+                      <Pressable style={styles.sideYellowButton} onPress={addOut}><Text style={styles.sideDarkText}>+1 Out</Text></Pressable>
+                      <Pressable style={styles.sideGrayButton} onPress={clearOuts}><Text style={styles.sideLightText}>Clear Outs</Text></Pressable>
+                      <Pressable style={styles.sideGreenButton} onPress={() => setShowSwitchSidesConfirm(true)}><Text style={styles.sideLightText}>End Half-Inning</Text></Pressable>
+                      <Pressable style={styles.sideBlueButton} onPress={goBackHalfInning}><Text style={styles.sideLightText}>Previous Half</Text></Pressable>
+                    </View>
+                    <View style={[styles.pitcherCard, defensiveSquad === "East" ? styles.pitcherActiveEast : styles.pitcherInactive]}>
+                      <Text style={[styles.pitcherHeading, defensiveSquad !== "East" && styles.pitcherInactiveText]}>PITCHING</Text>
+                      <Text style={[styles.pitcherName, defensiveSquad !== "East" && styles.pitcherInactiveText]}>{eastPitcher ? `#${eastPitcher.jerseyNumber || "--"}  ${eastPitcher.name}` : "Pitcher Not Set"}</Text>
+                      <Text style={[styles.pitcherMeta, defensiveSquad !== "East" && styles.pitcherInactiveText]}>{eastPitcher?.teamName || "East All-Stars"}</Text>
+                    </View>
+                  </View>
+
+                  <View style={[styles.batterCenterColumn, !isWideScreen && styles.batterCenterColumnMobile]}>
+                    <View style={[styles.nowBattingHeader, activeSquad === "East" ? styles.eastHeader : styles.westHeader]}><Text style={styles.panelHeaderText}>NOW BATTING</Text></View>
+                    <View style={[styles.activeSquadStrip, activeSquad === "East" ? styles.eastStrip : styles.westStrip]}>
+                      <Image source={activeSquad === "East" ? require("../assets/East.png") : require("../assets/West.png")} style={styles.activeSquadMiniLogo} resizeMode="contain" />
+                      <Text style={styles.activeSquadStripText}>{activeSquad.toUpperCase()} BATTING</Text>
+                    </View>
+                    {renderFeaturedPlayer("NOW BATTING", currentBatter, activeGameState.currentBatterIndex + 1, true)}
+                    <View style={styles.upNextRow}>
+                      <View style={styles.upNextColumn}>{renderFeaturedPlayer("ON DECK", onDeckBatter, activeGameState.currentBatterIndex + 2)}</View>
+                      <View style={styles.upNextColumn}>{renderFeaturedPlayer("IN THE HOLE", inHoleBatter, activeGameState.currentBatterIndex + 3)}</View>
+                    </View>
+                    <View style={styles.controlButtonRow}>
+                      <Pressable style={styles.previousButton} onPress={() => moveBatter("previous")} disabled={savingGameState || !activeBatting.length}><Text style={styles.controlButtonText}>‹ Previous Batter</Text></Pressable>
+                      <Pressable style={styles.nextButton} onPress={() => moveBatter("next")} disabled={savingGameState || !activeBatting.length}><Text style={styles.controlButtonText}>Next Batter ›</Text></Pressable>
+                    </View>
+                    <Pressable style={styles.restartGameWideButton} onPress={() => setShowResetGameConfirm(true)}><Text style={styles.sideLightText}>Restart Game</Text></Pressable>
+                  </View>
+
+                  <View style={[styles.teamControlColumn, !isWideScreen && styles.teamControlColumnMobile]}>
+                    <Image source={require("../assets/West.png")} style={styles.gameTeamLogo} resizeMode="contain" />
+                    <Text style={styles.gameWestName}>WEST</Text>
+                    <Text style={styles.homeVisitorLabel}>{visitorSquad === "West" ? "VISITOR" : "HOME"}</Text>
+                    <Text style={styles.gameScoreLarge}>{Number(activeGameState.westScore || 0)}</Text>
+                    <Text style={styles.gameDugout}>{westDugout}</Text>
+                    <Pressable onPress={() => openManagerEditor("West")} style={styles.gameManagerEdit}>
+                      <Text style={styles.gameManagerText}>Manager: {westManager || "TBD"}</Text>
+                      <Ionicons name="pencil-outline" size={15} color="#cbd5e1" style={{ marginLeft: 6 }} />
+                    </Pressable>
+                    <View style={styles.teamScoreControls}>
+                      <Pressable style={styles.teamControlButtonRed} onPress={() => updateScore("West", -1)}><Text style={styles.teamControlButtonText}>− Score</Text></Pressable>
+                      <Pressable style={styles.teamControlButtonGreen} onPress={() => updateScore("West", 1)}><Text style={styles.teamControlButtonText}>+ Score</Text></Pressable>
+                    </View>
+                    <View style={styles.outDisplayRow}><Text style={styles.outDots}>{"●".repeat(Number(activeGameState.outs || 0))}{"○".repeat(3 - Number(activeGameState.outs || 0))}</Text><Text style={styles.outCountText}>{Number(activeGameState.outs || 0)} OUTS</Text></View>
+                    <View style={styles.sideButtonGrid}>
+                      <Pressable style={styles.sideYellowButton} onPress={addOut}><Text style={styles.sideDarkText}>+1 Out</Text></Pressable>
+                      <Pressable style={styles.sideGrayButton} onPress={clearOuts}><Text style={styles.sideLightText}>Clear Outs</Text></Pressable>
+                      <Pressable style={styles.sideGreenButton} onPress={() => setShowSwitchSidesConfirm(true)}><Text style={styles.sideLightText}>End Half-Inning</Text></Pressable>
+                      <Pressable style={styles.sideBlueButton} onPress={goBackHalfInning}><Text style={styles.sideLightText}>Previous Half</Text></Pressable>
+                    </View>
+                    <View style={[styles.pitcherCard, defensiveSquad === "West" ? styles.pitcherActiveWest : styles.pitcherInactive]}>
+                      <Text style={[styles.pitcherHeading, defensiveSquad !== "West" && styles.pitcherInactiveText]}>PITCHING</Text>
+                      <Text style={[styles.pitcherName, defensiveSquad !== "West" && styles.pitcherInactiveText]}>{westPitcher ? `#${westPitcher.jerseyNumber || "--"}  ${westPitcher.name}` : "Pitcher Not Set"}</Text>
+                      <Text style={[styles.pitcherMeta, defensiveSquad !== "West" && styles.pitcherInactiveText]}>{westPitcher?.teamName || "West All-Stars"}</Text>
+                    </View>
                   </View>
                 </View>
               </View>
-
             </>
           )}
 
@@ -2630,7 +2284,7 @@ const styles = StyleSheet.create({
   },
   lineupManagerName: {
     color: "#111827",
-    fontSize: 17,
+    fontSize: 19,
     fontWeight: "900",
     textAlign: "center",
   },
@@ -2758,4 +2412,47 @@ jerseyEditorInput: {
     paddingHorizontal: 12,
     marginBottom: 16,
   },
+
+  lineupsTopButton: { backgroundColor: "#1d4ed8", paddingHorizontal: 14, paddingVertical: 10, borderRadius: 9 },
+  newGameBoard: { backgroundColor: "#0f172a", borderWidth: 3, borderRadius: 20, padding: 16, marginTop: 8 },
+  newGameBoardMobile: { padding: 10 },
+  inningBanner: { alignItems: "center", marginBottom: 10 },
+  inningBannerText: { color: "#facc15", fontSize: 24, fontWeight: "900" },
+  gameBoardColumns: { flexDirection: "row", alignItems: "stretch", gap: 14 },
+  gameBoardColumnsMobile: { flexDirection: "column" },
+  teamControlColumn: { flex: 0.9, alignItems: "center", minWidth: 250 },
+  teamControlColumnMobile: { width: "100%" },
+  batterCenterColumn: { flex: 1.45, backgroundColor: "#f8fafc", borderRadius: 14, overflow: "hidden", paddingBottom: 10 },
+  batterCenterColumnMobile: { width: "100%" },
+  gameTeamLogo: { width: 130, height: 85 },
+  gameEastName: { color: "#ef4444", fontSize: 22, fontWeight: "900" },
+  gameWestName: { color: "#60a5fa", fontSize: 22, fontWeight: "900" },
+  gameScoreLarge: { color: "#ffffff", fontSize: 72, lineHeight: 78, fontWeight: "900", marginVertical: 2 },
+  gameDugout: { color: "#e5e7eb", fontSize: 15, fontWeight: "800", marginTop: 2 },
+  gameManagerEdit: { flexDirection: "row", alignItems: "center", marginTop: 6, marginBottom: 12 },
+  gameManagerText: { color: "#e5e7eb", fontSize: 18, fontWeight: "900" },
+  teamScoreControls: { flexDirection: "row", width: "100%", gap: 8, marginBottom: 10 },
+  teamControlButtonRed: { flex: 1, height: 44, borderRadius: 8, backgroundColor: "#dc2626", alignItems: "center", justifyContent: "center" },
+  teamControlButtonGreen: { flex: 1, height: 44, borderRadius: 8, backgroundColor: "#15803d", alignItems: "center", justifyContent: "center" },
+  teamControlButtonText: { color: "#ffffff", fontSize: 16, fontWeight: "900" },
+  outDisplayRow: { alignItems: "center", minHeight: 58, marginBottom: 8 },
+  outDots: { color: "#facc15", fontSize: 26, letterSpacing: 4, fontWeight: "900" },
+  outCountText: { color: "#e5e7eb", fontSize: 14, fontWeight: "900" },
+  sideButtonGrid: { width: "100%", flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
+  sideYellowButton: { width: "48%", height: 44, borderRadius: 7, backgroundColor: "#facc15", alignItems: "center", justifyContent: "center" },
+  sideGrayButton: { width: "48%", height: 44, borderRadius: 7, backgroundColor: "#64748b", alignItems: "center", justifyContent: "center" },
+  sideGreenButton: { width: "48%", height: 44, borderRadius: 7, backgroundColor: "#15803d", alignItems: "center", justifyContent: "center" },
+  sideBlueButton: { width: "48%", height: 44, borderRadius: 7, backgroundColor: "#1d4ed8", alignItems: "center", justifyContent: "center" },
+  sideDarkText: { color: "#111827", fontSize: 14, fontWeight: "900" },
+  sideLightText: { color: "#ffffff", fontSize: 14, fontWeight: "900" },
+  pitcherCard: { width: "100%", borderRadius: 10, padding: 12, minHeight: 90, justifyContent: "center" },
+  pitcherActiveEast: { backgroundColor: "#fee2e2", borderWidth: 2, borderColor: "#dc2626" },
+  pitcherActiveWest: { backgroundColor: "#dbeafe", borderWidth: 2, borderColor: "#1d4ed8" },
+  pitcherInactive: { backgroundColor: "#374151", borderWidth: 2, borderColor: "#4b5563", opacity: 0.62 },
+  pitcherHeading: { color: "#111827", fontSize: 17, fontWeight: "900", textAlign: "center", marginBottom: 7 },
+  pitcherName: { color: "#111827", fontSize: 17, fontWeight: "900" },
+  pitcherMeta: { color: "#4b5563", fontSize: 13, fontWeight: "700", marginTop: 3 },
+  pitcherInactiveText: { color: "#cbd5e1" },
+  nowBattingHeader: { paddingVertical: 10, alignItems: "center" },
+  restartGameWideButton: { marginHorizontal: 10, marginTop: 10, height: 42, borderRadius: 8, backgroundColor: "#991b1b", alignItems: "center", justifyContent: "center" },
 });
