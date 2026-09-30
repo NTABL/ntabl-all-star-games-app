@@ -2217,6 +2217,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    width: 160,
   },
   lineupsNavButton: {
     marginTop: 12,
@@ -2241,6 +2242,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    width: 160,
   },
   undoEditsButtonText: {
     color: "#111827",
