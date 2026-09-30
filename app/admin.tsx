@@ -1,16 +1,26 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, Stack, useFocusEffect } from "expo-router";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import {
+  ActivityIndicator,
   Image,
+  Modal,
   ScrollView,
+  TextInput,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { clearAdminLogin, isAdminLoggedIn } from "../stores/adminstore";
+import { API_BASE } from "../utils/appconfig";
 export default function AdminScreen() {
+  const [showMasterReset, setShowMasterReset] = useState(false);
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetConfirmation, setResetConfirmation] = useState("");
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState("");
+  const [resetComplete, setResetComplete] = useState(false);
   useFocusEffect(
     useCallback(() => {
       checkAdmin();
@@ -28,6 +38,55 @@ export default function AdminScreen() {
   async function handleLogout() {
     await clearAdminLogin();
     router.replace("/login");
+  }
+
+  function openMasterReset() {
+    setResetPassword("");
+    setResetConfirmation("");
+    setResetError("");
+    setResetComplete(false);
+    setShowMasterReset(true);
+  }
+
+  function closeMasterReset() {
+    if (resetting) return;
+    setShowMasterReset(false);
+    setResetPassword("");
+    setResetConfirmation("");
+    setResetError("");
+    setResetComplete(false);
+  }
+
+  async function runMasterReset() {
+    if (resetConfirmation.trim().toUpperCase() !== "RESET" || !resetPassword.trim()) return;
+
+    setResetting(true);
+    setResetError("");
+
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/master-reset`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          password: resetPassword,
+          confirmation: resetConfirmation,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.message || "Master reset failed.");
+      }
+
+      setResetComplete(true);
+      setResetPassword("");
+      setResetConfirmation("");
+    } catch (error: any) {
+      setResetError(error?.message || "Master reset failed.");
+    } finally {
+      setResetting(false);
+    }
   }
 
 
@@ -223,11 +282,118 @@ export default function AdminScreen() {
   </TouchableOpacity>
 </View>
 
+          <View style={[styles.sectionCard, styles.dangerCard]}>
+            <View style={styles.dangerTitleRow}>
+              <Ionicons name="warning-outline" size={24} color="#b91c1c" />
+              <Text style={styles.dangerHeader}>Danger Zone</Text>
+            </View>
+
+            <Text style={styles.dangerDescription}>
+              Prepare the All-Star app for a new event or season. This clears All-Star selections, East/West assignments, saved lineups, managers, and live game progress. Game schedules and app configuration are preserved.
+            </Text>
+
+            <TouchableOpacity style={styles.masterResetButton} onPress={openMasterReset}>
+              <View style={styles.buttonContentRow}>
+                <Ionicons name="trash-outline" size={22} color="#ffffff" style={{ marginRight: 8 }} />
+                <Text style={styles.buttonText}>Master Reset</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
           <Text style={styles.versionFooter}>
             NTABL All-Star App • Version 1.0
           </Text>
         </ScrollView>
 
+        <Modal
+          visible={showMasterReset}
+          transparent
+          animationType="fade"
+          onRequestClose={closeMasterReset}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.resetModal}>
+              {resetComplete ? (
+                <>
+                  <Ionicons name="checkmark-circle" size={58} color="#15803d" style={styles.modalIcon} />
+                  <Text style={styles.resetModalTitle}>Master Reset Complete</Text>
+                  <Text style={styles.resetModalText}>
+                    All-Star selections, team assignments, lineups, managers, and live game progress have been cleared. Game schedules and reusable app configuration were not changed.
+                  </Text>
+                  <TouchableOpacity style={styles.doneButton} onPress={closeMasterReset}>
+                    <Text style={styles.buttonText}>Done</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="warning" size={58} color="#b91c1c" style={styles.modalIcon} />
+                  <Text style={styles.resetModalTitle}>Master Reset All-Star Data?</Text>
+                  <Text style={styles.resetWarning}>THIS CANNOT BE UNDONE</Text>
+
+                  <Text style={styles.resetModalText}>
+                    This will permanently clear team All-Star selections, East/West assignments, saved batting lineups, All-Star manager assignments, announcer player/manager edits, scores, innings, outs, and batter tracking.
+                  </Text>
+
+                  <View style={styles.preservedBox}>
+                    <Text style={styles.preservedTitle}>This will NOT clear:</Text>
+                    <Text style={styles.preservedText}>
+                      • Game Schedules{"\n"}
+                      • Division Configuration{"\n"}
+                      • Announcer Configuration{"\n"}
+                      • Admin or Member Accounts{"\n"}
+                      • Communications Data{"\n"}
+                      • Waivers
+                    </Text>
+                  </View>
+
+                  <Text style={styles.inputLabel}>Admin Password</Text>
+                  <TextInput
+                    style={styles.resetInput}
+                    value={resetPassword}
+                    onChangeText={setResetPassword}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    editable={!resetting}
+                    placeholder="Enter admin password"
+                  />
+
+                  <Text style={styles.inputLabel}>Type RESET to Confirm</Text>
+                  <TextInput
+                    style={styles.resetInput}
+                    value={resetConfirmation}
+                    onChangeText={setResetConfirmation}
+                    autoCapitalize="characters"
+                    editable={!resetting}
+                    placeholder="RESET"
+                  />
+
+                  {!!resetError && <Text style={styles.resetError}>{resetError}</Text>}
+
+                  <View style={styles.resetButtonRow}>
+                    <TouchableOpacity style={styles.cancelResetButton} onPress={closeMasterReset} disabled={resetting}>
+                      <Text style={styles.buttonText}>Cancel</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.confirmResetButton,
+                        (resetConfirmation.trim().toUpperCase() !== "RESET" || !resetPassword.trim() || resetting) && styles.disabledResetButton,
+                      ]}
+                      onPress={runMasterReset}
+                      disabled={resetConfirmation.trim().toUpperCase() !== "RESET" || !resetPassword.trim() || resetting}
+                    >
+                      {resetting ? (
+                        <ActivityIndicator color="#ffffff" />
+                      ) : (
+                        <Text style={styles.buttonText}>Reset All-Star Data</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
+          </View>
+        </Modal>
       </View>
     </>
   );
@@ -414,7 +580,150 @@ const styles = StyleSheet.create({
 
 
 
-diagnosticsButton: {
+dangerCard: {
+    borderWidth: 2,
+    borderColor: "#fecaca",
+    backgroundColor: "#fffafa",
+  },
+  dangerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  dangerHeader: {
+    fontSize: 20,
+    fontWeight: "900",
+    color: "#b91c1c",
+    marginLeft: 7,
+  },
+  dangerDescription: {
+    color: "#4b5563",
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
+    marginBottom: 14,
+  },
+  masterResetButton: {
+    backgroundColor: "#b91c1c",
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.62)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  resetModal: {
+    width: "100%",
+    maxWidth: 560,
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 24,
+  },
+  modalIcon: {
+    alignSelf: "center",
+    marginBottom: 8,
+  },
+  resetModalTitle: {
+    fontSize: 23,
+    fontWeight: "900",
+    color: "#111827",
+    textAlign: "center",
+    marginBottom: 6,
+  },
+  resetWarning: {
+    color: "#b91c1c",
+    fontSize: 14,
+    fontWeight: "900",
+    textAlign: "center",
+    marginBottom: 14,
+  },
+  resetModalText: {
+    color: "#374151",
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: "center",
+    marginBottom: 14,
+  },
+  preservedBox: {
+    backgroundColor: "#f3f4f6",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+  },
+  preservedTitle: {
+    color: "#111827",
+    fontWeight: "900",
+    fontSize: 14,
+    marginBottom: 6,
+  },
+  preservedText: {
+    color: "#374151",
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  inputLabel: {
+    color: "#111827",
+    fontSize: 14,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
+  resetInput: {
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    fontSize: 16,
+    color: "#111827",
+    backgroundColor: "#ffffff",
+    marginBottom: 14,
+  },
+  resetError: {
+    color: "#b91c1c",
+    fontWeight: "800",
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  resetButtonRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  cancelResetButton: {
+    flex: 1,
+    backgroundColor: "#4b5563",
+    borderRadius: 11,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmResetButton: {
+    flex: 1.5,
+    backgroundColor: "#b91c1c",
+    borderRadius: 11,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  disabledResetButton: {
+    opacity: 0.4,
+  },
+  doneButton: {
+    backgroundColor: "#15803d",
+    borderRadius: 11,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 4,
+  },
+
+  diagnosticsButton: {
   backgroundColor: "#1f4e9e",
   borderRadius: 12,
   paddingVertical: 16,
