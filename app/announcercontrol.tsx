@@ -163,7 +163,6 @@ export default function AnnouncerControlScreen() {
   const westDugout = String(params.westDugout || "3B Dugout");
   const gameAccentColor = String(params.accentColor || "#1f4e9e");
   const swipeHintScale = useRef(new Animated.Value(1)).current;
-  const batterPulse = useRef(new Animated.Value(1)).current;
   useFocusEffect(() => {
   const subscription = BackHandler.addEventListener(
     "hardwareBackPress",
@@ -251,26 +250,6 @@ useFocusEffect(() => {
 
     return () => clearInterval(interval);
   }, [selectedGame.divisionId]);
-
-  useEffect(() => {
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(batterPulse, {
-          toValue: 1.025,
-          duration: 650,
-          useNativeDriver: true,
-        }),
-        Animated.timing(batterPulse, {
-          toValue: 1,
-          duration: 650,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    pulse.start();
-    return () => pulse.stop();
-  }, [batterPulse]);
 
   useEffect(() => {
     function pulseSwipeHint() {
@@ -972,17 +951,21 @@ async function saveManagerName() {
     isMain = false
   ) {
     return (
-      <Animated.View
-        style={[
+      <View
+        style={
           isMain
-            ? styles.currentBatterCard
+            ? [
+                styles.currentBatterCard,
+                activeSquad === "East"
+                  ? styles.currentBatterEast
+                  : styles.currentBatterWest,
+              ]
             : label === "ON DECK"
             ? [styles.upNextCard, styles.onDeckCard]
             : label === "IN THE HOLE"
             ? [styles.upNextCard, styles.inHoleCard]
-            : styles.upNextCard,
-          isMain ? { transform: [{ scale: batterPulse }] } : null,
-        ]}
+            : styles.upNextCard
+        }
       >
         <Text style={isMain ? styles.currentBatterLabel : styles.upNextLabel}>
           {label}
@@ -1048,7 +1031,7 @@ async function saveManagerName() {
         ) : (
           <Text style={styles.emptyFeaturedText}>No batting lineup saved yet.</Text>
         )}
-      </Animated.View>
+      </View>
     );
   }
 
@@ -1899,13 +1882,13 @@ const styles = StyleSheet.create({
     margin: 8,
     borderRadius: 14,
     borderWidth: 4,
-    borderColor: "#facc15",
-    shadowColor: "#facc15",
     shadowOpacity: 0.65,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 0 },
     elevation: 10,
   },
+  currentBatterEast: { borderColor: "#dc2626", shadowColor: "#dc2626" },
+  currentBatterWest: { borderColor: "#2563eb", shadowColor: "#2563eb" },
   currentBatterLabel: { display: "none" },
   orderNumberLarge: { color: "#facc15", fontSize: 13, fontWeight: "900" },
   jerseyLarge: { color: "#facc15", fontSize: 28, fontWeight: "900", marginTop: 3 },
