@@ -2011,17 +2011,19 @@ const styles = StyleSheet.create({
   controlButtonRow: { flexDirection: "row", gap: 9, paddingHorizontal: 10, paddingBottom: 10 },
   previousButton: {
     flex: 1,
+    height: 120,
     backgroundColor: "#4b5563",
     borderRadius: 9,
-    paddingVertical: 12,
     alignItems: "center",
+    justifyContent: "center",
   },
   nextButton: {
     flex: 1,
+    height: 120,
     backgroundColor: "#1d4ed8",
     borderRadius: 9,
-    paddingVertical: 12,
     alignItems: "center",
+    justifyContent: "center",
   },
   controlButtonText: { color: "#fff", fontSize: 13, fontWeight: "900" },
   featuredNameRow: {
