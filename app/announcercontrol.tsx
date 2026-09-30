@@ -163,6 +163,7 @@ export default function AnnouncerControlScreen() {
   const westDugout = String(params.westDugout || "3B Dugout");
   const gameAccentColor = String(params.accentColor || "#1f4e9e");
   const swipeHintScale = useRef(new Animated.Value(1)).current;
+  const batterPulse = useRef(new Animated.Value(1)).current;
   useFocusEffect(() => {
   const subscription = BackHandler.addEventListener(
     "hardwareBackPress",
@@ -250,6 +251,26 @@ useFocusEffect(() => {
 
     return () => clearInterval(interval);
   }, [selectedGame.divisionId]);
+
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(batterPulse, {
+          toValue: 1.025,
+          duration: 650,
+          useNativeDriver: true,
+        }),
+        Animated.timing(batterPulse, {
+          toValue: 1,
+          duration: 650,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    pulse.start();
+    return () => pulse.stop();
+  }, [batterPulse]);
 
   useEffect(() => {
     function pulseSwipeHint() {
@@ -938,7 +959,7 @@ async function saveManagerName() {
         <Ionicons
           name="volume-high-outline"
           size={compact ? 18 : 21}
-          color={light ? "#166534" : "#1f4e9e"}
+          color={light ? "#facc15" : "#1f4e9e"}
         />
       </Pressable>
     );
@@ -951,16 +972,17 @@ async function saveManagerName() {
     isMain = false
   ) {
     return (
-      <View
-        style={
+      <Animated.View
+        style={[
           isMain
             ? styles.currentBatterCard
             : label === "ON DECK"
             ? [styles.upNextCard, styles.onDeckCard]
             : label === "IN THE HOLE"
             ? [styles.upNextCard, styles.inHoleCard]
-            : styles.upNextCard
-        }
+            : styles.upNextCard,
+          isMain ? { transform: [{ scale: batterPulse }] } : null,
+        ]}
       >
         <Text style={isMain ? styles.currentBatterLabel : styles.upNextLabel}>
           {label}
@@ -1008,7 +1030,7 @@ async function saveManagerName() {
                 <Ionicons
                   name="pencil-outline"
                   size={isMain ? 17 : 14}
-                  color={isMain ? "#166534" : "#6b7280"}
+                  color={isMain ? "#facc15" : "#6b7280"}
                   style={{ marginLeft: 5 }}
                 />
               </Pressable>
@@ -1026,7 +1048,7 @@ async function saveManagerName() {
         ) : (
           <Text style={styles.emptyFeaturedText}>No batting lineup saved yet.</Text>
         )}
-      </View>
+      </Animated.View>
     );
   }
 
@@ -1871,26 +1893,31 @@ const styles = StyleSheet.create({
   activeSquadMiniLogo: { width: 50, height: 34, marginRight: 7 },
   activeSquadStripText: { color: "#111827", fontSize: 14, fontWeight: "900" },
   currentBatterCard: {
-    backgroundColor: "#dcfce7",
-    padding: 12,
+    backgroundColor: "#111827",
+    padding: 14,
     alignItems: "center",
     margin: 8,
-    borderRadius: 12,
-    borderWidth: 3,
-    borderColor: "#22c55e",
+    borderRadius: 14,
+    borderWidth: 4,
+    borderColor: "#facc15",
+    shadowColor: "#facc15",
+    shadowOpacity: 0.65,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 10,
   },
   currentBatterLabel: { display: "none" },
-  orderNumberLarge: { color: "#166534", fontSize: 13, fontWeight: "900" },
-  jerseyLarge: { color: "#166534", fontSize: 26, fontWeight: "900", marginTop: 3 },
-  playerNameLarge: { color: "#111827", fontSize: 23, fontWeight: "900", textAlign: "center" },
+  orderNumberLarge: { color: "#facc15", fontSize: 13, fontWeight: "900" },
+  jerseyLarge: { color: "#facc15", fontSize: 28, fontWeight: "900", marginTop: 3 },
+  playerNameLarge: { color: "#ffffff", fontSize: 25, fontWeight: "900", textAlign: "center" },
   playerMetaLarge: {
-    color: "#4b5563",
+    color: "#e5e7eb",
     fontSize: 14,
     fontWeight: "800",
     textAlign: "center",
     marginTop: 5,
   },
-  playerPositionLarge: { color: "#166534", fontSize: 15, fontWeight: "900", marginTop: 2 },
+  playerPositionLarge: { color: "#facc15", fontSize: 15, fontWeight: "900", marginTop: 2 },
   upNextRow: { flexDirection: "row", gap: 9, paddingHorizontal: 10, marginBottom: 10 },
   upNextColumn: { flex: 1 },
   upNextCard: {
