@@ -430,8 +430,41 @@ return JSON.stringify({
       setWestSubs(west.subs);
       setEastManager(east.managerName || "");
       setWestManager(west.managerName || "");
-      setEastGameState(eastState as GameState);
-      setWestGameState(westState as GameState);
+      const eastLoaded = eastState as GameState;
+      const westLoaded = westState as GameState;
+      const sharedLoaded =
+        String(eastLoaded.updatedAt || "") >= String(westLoaded.updatedAt || "")
+          ? eastLoaded
+          : westLoaded;
+
+      const normalizedEast: GameState = {
+        ...eastLoaded,
+        inning: sharedLoaded.inning,
+        half: sharedLoaded.half,
+        outs: sharedLoaded.outs,
+        eastScore: sharedLoaded.eastScore,
+        westScore: sharedLoaded.westScore,
+        visitorSquad: sharedLoaded.visitorSquad,
+        homeSquad: sharedLoaded.homeSquad,
+      };
+      const normalizedWest: GameState = {
+        ...westLoaded,
+        inning: sharedLoaded.inning,
+        half: sharedLoaded.half,
+        outs: sharedLoaded.outs,
+        eastScore: sharedLoaded.eastScore,
+        westScore: sharedLoaded.westScore,
+        visitorSquad: sharedLoaded.visitorSquad,
+        homeSquad: sharedLoaded.homeSquad,
+      };
+
+      setEastGameState(normalizedEast);
+      setWestGameState(normalizedWest);
+
+      const loadedVisitor: Squad =
+        sharedLoaded.visitorSquad === "West" ? "West" : "East";
+      const loadedHome: Squad = loadedVisitor === "East" ? "West" : "East";
+      setActiveSquad(sharedLoaded.half === "Bottom" ? loadedHome : loadedVisitor);
 
       const now = new Date();
       setLastUpdatedDate(now);
@@ -542,6 +575,35 @@ const savedState: GameState = {
     }
   }
 
+  async function saveSharedGameState(nextSharedState: GameState) {
+    const nextEastState: GameState = {
+      ...eastGameState,
+      inning: nextSharedState.inning,
+      half: nextSharedState.half,
+      outs: nextSharedState.outs,
+      eastScore: nextSharedState.eastScore,
+      westScore: nextSharedState.westScore,
+      visitorSquad: nextSharedState.visitorSquad,
+      homeSquad: nextSharedState.homeSquad,
+    };
+
+    const nextWestState: GameState = {
+      ...westGameState,
+      inning: nextSharedState.inning,
+      half: nextSharedState.half,
+      outs: nextSharedState.outs,
+      eastScore: nextSharedState.eastScore,
+      westScore: nextSharedState.westScore,
+      visitorSquad: nextSharedState.visitorSquad,
+      homeSquad: nextSharedState.homeSquad,
+    };
+
+    await Promise.all([
+      saveGameState("East", nextEastState),
+      saveGameState("West", nextWestState),
+    ]);
+  }
+
   function moveBatter(direction: "previous" | "next") {
     if (!activeBatting.length) return;
 
@@ -558,54 +620,43 @@ const savedState: GameState = {
   }
 
   function addOut() {
-  const nextOuts = Math.min(Number(activeGameState.outs || 0) + 1, 3);
+    const nextOuts = Math.min(Number(activeGameState.outs || 0) + 1, 3);
 
-  saveGameState(activeSquad, {
-    ...activeGameState,
-    outs: nextOuts,
-  });
-}
+    saveSharedGameState({
+      ...activeGameState,
+      outs: nextOuts,
+    });
+  }
 
-function clearOuts() {
-  saveGameState(activeSquad, {
-    ...activeGameState,
-    outs: 0,
-  });
-}
+  function clearOuts() {
+    saveSharedGameState({
+      ...activeGameState,
+      outs: 0,
+    });
+  }
 
-function updateScore(team: "East" | "West", amount: number) {
-  const currentEastScore = Number(activeGameState.eastScore || 0);
-  const currentWestScore = Number(activeGameState.westScore || 0);
+  function updateScore(team: "East" | "West", amount: number) {
+    const currentEastScore = Number(activeGameState.eastScore || 0);
+    const currentWestScore = Number(activeGameState.westScore || 0);
 
-  saveGameState(activeSquad, {
-    ...activeGameState,
-    eastScore:
-      team === "East" ? Math.max(currentEastScore + amount, 0) : currentEastScore,
-    westScore:
-      team === "West" ? Math.max(currentWestScore + amount, 0) : currentWestScore,
-  });
-}
+    saveSharedGameState({
+      ...activeGameState,
+      eastScore:
+        team === "East" ? Math.max(currentEastScore + amount, 0) : currentEastScore,
+      westScore:
+        team === "West" ? Math.max(currentWestScore + amount, 0) : currentWestScore,
+    });
+  }
 
 async function swapHomeAndVisitor() {
   const nextVisitor: Squad = homeSquad;
   const nextHome: Squad = visitorSquad;
 
-  const nextEastState: GameState = {
-    ...eastGameState,
+  await saveSharedGameState({
+    ...activeGameState,
     visitorSquad: nextVisitor,
     homeSquad: nextHome,
-  };
-
-  const nextWestState: GameState = {
-    ...westGameState,
-    visitorSquad: nextVisitor,
-    homeSquad: nextHome,
-  };
-
-  await Promise.all([
-    saveGameState("East", nextEastState),
-    saveGameState("West", nextWestState),
-  ]);
+  });
 
   setActiveSquad(
     activeGameState.half === "Top" ? nextVisitor : nextHome
@@ -629,14 +680,7 @@ function advanceHalfInning() {
   const incomingGameState =
     nextSquad === "East" ? eastGameState : westGameState;
 
-  const outgoingState: GameState = {
-    ...activeGameState,
-    half: nextHalf,
-    inning: nextInning,
-    outs: 0,
-  };
-
-  const incomingState: GameState = {
+  saveSharedGameState({
     ...incomingGameState,
     half: nextHalf,
     inning: nextInning,
@@ -645,10 +689,7 @@ function advanceHalfInning() {
     westScore: activeGameState.westScore,
     visitorSquad: activeGameState.visitorSquad,
     homeSquad: activeGameState.homeSquad,
-  };
-
-  saveGameState(activeSquad, outgoingState);
-  saveGameState(nextSquad, incomingState);
+  });
 
   setActiveSquad(nextSquad);
 }
@@ -674,14 +715,7 @@ function goBackHalfInning() {
   const previousGameState =
     previousSquad === "East" ? eastGameState : westGameState;
 
-  const outgoingState: GameState = {
-    ...activeGameState,
-    half: previousHalf,
-    inning: previousInning,
-    outs: 0,
-  };
-
-  const previousState: GameState = {
+  saveSharedGameState({
     ...previousGameState,
     half: previousHalf,
     inning: previousInning,
@@ -690,10 +724,7 @@ function goBackHalfInning() {
     westScore: activeGameState.westScore,
     visitorSquad: activeGameState.visitorSquad,
     homeSquad: activeGameState.homeSquad,
-  };
-
-  saveGameState(activeSquad, outgoingState);
-  saveGameState(previousSquad, previousState);
+  });
 
   setActiveSquad(previousSquad);
 }
