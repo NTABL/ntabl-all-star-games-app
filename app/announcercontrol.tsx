@@ -615,15 +615,31 @@ function advanceHalfInning() {
   const nextInning =
     currentHalf === "Bottom" ? currentInning + 1 : currentInning;
 
-  const nextState: GameState = {
+  // Each squad owns its own currentBatterIndex. Do not copy the
+  // outgoing squad's batter position onto the incoming squad.
+  const incomingGameState =
+    nextSquad === "East" ? eastGameState : westGameState;
+
+  const outgoingState: GameState = {
     ...activeGameState,
     half: nextHalf,
     inning: nextInning,
     outs: 0,
   };
 
-  saveGameState(activeSquad, nextState);
-  saveGameState(nextSquad, nextState);
+  const incomingState: GameState = {
+    ...incomingGameState,
+    half: nextHalf,
+    inning: nextInning,
+    outs: 0,
+    eastScore: activeGameState.eastScore,
+    westScore: activeGameState.westScore,
+    visitorSquad: activeGameState.visitorSquad,
+    homeSquad: activeGameState.homeSquad,
+  };
+
+  saveGameState(activeSquad, outgoingState);
+  saveGameState(nextSquad, incomingState);
 
   setActiveSquad(nextSquad);
 }
@@ -644,12 +660,31 @@ function goBackHalfInning() {
   const previousSquad: Squad =
     previousHalf === "Top" ? visitorSquad : homeSquad;
 
-  saveGameState(activeSquad, {
+  // Preserve the previous squad's own batter position while moving
+  // the shared inning/score information back one half inning.
+  const previousGameState =
+    previousSquad === "East" ? eastGameState : westGameState;
+
+  const outgoingState: GameState = {
     ...activeGameState,
     half: previousHalf,
     inning: previousInning,
     outs: 0,
-  });
+  };
+
+  const previousState: GameState = {
+    ...previousGameState,
+    half: previousHalf,
+    inning: previousInning,
+    outs: 0,
+    eastScore: activeGameState.eastScore,
+    westScore: activeGameState.westScore,
+    visitorSquad: activeGameState.visitorSquad,
+    homeSquad: activeGameState.homeSquad,
+  };
+
+  saveGameState(activeSquad, outgoingState);
+  saveGameState(previousSquad, previousState);
 
   setActiveSquad(previousSquad);
 }
