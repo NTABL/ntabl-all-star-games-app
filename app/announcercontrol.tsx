@@ -150,6 +150,7 @@ export default function AnnouncerControlScreen() {
   const [editingManagerSquad, setEditingManagerSquad] = useState<Squad>("East");
   const [managerNameDraft, setManagerNameDraft] = useState("");
   const [savingManagerName, setSavingManagerName] = useState(false);
+  const [controlView, setControlView] = useState<"lineups" | "game">("lineups");
 
   const lastLineupSnapshot = useRef("");
   const { width } = useWindowDimensions();
@@ -1135,24 +1136,11 @@ async function saveManagerName() {
             >
               <View style={styles.buttonContentRow}>
                 <Ionicons name="reader-outline" size={18} color="#ffffff" style={{ marginRight: 6 }} />
-                <Text style={styles.topButtonText}>Game Information</Text>
+                <Text style={styles.topButtonText}>Game Info</Text>
               </View>
             </Pressable>
 
-            <Pressable
-              style={styles.exitTopButton}
-              onPress={() => router.replace("/login")}
-            >
-              <View style={styles.buttonContentRow}>
-                <Ionicons
-                  name="log-out-outline"
-                  size={18}
-                  color="#ffffff"
-                  style={{ marginRight: 6 }}
-                />
-                <Text style={styles.topButtonText}>Logout</Text>
-              </View>
-            </Pressable>
+
           </View>
 
           <View style={styles.titleArea}>
@@ -1167,21 +1155,34 @@ async function saveManagerName() {
             <Text style={styles.liveStatusText}>{liveLabel}</Text>
             <Text style={styles.lastUpdatedText}>{refreshAge}</Text>
 
-            <Pressable
-              style={styles.resetAnnouncerButton}
-              onPress={() => setShowResetAnnouncerConfirm(true)}
-              disabled={resettingAnnouncerChanges}
-            >
-              <Ionicons
-                name="refresh-circle-outline"
-                size={18}
-                color="#ffffff"
-                style={{ marginRight: 6 }}
-              />
-              <Text style={styles.resetAnnouncerButtonText}>
-                Reset Player / Manager Changes
-              </Text>
-            </Pressable>
+            {controlView === "lineups" ? (
+              <View style={styles.lineupActionButtons}>
+                <Pressable
+                  style={styles.gameControlNavButton}
+                  onPress={() => setControlView("game")}
+                >
+                  <Ionicons name="baseball-outline" size={18} color="#ffffff" style={{ marginRight: 6 }} />
+                  <Text style={styles.gameControlNavButtonText}>Game Control</Text>
+                </Pressable>
+
+                <Pressable
+                  style={styles.undoEditsButton}
+                  onPress={() => setShowResetAnnouncerConfirm(true)}
+                  disabled={resettingAnnouncerChanges}
+                >
+                  <Ionicons name="arrow-undo-outline" size={18} color="#111827" style={{ marginRight: 6 }} />
+                  <Text style={styles.undoEditsButtonText}>Undo Edits</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                style={styles.lineupsNavButton}
+                onPress={() => setControlView("lineups")}
+              >
+                <Ionicons name="list-outline" size={18} color="#ffffff" style={{ marginRight: 6 }} />
+                <Text style={styles.gameControlNavButtonText}>Lineups</Text>
+              </Pressable>
+            )}
           </View>
 
           {loading ? (
@@ -1189,6 +1190,70 @@ async function saveManagerName() {
               <ActivityIndicator size="large" color="#1f4e9e" />
               <Text style={styles.loadingText}>Loading Game...</Text>
             </View>
+          ) : controlView === "lineups" ? (
+            <>
+              <View style={[styles.lineupsWorkspace, !isWideScreen && styles.lineupsWorkspaceMobile]}>
+                <View style={[styles.lineupTeamCard, !isWideScreen && styles.lineupTeamCardMobile]}>
+                  <View style={styles.lineupTeamIdentity}>
+                    <Image source={require("../assets/East.png")} style={styles.lineupTeamLogo} resizeMode="contain" />
+                    <Text style={styles.lineupEastTitle}>EAST ALL-STARS</Text>
+                    <Pressable
+                      onPress={() => openManagerEditor("East")}
+                      style={styles.lineupManagerEdit}
+                      accessibilityRole="button"
+                      accessibilityLabel="Edit East manager name"
+                    >
+                      <Text style={styles.lineupManagerName}>Manager: {eastManager || "TBD"}</Text>
+                      <Ionicons name="pencil-outline" size={15} color="#6b7280" style={{ marginLeft: 6 }} />
+                    </Pressable>
+                  </View>
+
+                  <View style={[styles.panelHeaderTeam, styles.eastHeader]}>
+                    <Text style={styles.panelHeaderText}>EAST BATTING LINEUP ({eastBatting.length})</Text>
+                  </View>
+                  {eastBatting.length > 0 ? eastBatting.map((player, index) => renderCompactPlayerRow(player, "East", index, -1)) : (
+                    <Text style={styles.emptyPanelText}>No saved batting lineup yet.</Text>
+                  )}
+
+                  <View style={[styles.panelHeaderTeam, styles.eastHeader, styles.subHeaderSpacing]}>
+                    <Text style={styles.panelHeaderText}>EAST SUBSTITUTES</Text>
+                  </View>
+                  {eastSubs.length > 0 ? eastSubs.map((player) => renderCompactSubRow(player, "East")) : (
+                    <Text style={styles.emptyPanelText}>No substitutes listed.</Text>
+                  )}
+                </View>
+
+                <View style={[styles.lineupTeamCard, !isWideScreen && styles.lineupTeamCardMobile]}>
+                  <View style={styles.lineupTeamIdentity}>
+                    <Image source={require("../assets/West.png")} style={styles.lineupTeamLogo} resizeMode="contain" />
+                    <Text style={styles.lineupWestTitle}>WEST ALL-STARS</Text>
+                    <Pressable
+                      onPress={() => openManagerEditor("West")}
+                      style={styles.lineupManagerEdit}
+                      accessibilityRole="button"
+                      accessibilityLabel="Edit West manager name"
+                    >
+                      <Text style={styles.lineupManagerName}>Manager: {westManager || "TBD"}</Text>
+                      <Ionicons name="pencil-outline" size={15} color="#6b7280" style={{ marginLeft: 6 }} />
+                    </Pressable>
+                  </View>
+
+                  <View style={[styles.panelHeaderTeam, styles.westHeader]}>
+                    <Text style={styles.panelHeaderText}>WEST BATTING LINEUP ({westBatting.length})</Text>
+                  </View>
+                  {westBatting.length > 0 ? westBatting.map((player, index) => renderCompactPlayerRow(player, "West", index, -1)) : (
+                    <Text style={styles.emptyPanelText}>No saved batting lineup yet.</Text>
+                  )}
+
+                  <View style={[styles.panelHeaderTeam, styles.westHeader, styles.subHeaderSpacing]}>
+                    <Text style={styles.panelHeaderText}>WEST SUBSTITUTES</Text>
+                  </View>
+                  {westSubs.length > 0 ? westSubs.map((player) => renderCompactSubRow(player, "West")) : (
+                    <Text style={styles.emptyPanelText}>No substitutes listed.</Text>
+                  )}
+                </View>
+              </View>
+            </>
           ) : (
             <>
               <View
@@ -1621,8 +1686,8 @@ async function saveManagerName() {
                   </View>
                 </View>
               </View>
+
             </>
-            
           )}
 
           <View style={styles.footer}>
@@ -1728,7 +1793,7 @@ async function saveManagerName() {
 >
   <View style={styles.modalOverlay}>
     <View style={styles.gamePickerCard}>
-      <Text style={styles.modalTitle}>Reset Player / Manager Changes?</Text>
+      <Text style={styles.modalTitle}>Undo Player / Manager Edits?</Text>
 
       <Text style={styles.confirmText}>
         This will restore player names, jersey numbers, and manager names to the original roster / assignment values for this game.
@@ -1898,7 +1963,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   gameInformationTopButton: {
-    backgroundColor: "#7c3aed",
+    backgroundColor: "#374151",
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 14,
@@ -2465,6 +2530,112 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "900",
     textAlign: "center",
+  },
+
+  lineupActionButtons: {
+    marginTop: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  gameControlNavButton: {
+    backgroundColor: "#15803d",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lineupsNavButton: {
+    marginTop: 12,
+    backgroundColor: "#15803d",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  gameControlNavButtonText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  undoEditsButton: {
+    backgroundColor: "#facc15",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  undoEditsButtonText: {
+    color: "#111827",
+    fontSize: 14,
+    fontWeight: "900",
+  },
+  lineupsWorkspace: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 16,
+    marginTop: 16,
+  },
+  lineupsWorkspaceMobile: {
+    flexDirection: "column",
+  },
+  lineupTeamCard: {
+    flex: 1,
+    minWidth: 0,
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  lineupTeamCardMobile: {
+    width: "100%",
+  },
+  lineupTeamIdentity: {
+    alignItems: "center",
+    paddingTop: 18,
+    paddingBottom: 16,
+    paddingHorizontal: 14,
+  },
+  lineupTeamLogo: {
+    width: 105,
+    height: 105,
+    marginBottom: 5,
+  },
+  lineupEastTitle: {
+    color: "#d71920",
+    fontSize: 21,
+    fontWeight: "900",
+    textAlign: "center",
+  },
+  lineupWestTitle: {
+    color: "#174ea6",
+    fontSize: 21,
+    fontWeight: "900",
+    textAlign: "center",
+  },
+  lineupManagerEdit: {
+    marginTop: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  lineupManagerName: {
+    color: "#111827",
+    fontSize: 17,
+    fontWeight: "900",
+    textAlign: "center",
+  },
+  subHeaderSpacing: {
+    marginTop: 14,
   },
 
   resetAnnouncerButton: {
