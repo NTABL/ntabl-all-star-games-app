@@ -243,7 +243,9 @@ useFocusEffect(() => {
     loadGameData();
 
     const interval = setInterval(() => {
-      loadLineupDataOnly();
+      // Refresh lineups AND live game state so score/inning/outs/batter changes
+      // made from another control/view appear without leaving the screen.
+      loadGameData(false);
     }, 3000);
 
     return () => clearInterval(interval);
@@ -743,8 +745,12 @@ async function resetActiveGame() {
     const json = await response.json();
 
     if (json?.ok) {
+      const resetEast = json?.gameState?.East || { ...DEFAULT_GAME_STATE };
+      const resetWest = json?.gameState?.West || { ...DEFAULT_GAME_STATE };
+      setEastGameState(resetEast);
+      setWestGameState(resetWest);
+      setActiveSquad(resetEast.visitorSquad === "West" ? "West" : "East");
       await loadGameData(false);
-      setActiveSquad(visitorSquad);
     }
 
     setShowResetGameConfirm(false);
@@ -1340,7 +1346,13 @@ async function saveManagerName() {
                       <Pressable style={styles.previousButton} onPress={() => moveBatter("previous")} disabled={savingGameState || !activeBatting.length}><Text style={styles.controlButtonText}>‹ Previous Batter</Text></Pressable>
                       <Pressable style={styles.nextButton} onPress={() => moveBatter("next")} disabled={savingGameState || !activeBatting.length}><Text style={styles.controlButtonText}>Next Batter ›</Text></Pressable>
                     </View>
-                    <Pressable style={styles.restartGameWideButton} onPress={() => setShowResetGameConfirm(true)}><Text style={styles.sideLightText}>Restart Game</Text></Pressable>
+                    <Pressable style={styles.restartGameWideButton} onPress={() => setShowResetGameConfirm(true)}>
+                      <View style={styles.restartGameButtonContent}>
+                        <Ionicons name="ban-outline" size={20} color="#ffffff" />
+                        <Text style={styles.sideLightText}>Restart Game</Text>
+                        <Ionicons name="ban-outline" size={20} color="#ffffff" />
+                      </View>
+                    </Pressable>
                   </View>
 
                   <View style={[styles.teamControlColumn, !isWideScreen && styles.teamControlColumnMobile]}>
@@ -1459,7 +1471,7 @@ async function saveManagerName() {
         </Pressable>
 
         <Pressable
-          style={styles.confirmYesButton}
+          style={styles.confirmRestartButton}
           onPress={resetActiveGame}
         >
           <Text style={styles.cancelButtonText}>Restart Game</Text>
@@ -2227,6 +2239,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
+  confirmRestartButton: {
+    flex: 1,
+    backgroundColor: "#991b1b",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+
   cancelButtonText: {
     color: "#ffffff",
     fontSize: 15,
@@ -2505,4 +2525,5 @@ jerseyEditorInput: {
   pitcherInactiveText: { color: "#cbd5e1" },
   nowBattingHeader: { paddingVertical: 10, alignItems: "center" },
   restartGameWideButton: { marginHorizontal: 10, marginTop: 10, height: 42, borderRadius: 8, backgroundColor: "#991b1b", alignItems: "center", justifyContent: "center" },
+  restartGameButtonContent: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9 },
 });
