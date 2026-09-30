@@ -938,7 +938,7 @@ async function saveManagerName() {
         <Ionicons
           name="volume-high-outline"
           size={compact ? 18 : 21}
-          color={light ? "#ffffff" : "#1f4e9e"}
+          color={light ? "#166534" : "#1f4e9e"}
         />
       </Pressable>
     );
@@ -951,7 +951,17 @@ async function saveManagerName() {
     isMain = false
   ) {
     return (
-      <View style={isMain ? styles.currentBatterCard : styles.upNextCard}>
+      <View
+        style={
+          isMain
+            ? styles.currentBatterCard
+            : label === "ON DECK"
+            ? [styles.upNextCard, styles.onDeckCard]
+            : label === "IN THE HOLE"
+            ? [styles.upNextCard, styles.inHoleCard]
+            : styles.upNextCard
+        }
+      >
         <Text style={isMain ? styles.currentBatterLabel : styles.upNextLabel}>
           {label}
         </Text>
@@ -998,7 +1008,7 @@ async function saveManagerName() {
                 <Ionicons
                   name="pencil-outline"
                   size={isMain ? 17 : 14}
-                  color={isMain ? "#ffffff" : "#6b7280"}
+                  color={isMain ? "#166534" : "#6b7280"}
                   style={{ marginLeft: 5 }}
                 />
               </Pressable>
@@ -1861,26 +1871,26 @@ const styles = StyleSheet.create({
   activeSquadMiniLogo: { width: 50, height: 34, marginRight: 7 },
   activeSquadStripText: { color: "#111827", fontSize: 14, fontWeight: "900" },
   currentBatterCard: {
-    backgroundColor: "#111827",
+    backgroundColor: "#dcfce7",
     padding: 12,
     alignItems: "center",
     margin: 8,
     borderRadius: 12,
     borderWidth: 3,
-    borderColor: "#facc15",
+    borderColor: "#22c55e",
   },
   currentBatterLabel: { display: "none" },
-  orderNumberLarge: { color: "#93c5fd", fontSize: 13, fontWeight: "900" },
-  jerseyLarge: { color: "#facc15", fontSize: 26, fontWeight: "900", marginTop: 3 },
-  playerNameLarge: { color: "#ffffff", fontSize: 23, fontWeight: "900", textAlign: "center" },
+  orderNumberLarge: { color: "#166534", fontSize: 13, fontWeight: "900" },
+  jerseyLarge: { color: "#166534", fontSize: 26, fontWeight: "900", marginTop: 3 },
+  playerNameLarge: { color: "#111827", fontSize: 23, fontWeight: "900", textAlign: "center" },
   playerMetaLarge: {
-    color: "#d1d5db",
+    color: "#4b5563",
     fontSize: 14,
     fontWeight: "800",
     textAlign: "center",
     marginTop: 5,
   },
-  playerPositionLarge: { color: "#facc15", fontSize: 15, fontWeight: "900", marginTop: 2 },
+  playerPositionLarge: { color: "#166534", fontSize: 15, fontWeight: "900", marginTop: 2 },
   upNextRow: { flexDirection: "row", gap: 9, paddingHorizontal: 10, marginBottom: 10 },
   upNextColumn: { flex: 1 },
   upNextCard: {
@@ -1892,6 +1902,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minHeight: 105,
   },
+    onDeckCard: { backgroundColor: "#fef9c3" },
+    inHoleCard: { backgroundColor: "#fee2e2" },
   upNextLabel: { color: "#1f4e9e", fontSize: 13, fontWeight: "900", marginBottom: 4 },
   orderNumberSmall: { color: "#6b7280", fontSize: 11, fontWeight: "900" },
   jerseySmall: { color: "#d71920", fontSize: 19, fontWeight: "900" },
