@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  Switch,
   View,
 } from "react-native";
 import { clearAdminLogin, isAdminLoggedIn } from "../stores/adminstore";
@@ -21,9 +22,13 @@ export default function AdminScreen() {
   const [resetting, setResetting] = useState(false);
   const [resetError, setResetError] = useState("");
   const [resetComplete, setResetComplete] = useState(false);
+  const [allStarFeaturesEnabled, setAllStarFeaturesEnabled] = useState(true);
+  const [allStarSettingLoading, setAllStarSettingLoading] = useState(true);
+  const [allStarSettingSaving, setAllStarSettingSaving] = useState(false);
   useFocusEffect(
     useCallback(() => {
       checkAdmin();
+      loadAllStarFeaturesSetting();
     }, [])
   );
 
@@ -38,6 +43,55 @@ export default function AdminScreen() {
   async function handleLogout() {
     await clearAdminLogin();
     router.replace("/login");
+  }
+
+  async function loadAllStarFeaturesSetting() {
+    try {
+      setAllStarSettingLoading(true);
+
+      const response = await adminFetch(`${API_BASE}/api/admin/config`);
+      const data = await response.json();
+
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.message || "All-Star features setting could not be loaded.");
+      }
+
+      setAllStarFeaturesEnabled(data?.config?.allStarFeaturesEnabled !== false);
+    } catch (error) {
+      console.log("ALL-STAR FEATURES LOAD ERROR:", error);
+      setAllStarFeaturesEnabled(true);
+    } finally {
+      setAllStarSettingLoading(false);
+    }
+  }
+
+  async function updateAllStarFeatures(enabled: boolean) {
+    if (allStarSettingSaving || allStarSettingLoading) return;
+
+    const previousValue = allStarFeaturesEnabled;
+    setAllStarFeaturesEnabled(enabled);
+    setAllStarSettingSaving(true);
+
+    try {
+      const response = await adminFetch(`${API_BASE}/api/admin/all-star-features`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.message || "All-Star features setting could not be saved.");
+      }
+
+      setAllStarFeaturesEnabled(data.allStarFeaturesEnabled !== false);
+    } catch (error) {
+      console.log("ALL-STAR FEATURES SAVE ERROR:", error);
+      setAllStarFeaturesEnabled(previousValue);
+    } finally {
+      setAllStarSettingSaving(false);
+    }
   }
 
   function openMasterReset() {
@@ -141,6 +195,39 @@ export default function AdminScreen() {
               Access tournament operations and manage administrative configuration.
             </Text>
           </View>
+
+          <View style={styles.sectionCard}>
+            <View style={styles.featureToggleRow}>
+              <View style={styles.featureToggleTextWrap}>
+                <Text style={styles.sectionHeaderLeft}>All-Star Features</Text>
+                <Text style={styles.featureToggleDescription}>
+                  Show or hide All-Star selections, schedules, game view, rules, waiver prompts, and All-Star status information for members.
+                </Text>
+              </View>
+
+              <View style={styles.featureToggleControl}>
+                {allStarSettingLoading || allStarSettingSaving ? (
+                  <ActivityIndicator size="small" color="#1f4e9e" />
+                ) : (
+                  <Switch
+                    value={allStarFeaturesEnabled}
+                    onValueChange={updateAllStarFeatures}
+                  />
+                )}
+                <Text
+                  style={[
+                    styles.featureToggleStatus,
+                    allStarFeaturesEnabled
+                      ? styles.featureToggleStatusOn
+                      : styles.featureToggleStatusOff,
+                  ]}
+                >
+                  {allStarFeaturesEnabled ? "ON" : "OFF"}
+                </Text>
+              </View>
+            </View>
+          </View>
+
 <View style={styles.sectionCard}>
   <Text style={styles.sectionHeader}>Operations Center</Text>
 
@@ -510,6 +597,44 @@ const styles = StyleSheet.create({
     color: "#1f4e9e",
     marginBottom: 12,
     textAlign: "center",
+  },
+
+  featureToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 16,
+  },
+  featureToggleTextWrap: {
+    flex: 1,
+  },
+  sectionHeaderLeft: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: "#1f4e9e",
+    marginBottom: 5,
+  },
+  featureToggleDescription: {
+    color: "#6b7280",
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "600",
+  },
+  featureToggleControl: {
+    minWidth: 70,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  featureToggleStatus: {
+    marginTop: 3,
+    fontSize: 12,
+    fontWeight: "900",
+  },
+  featureToggleStatusOn: {
+    color: "#15803d",
+  },
+  featureToggleStatusOff: {
+    color: "#b91c1c",
   },
 
   communicationsButton: {

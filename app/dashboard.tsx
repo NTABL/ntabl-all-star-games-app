@@ -125,6 +125,7 @@ export default function Dashboard() {
   const [managerData, setManagerData] = useState<ManagerData | null>(null);
   const [waiverSigned, setWaiverSigned] = useState(false);
   const [showWaiverPrompt, setShowWaiverPrompt] = useState(false);
+  const [allStarFeaturesEnabled, setAllStarFeaturesEnabled] = useState(true);
   const { width, height } = useWindowDimensions();
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [helpMessage, setHelpMessage] = useState("");
@@ -209,11 +210,41 @@ async function checkWaiverStatus(manager: any) {
 }
 }
 
+async function loadAllStarFeatures() {
+  try {
+    const response = await fetch(`${API_BASE}/api/app-config`, {
+      cache: "no-store",
+    });
+    const json = await response.json();
+    const enabled = response.ok && json?.ok
+      ? json.allStarFeaturesEnabled !== false
+      : true;
+
+    setAllStarFeaturesEnabled(enabled);
+
+    if (!enabled) {
+      setShowWaiverPrompt(false);
+    }
+
+    return enabled;
+  } catch (e) {
+    console.log("APP CONFIG LOAD ERROR:", e);
+    setAllStarFeaturesEnabled(true);
+    return true;
+  }
+}
+
 async function loadScreen() {
   try {
+    const allStarEnabled = await loadAllStarFeatures();
     const manager = await getManagerContext();
     setManagerData(manager);
-    await checkWaiverStatus(manager);
+
+    if (allStarEnabled) {
+      await checkWaiverStatus(manager);
+    } else {
+      setShowWaiverPrompt(false);
+    }
     await loadSmsPreference(manager);
     console.log("MANAGER CONTEXT:", manager);
 
@@ -634,6 +665,8 @@ async function sendHelpRequest() {
                   {managerData?.teamName || ""}
                 </Text>
 
+{allStarFeaturesEnabled && (
+  <>
 <Text style={styles.label}>ALL-STAR SUBMISSION STATUS</Text>
 
 <View
@@ -674,6 +707,8 @@ async function sendHelpRequest() {
       : "Incomplete"}
   </Text>
 </View>
+  </>
+)}
 </View>
 
               <View style={styles.teamLogoWrap}>
@@ -714,6 +749,7 @@ async function sendHelpRequest() {
             </View>
           </View>
 
+          {allStarFeaturesEnabled && (
           <View
   style={[
     styles.card,
@@ -743,8 +779,11 @@ async function sendHelpRequest() {
               </Text>
             </View>
           </View>
+          )}
 
-{shouldShowWaiver && (
+
+
+{allStarFeaturesEnabled && shouldShowWaiver && (
   <Pressable
     style={[
       styles.waiverButton,
@@ -767,6 +806,7 @@ async function sendHelpRequest() {
   </Pressable>
 )}
 
+          {allStarFeaturesEnabled && (
           <Pressable style={styles.primaryButton} onPress={handleOpenSelections}>
             <View style={styles.buttonContentRow}>
               <Ionicons
@@ -785,6 +825,8 @@ async function sendHelpRequest() {
               </Text>
             </View>
           </Pressable>
+
+          )}
 
           {managerData?.isAllStarManager && managerData?.allStarManagerAccess && (
             <Pressable
@@ -806,6 +848,7 @@ async function sendHelpRequest() {
             </Pressable>
           )}
 
+          {allStarFeaturesEnabled && (
           <Pressable
             style={styles.scheduleButton}
             onPress={handleOpenSchedule}
@@ -819,13 +862,15 @@ async function sendHelpRequest() {
               />
 
               <Text style={styles.scheduleButtonText}>
-                View Game Schedules
+                All-Star Game Schedules
               </Text>
             </View>
           </Pressable>
 
+          )}
 
-          {managerData && (
+
+          {allStarFeaturesEnabled && managerData && (
             <Pressable
               style={styles.announcerButton}
               onPress={() => router.push("/announcer")}
@@ -838,7 +883,7 @@ async function sendHelpRequest() {
                   style={{ marginRight: 8 }}
                 />
 
-                <Text style={styles.announcerButtonText}>Live Game View</Text>
+                <Text style={styles.announcerButtonText}>All-Star Game View</Text>
               </View>
             </Pressable>
           )}
@@ -998,7 +1043,7 @@ async function sendHelpRequest() {
 </Modal>
 
       <Modal
-  visible={showWaiverPrompt}
+  visible={allStarFeaturesEnabled && showWaiverPrompt}
   transparent
   animationType="fade"
   onRequestClose={() => setShowWaiverPrompt(false)}
