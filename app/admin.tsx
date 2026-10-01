@@ -197,9 +197,11 @@ export default function AdminScreen() {
           </View>
 
           <View style={styles.sectionCard}>
-            <View style={styles.featureToggleRow}>
+            <Text style={styles.sectionHeader}>All-Star Settings</Text>
+
+            <View style={styles.settingRow}>
               <View style={styles.featureToggleTextWrap}>
-                <Text style={styles.sectionHeaderLeft}>All-Star Features</Text>
+                <Text style={styles.settingLabel}>All-Star Features</Text>
                 <Text style={styles.featureToggleDescription}>
                   Show or hide All-Star selections, schedules, game view, rules, waiver prompts, and All-Star status information for members.
                 </Text>
@@ -288,7 +290,7 @@ export default function AdminScreen() {
           </View>
 
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionHeader}>Game Schedules</Text>
+            <Text style={styles.sectionHeader}>All-Star Game Schedules</Text>
 
             <TouchableOpacity
               style={styles.gameSchedulesButton}
@@ -330,7 +332,7 @@ export default function AdminScreen() {
           </View>
 
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionHeader}>Division Configuration</Text>
+            <Text style={styles.sectionHeader}>All-Star Division Configuration</Text>
 
             <TouchableOpacity
               style={styles.divisionConfigButton}
@@ -599,20 +601,26 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  featureToggleRow: {
+  settingRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 16,
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#dbe3ee",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
   featureToggleTextWrap: {
     flex: 1,
   },
-  sectionHeaderLeft: {
-    fontSize: 18,
+  settingLabel: {
+    fontSize: 15,
     fontWeight: "900",
-    color: "#1f4e9e",
-    marginBottom: 5,
+    color: "#111827",
+    marginBottom: 4,
   },
   featureToggleDescription: {
     color: "#6b7280",
