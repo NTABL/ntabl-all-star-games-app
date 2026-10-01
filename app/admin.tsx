@@ -25,6 +25,7 @@ export default function AdminScreen() {
   const [allStarFeaturesEnabled, setAllStarFeaturesEnabled] = useState(true);
   const [allStarSettingLoading, setAllStarSettingLoading] = useState(true);
   const [allStarSettingSaving, setAllStarSettingSaving] = useState(false);
+  const [showAllStarSettings, setShowAllStarSettings] = useState(false);
   useFocusEffect(
     useCallback(() => {
       checkAdmin();
@@ -199,35 +200,20 @@ export default function AdminScreen() {
           <View style={styles.sectionCard}>
             <Text style={styles.sectionHeader}>All-Star Settings</Text>
 
-            <View style={styles.settingRow}>
-              <View style={styles.featureToggleTextWrap}>
-                <Text style={styles.settingLabel}>All-Star Features</Text>
-                <Text style={styles.featureToggleDescription}>
-                  Show or hide All-Star selections, schedules, game view, rules, waiver prompts, and All-Star status information for members.
-                </Text>
+            <TouchableOpacity
+              style={styles.allStarSettingsButton}
+              onPress={() => setShowAllStarSettings(true)}
+            >
+              <View style={styles.buttonContentRow}>
+                <Ionicons
+                  name="power-outline"
+                  size={22}
+                  color="#ffffff"
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.buttonText}>Enable/Disable All-Star Features</Text>
               </View>
-
-              <View style={styles.featureToggleControl}>
-                {allStarSettingLoading || allStarSettingSaving ? (
-                  <ActivityIndicator size="small" color="#1f4e9e" />
-                ) : (
-                  <Switch
-                    value={allStarFeaturesEnabled}
-                    onValueChange={updateAllStarFeatures}
-                  />
-                )}
-                <Text
-                  style={[
-                    styles.featureToggleStatus,
-                    allStarFeaturesEnabled
-                      ? styles.featureToggleStatusOn
-                      : styles.featureToggleStatusOff,
-                  ]}
-                >
-                  {allStarFeaturesEnabled ? "ON" : "OFF"}
-                </Text>
-              </View>
-            </View>
+            </TouchableOpacity>
           </View>
 
 <View style={styles.sectionCard}>
@@ -393,6 +379,69 @@ export default function AdminScreen() {
             NTABL All-Star App • Version 1.0
           </Text>
         </ScrollView>
+
+        <Modal
+          visible={showAllStarSettings}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowAllStarSettings(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.allStarSettingsModal}>
+              <Ionicons
+                name="power-outline"
+                size={54}
+                color="#b91c1c"
+                style={styles.modalIcon}
+              />
+              <Text style={styles.resetModalTitle}>All-Star Features</Text>
+              <Text style={styles.resetModalText}>
+                Enable or disable All-Star selections, schedules, game view, rules,
+                waiver prompts, and All-Star status information for members.
+              </Text>
+
+              <View style={styles.settingRow}>
+                <View style={styles.featureToggleTextWrap}>
+                  <Text style={styles.settingLabel}>All-Star Features</Text>
+                  <Text style={styles.featureToggleDescription}>
+                    Current Status: {allStarFeaturesEnabled ? "Enabled" : "Disabled"}
+                  </Text>
+                </View>
+
+                <View style={styles.featureToggleControl}>
+                  {allStarSettingLoading || allStarSettingSaving ? (
+                    <ActivityIndicator size="small" color="#b91c1c" />
+                  ) : (
+                    <Switch
+                      value={allStarFeaturesEnabled}
+                      onValueChange={updateAllStarFeatures}
+                      trackColor={{ false: "#9ca3af", true: "#dc2626" }}
+                      thumbColor="#ffffff"
+                    />
+                  )}
+                  <Text
+                    style={[
+                      styles.featureToggleStatus,
+                      allStarFeaturesEnabled
+                        ? styles.featureToggleStatusOn
+                        : styles.featureToggleStatusOff,
+                    ]}
+                  >
+                    {allStarFeaturesEnabled ? "ON" : "OFF"}
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.closeAllStarSettingsButton}
+                onPress={() => setShowAllStarSettings(false)}
+                disabled={allStarSettingSaving}
+              >
+                <Text style={styles.buttonText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
 
         <Modal
           visible={showMasterReset}
@@ -643,6 +692,32 @@ const styles = StyleSheet.create({
   },
   featureToggleStatusOff: {
     color: "#b91c1c",
+  },
+
+  allStarSettingsButton: {
+    backgroundColor: "#b91c1c",
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  allStarSettingsModal: {
+    width: "100%",
+    maxWidth: 560,
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 24,
+  },
+
+  closeAllStarSettingsButton: {
+    backgroundColor: "#4b5563",
+    borderRadius: 11,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 16,
   },
 
   communicationsButton: {
