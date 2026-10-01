@@ -13,7 +13,7 @@ import {
   View,
 } from "react-native";
 import { clearAdminLogin, isAdminLoggedIn } from "../stores/adminstore";
-import { API_BASE } from "../utils/appconfig";
+import { adminFetch, API_BASE } from "../utils/appconfig";
 export default function AdminScreen() {
   const [showMasterReset, setShowMasterReset] = useState(false);
   const [resetPassword, setResetPassword] = useState("");
@@ -64,7 +64,7 @@ export default function AdminScreen() {
     setResetError("");
 
     try {
-      const response = await fetch(`${API_BASE}/api/admin/master-reset`, {
+      const response = await adminFetch(`${API_BASE}/api/admin/master-reset`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
