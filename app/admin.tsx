@@ -64,7 +64,7 @@ export default function AdminScreen() {
     setResetError("");
 
     try {
-      const response = await fetch(`${API_BASE}/api/auth/master-reset`, {
+      const response = await fetch(`${API_BASE}/api/admin/master-reset`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
