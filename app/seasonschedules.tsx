@@ -287,6 +287,9 @@ export default function SeasonSchedules() {
   async function saveAttendance(game: ScheduleGame, status: AttendanceStatus) {
     if (!programId || !teamId || !personId || attendanceSaving[game.gameId]) return;
 
+    const currentStatus = attendanceByGame[game.gameId]?.status || "";
+    const nextStatus = currentStatus === status ? "" : status;
+
     setAttendanceSaving((prev) => ({ ...prev, [game.gameId]: true }));
 
     try {
@@ -297,7 +300,7 @@ export default function SeasonSchedules() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ personId, status, note: "" }),
+          body: JSON.stringify({ personId, status: nextStatus, note: "" }),
         }
       );
 
@@ -644,6 +647,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f1f5f9",
   },
+  content: {
+    width: "100%",
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 50,
+  },
   headerRow: {
     flexDirection: "row",
     justifyContent: "flex-start",
@@ -705,6 +714,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   section: {
+    width: "94%",
+    maxWidth: 1100,
+    alignSelf: "center",
     marginBottom: 18,
   },
   sectionTitle: {
@@ -889,8 +901,8 @@ attendanceBox: {
     borderColor: "#15803d",
   },
   attendanceMaybeSelected: {
-    backgroundColor: "#a16207",
-    borderColor: "#a16207",
+    backgroundColor: "#ca8a04",
+    borderColor: "#ca8a04",
   },
   attendanceNoSelected: {
     backgroundColor: "#b91c1c",
