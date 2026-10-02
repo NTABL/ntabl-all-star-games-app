@@ -32,6 +32,7 @@ type ScheduleGame = {
   typeLabel?: string;
   state?: string;
   stateLabel?: string;
+  homeAway?: string;
   team1Id?: string;
   team1Name?: string;
   team2Id?: string;
@@ -84,7 +85,6 @@ function formatGameDate(startTime?: number | null) {
 
 function formatGameTime(startTime?: number | null) {
   if (!startTime) return "TIME TBD";
-
   return new Date(startTime).toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
@@ -308,6 +308,12 @@ export default function SeasonSchedules() {
   function renderGame(game: ScheduleGame, past: boolean) {
     const result = past ? getResult(game, teamId) : null;
     const score = getScore(game, teamId);
+    const homeAwayLabel =
+      game.homeAway === "Team 1"
+        ? "HOME"
+        : game.homeAway === "Team 2"
+        ? "AWAY"
+        : "";
     const location = [game.locationName, game.subLocationName]
       .filter(Boolean)
       .join(" • ");
@@ -339,7 +345,14 @@ export default function SeasonSchedules() {
 
         <View style={styles.matchupRow}>
           <View style={styles.matchupTextWrap}>
-            <Text style={styles.opponentLabel}>OPPONENT</Text>
+            <View style={styles.opponentHeaderRow}>
+              <Text style={styles.opponentLabel}>OPPONENT</Text>
+              {!!homeAwayLabel && (
+                <View style={[styles.homeAwayBadge, homeAwayLabel === "HOME" ? styles.homeBadge : styles.awayBadge]}>
+                  <Text style={styles.homeAwayBadgeText}>{homeAwayLabel}</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.opponentName}>
               {game.opponentName || "Opponent TBD"}
             </Text>
@@ -687,10 +700,29 @@ const styles = StyleSheet.create({
   matchupTextWrap: {
     flex: 1,
   },
+  opponentHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 2,
+  },
   opponentLabel: {
     color: "#64748b",
     fontSize: 11,
     fontWeight: "800",
+    letterSpacing: 0.7,
+  },
+  homeAwayBadge: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  homeBadge: { backgroundColor: "#dbeafe" },
+  awayBadge: { backgroundColor: "#e2e8f0" },
+  homeAwayBadgeText: {
+    color: "#1e3a8a",
+    fontSize: 10,
+    fontWeight: "900",
     letterSpacing: 0.7,
   },
   opponentName: {
@@ -739,9 +771,9 @@ const styles = StyleSheet.create({
 attendanceBox: {
   marginTop: 16,
   padding: 14,
-  backgroundColor: "#f8fafc",
+  backgroundColor: "#e2e8f0",
   borderWidth: 1,
-  borderColor: "#6190ca",
+  borderColor: "#94a3b8",
   borderRadius: 12,
 },
   attendanceLabel: {
@@ -792,7 +824,7 @@ attendanceBox: {
     backgroundColor: "#f8fafc",
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#2d73ce",
     overflow: "hidden",
   },
   teamAttendanceButton: {
