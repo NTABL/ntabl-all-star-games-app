@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Linking,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -42,7 +43,9 @@ type ScheduleGame = {
   opponentName?: string;
   team1Score?: number | null;
   team2Score?: number | null;
+  locationId?: number | string | null;
   locationName?: string;
+  subLocationId?: number | string | null;
   subLocationName?: string;
   notes?: string;
 };
@@ -374,6 +377,9 @@ export default function SeasonSchedules() {
     const location = [game.locationName, game.subLocationName]
       .filter(Boolean)
       .join(" • ");
+    const locationUrl = game.locationId
+      ? `https://ntabl.leagueapps.com/location/${game.locationId}`
+      : "";
 
     return (
       <View key={game.gameId} style={styles.gameCard}>
@@ -427,10 +433,29 @@ export default function SeasonSchedules() {
         </View>
 
         {!!location && (
-          <View style={styles.detailRow}>
-            <Ionicons name="location-outline" size={18} color="#475569" />
-            <Text style={styles.detailText}>{location}</Text>
-          </View>
+          locationUrl ? (
+            <Pressable
+              style={({ pressed }) => [
+                styles.detailRow,
+                styles.locationLinkRow,
+                pressed && styles.locationLinkPressed,
+              ]}
+              onPress={() => Linking.openURL(locationUrl)}
+              accessibilityRole="link"
+              accessibilityLabel={`Open ${location} location and directions`}
+            >
+              <Ionicons name="location-outline" size={18} color="#1d4ed8" />
+              <Text style={[styles.detailText, styles.locationLinkText]}>
+                {location}
+              </Text>
+              <Ionicons name="open-outline" size={16} color="#1d4ed8" />
+            </Pressable>
+          ) : (
+            <View style={styles.detailRow}>
+              <Ionicons name="location-outline" size={18} color="#475569" />
+              <Text style={styles.detailText}>{location}</Text>
+            </View>
+          )
         )}
 
         {!!game.notes && (
@@ -714,8 +739,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   section: {
-    width: "94%",
-    maxWidth: 1100,
+    width: "92%",
+    maxWidth: 1050,
     alignSelf: "center",
     marginBottom: 18,
   },
@@ -731,8 +756,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderWidth: 1.5,
+    borderColor: "#b8c4d4",
   },
   cardTopRow: {
     flexDirection: "row",
@@ -805,9 +830,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 999,
+    borderWidth: 1,
   },
-  homeBadge: { backgroundColor: "#dcfce7" },
-  awayBadge: { backgroundColor: "#fef9c3" },
+  homeBadge: {
+    backgroundColor: "#dcfce7",
+    borderColor: "#86d9a5",
+  },
+  awayBadge: {
+    backgroundColor: "#fef9c3",
+    borderColor: "#e7c94b",
+  },
   homeAwayBadgeText: {
     color: "#334155",
     fontSize: 10,
@@ -842,6 +874,18 @@ const styles = StyleSheet.create({
     color: "#475569",
     fontSize: 14,
     fontWeight: "600",
+  },
+  locationLinkRow: {
+    paddingVertical: 4,
+    paddingHorizontal: 3,
+    borderRadius: 7,
+  },
+  locationLinkPressed: {
+    opacity: 0.65,
+  },
+  locationLinkText: {
+    color: "#1d4ed8",
+    fontWeight: "700",
   },
   notesBox: {
     flexDirection: "row",
