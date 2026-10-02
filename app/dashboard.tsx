@@ -28,6 +28,8 @@ type ManagerData = {
   isLeagueAppsAdmin?: boolean;
   isImpersonating?: boolean;
   divisionId?: string;
+  programId?: string;
+  teamId?: string;
   selectedAllStarIds?: string[];
   email?: string;
   managerEmail?: string;
@@ -805,6 +807,23 @@ async function sendHelpRequest() {
     </View>
   </Pressable>
 )}
+
+          {managerData?.programId && managerData?.teamId && (
+            <Pressable
+              style={styles.teamScheduleButton}
+              onPress={() => router.push("/seasonschedules")}
+            >
+              <View style={styles.buttonContentRow}>
+                <Ionicons
+                  name="calendar-number-outline"
+                  size={22}
+                  color="#ffffff"
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.teamScheduleButtonText}>Team Schedule</Text>
+              </View>
+            </Pressable>
+          )}
 
           {allStarFeaturesEnabled && (
           <Pressable style={styles.primaryButton} onPress={handleOpenSelections}>
@@ -1703,6 +1722,20 @@ helpButtonText: {
   },
 
   adminButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+
+  teamScheduleButton: {
+    marginTop: 12,
+    backgroundColor: "#0f766e",
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+
+  teamScheduleButtonText: {
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "700",
