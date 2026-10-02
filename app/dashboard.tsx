@@ -646,7 +646,7 @@ async function sendHelpRequest() {
           color="#ffffff"
           style={{ marginRight: 6 }}
         />
-        <Text style={styles.switchTeamButtonText}>Switch Assignment</Text>
+        <Text style={styles.switchTeamButtonText}>Change Teams</Text>
       </View>
     </Pressable>
   </View>

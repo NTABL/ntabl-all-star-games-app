@@ -734,12 +734,14 @@ const styles = StyleSheet.create({
     color: "#475569",
     fontSize: 13,
   },
-  attendanceBox: {
-    borderTopWidth: 1,
-    borderTopColor: "#e2e8f0",
-    marginTop: 14,
-    paddingTop: 14,
-  },
+attendanceBox: {
+  marginTop: 16,
+  padding: 14,
+  backgroundColor: "#f8fafc",
+  borderWidth: 1,
+  borderColor: "#cbd5e1",
+  borderRadius: 12,
+},
   attendanceLabel: {
     color: "#64748b",
     fontSize: 11,
