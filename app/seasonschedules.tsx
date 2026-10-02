@@ -3,6 +3,7 @@ import { router, Stack, useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -74,6 +75,55 @@ type TeamAttendanceMember = {
   attendance: AttendanceResponse | null;
 };
 
+const teamLogoImages: Record<string, any> = {
+  dentonmeanbears: require("../assets/Denton_Mean_Bears.png"),
+  ntxreapers: require("../assets/NTX_Reapers.png"),
+  pelicans: require("../assets/Pelicans.png"),
+  royals: require("../assets/Royals.png"),
+  thedarkhorse: require("../assets/The_Dark_Horse.png"),
+  dallasmustangs: require("../assets/Dallas_Mustangs.png"),
+  briscoereds: require("../assets/Brisco_Co._Reds.png"),
+  dallasorioles30: require("../assets/Dallas_Orioles.png"),
+  texasdiablos: require("../assets/Texas_Diablos.png"),
+  theoldfashioneds: require("../assets/The_Old_Fashioneds.png"),
+  dallasspirits: require("../assets/Spirits.png"),
+  hurricanes: require("../assets/Hurricanes.png"),
+  knights: require("../assets/Knights.png"),
+  northdallasexpos: require("../assets/North_Dallas_Expos.png"),
+  reds: require("../assets/Reds.png"),
+  redsox45: require("../assets/Red_Sox_45.png"),
+  bluejays: require("../assets/Blue_Jays.png"),
+  dallasorioles60: require("../assets/Dallas_Orioles_60.png"),
+  dallasrangers: require("../assets/Dallas_Rangers.png"),
+  redsox60: require("../assets/Red_Sox_60.png"),
+  dallasgiants: require("../assets/Dallas_Giants.png"),
+  dallasmonsters: require("../assets/Dallas_Monsters.png"),
+  gannsbulls: require("../assets/Ganns_Bulls.png"),
+  grandprairieexpos: require("../assets/Grand_Prairie_Expos.png"),
+  uptowngrays: require("../assets/Updown_Grays.png"),
+  victoryparkindians: require("../assets/Victory_Park_Indians.png"),
+};
+
+function normalizeTeamName(value = "") {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function getTeamLogo(teamName = "", division = "") {
+  const key = normalizeTeamName(teamName);
+  const divisionKey = normalizeTeamName(division);
+
+  if (key.includes("dallasorioles") && divisionKey.includes("60")) {
+    return teamLogoImages.dallasorioles60;
+  }
+  if (key.includes("dallasorioles")) return teamLogoImages.dallasorioles30;
+  if (key.includes("redsox") && divisionKey.includes("60")) {
+    return teamLogoImages.redsox60;
+  }
+  if (key.includes("redsox")) return teamLogoImages.redsox45;
+
+  return teamLogoImages[key] || require("../assets/NTABL-Logo.png");
+}
+
 function formatGameDate(startTime?: number | null) {
   if (!startTime) return "DATE TBD";
   return new Date(startTime).toLocaleDateString("en-US", {
@@ -85,7 +135,10 @@ function formatGameDate(startTime?: number | null) {
 
 function formatGameTime(startTime?: number | null) {
   if (!startTime) return "TIME TBD";
-  return new Date(startTime).toLocaleTimeString("en-US", {
+
+  const correctedStartTime = Number(startTime) + 60 * 60 * 1000;
+
+  return new Date(correctedStartTime).toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
     timeZone: "America/Chicago",
@@ -195,6 +248,7 @@ export default function SeasonSchedules() {
   const programId = String(manager?.programId || "");
   const personId = String(manager?.playerId || manager?.leagueAppsId || "");
   const isManager = String(manager?.role || "").toLowerCase() === "manager";
+  const teamLogo = getTeamLogo(manager?.teamName || "", manager?.division || "");
 
   const loadMyAttendance = useCallback(async (
     currentManager: ManagerData | null,
@@ -493,21 +547,6 @@ export default function SeasonSchedules() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.screen}>
-        <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={25} color="#ffffff" />
-          </Pressable>
-
-          <View style={styles.headerTextWrap}>
-            <Text style={styles.headerTitle}>TEAM SCHEDULE</Text>
-            <Text style={styles.headerTeam}>
-              {manager?.teamName || "Your Team"}
-            </Text>
-          </View>
-
-          <View style={styles.headerSpacer} />
-        </View>
-
         {loading ? (
           <View style={styles.centerState}>
             <ActivityIndicator size="large" />
@@ -523,9 +562,37 @@ export default function SeasonSchedules() {
               />
             }
           >
-            {!!manager?.division && (
-              <Text style={styles.divisionText}>{manager.division}</Text>
-            )}
+            <View style={styles.headerRow}>
+              <Pressable
+                style={styles.backButton}
+                onPress={() => router.replace("/dashboard")}
+              >
+                <View style={styles.smallButtonRow}>
+                  <Ionicons
+                    name="chevron-back-outline"
+                    size={16}
+                    color="#ffffff"
+                    style={{ marginRight: 3 }}
+                  />
+                  <Text style={styles.backButtonText}>Back</Text>
+                </View>
+              </Pressable>
+            </View>
+
+            <View style={styles.heroCard}>
+              <Image
+                source={teamLogo}
+                style={styles.heroLogo}
+                resizeMode="contain"
+              />
+              <Text style={styles.heroTitle}>Team Schedule</Text>
+              <Text style={styles.heroTeam}>
+                {manager?.teamName || "Your Team"}
+              </Text>
+              {!!manager?.division && (
+                <Text style={styles.heroDivision}>{manager.division}</Text>
+              )}
+            </View>
 
             {!!error && (
               <View style={styles.errorCard}>
@@ -577,55 +644,65 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f1f5f9",
   },
-  header: {
-    backgroundColor: "#111827",
-    paddingTop: 54,
-    paddingBottom: 18,
-    paddingHorizontal: 16,
+  headerRow: {
     flexDirection: "row",
-    alignItems: "center",
+    justifyContent: "flex-start",
+    marginBottom: 10,
   },
   backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: "#1d4ed8",
+    borderRadius: 9,
+    paddingVertical: 7,
+    paddingHorizontal: 13,
+  },
+  backButtonText: {
+    color: "#ffffff",
+    fontWeight: "800",
+    fontSize: 14,
+  },
+  smallButtonRow: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTextWrap: {
-    flex: 1,
+  heroCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 18,
     alignItems: "center",
-    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    shadowColor: "#000000",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
-  headerSpacer: {
-    width: 42,
+  heroLogo: {
+    width: 125,
+    height: 125,
+    marginBottom: 6,
   },
-  headerTitle: {
-    color: "#ffffff",
-    fontSize: 21,
+  heroTitle: {
+    fontSize: 26,
     fontWeight: "900",
-    letterSpacing: 0.8,
+    color: "#1f4e9e",
+    textAlign: "center",
   },
-  headerTeam: {
-    color: "#d1d5db",
-    fontSize: 15,
-    fontWeight: "700",
+  heroTeam: {
+    color: "#111827",
+    fontSize: 18,
+    fontWeight: "900",
+    textAlign: "center",
     marginTop: 3,
   },
-  content: {
-    width: "100%",
-    maxWidth: 760,
-    alignSelf: "center",
-    padding: 16,
-    paddingBottom: 40,
-  },
-  divisionText: {
-    textAlign: "center",
-    color: "#475569",
-    fontSize: 14,
+  heroDivision: {
+    color: "#64748b",
+    fontSize: 13,
     fontWeight: "700",
-    marginBottom: 14,
+    textAlign: "center",
+    marginTop: 4,
   },
   section: {
     marginBottom: 18,
@@ -717,10 +794,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999,
   },
-  homeBadge: { backgroundColor: "#dbeafe" },
-  awayBadge: { backgroundColor: "#e2e8f0" },
+  homeBadge: { backgroundColor: "#dcfce7" },
+  awayBadge: { backgroundColor: "#fef9c3" },
   homeAwayBadgeText: {
-    color: "#1e3a8a",
+    color: "#334155",
     fontSize: 10,
     fontWeight: "900",
     letterSpacing: 0.7,
