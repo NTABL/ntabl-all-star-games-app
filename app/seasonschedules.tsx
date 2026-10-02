@@ -84,9 +84,11 @@ function formatGameDate(startTime?: number | null) {
 
 function formatGameTime(startTime?: number | null) {
   if (!startTime) return "TIME TBD";
+
   return new Date(startTime).toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
+    timeZone: "America/Chicago",
   });
 }
 
@@ -739,7 +741,7 @@ attendanceBox: {
   padding: 14,
   backgroundColor: "#f8fafc",
   borderWidth: 1,
-  borderColor: "#cbd5e1",
+  borderColor: "#6190ca",
   borderRadius: 12,
 },
   attendanceLabel: {
