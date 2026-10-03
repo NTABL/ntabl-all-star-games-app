@@ -542,12 +542,8 @@ await registerPushNotifications(managerContext);
             />
 
             <Text style={styles.mainTitle}>NTABL</Text>
-            <Text style={styles.eventTitle}>Charity</Text>
-            <Text style={styles.eventTitle}>All-Star Games</Text>
+            <Text style={styles.eventTitle}>Dallas MSBL</Text>
 
-            <Text style={styles.benefitText}>
-              Benefiting Texas Scottish Rite for Children
-            </Text>
             <Text style={styles.versionText}>
               Version {appVersion} • Build {buildNumber}
             </Text>
