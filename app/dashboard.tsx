@@ -73,6 +73,10 @@ const teamLogoImages: Record<string, any> = {
   reds: require("../assets/Reds.png"),
   redsox45: require("../assets/Red_Sox_45.png"),
 
+  coppellroughriders: require("../assets/Rough_Riders.png"),
+  oldbirds: require("../assets/Old_Birds.png"),
+  mmcchiropractictigers: require("../assets/Tigers.png"),
+
   bluejays: require("../assets/Blue_Jays.png"),
   dallasorioles60: require("../assets/Dallas_Orioles_60.png"),
   dallasrangers: require("../assets/Dallas_Rangers.png"),
@@ -824,6 +828,26 @@ async function sendHelpRequest() {
               </View>
             </Pressable>
           )}
+
+          {managerData?.programId && managerData?.teamId && (
+  <Pressable
+    style={styles.teamChatButton}
+    onPress={() => router.push("/teamchat")}
+  >
+    <View style={styles.buttonContentRow}>
+      <Ionicons
+        name="chatbubbles-outline"
+        size={22}
+        color="#ffffff"
+        style={{ marginRight: 8 }}
+      />
+
+      <Text style={styles.teamChatButtonText}>
+        Team Chat
+      </Text>
+    </View>
+  </Pressable>
+)}
 
           {allStarFeaturesEnabled && (
           <Pressable style={styles.primaryButton} onPress={handleOpenSelections}>
@@ -1740,6 +1764,20 @@ helpButtonText: {
     fontSize: 16,
     fontWeight: "700",
   },
+
+  teamChatButton: {
+  marginTop: 12,
+  backgroundColor: "#1f4e9e",
+  borderRadius: 12,
+  paddingVertical: 14,
+  alignItems: "center",
+},
+
+teamChatButtonText: {
+  color: "#ffffff",
+  fontSize: 16,
+  fontWeight: "700",
+},
 
   scheduleButton: {
     marginTop: 12,
