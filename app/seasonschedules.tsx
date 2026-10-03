@@ -1,17 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { router, Stack, useFocusEffect } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
-  Linking,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { getManagerContext } from "../stores/store";
@@ -45,9 +41,7 @@ type ScheduleGame = {
   opponentName?: string;
   team1Score?: number | null;
   team2Score?: number | null;
-  locationId?: number | string | null;
   locationName?: string;
-  subLocationId?: number | string | null;
   subLocationName?: string;
   notes?: string;
 };
@@ -80,57 +74,6 @@ type TeamAttendanceMember = {
   attendance: AttendanceResponse | null;
 };
 
-type AlertAudience = "all" | "responded" | "not_replied";
-
-const teamLogoImages: Record<string, any> = {
-  dentonmeanbears: require("../assets/Denton_Mean_Bears.png"),
-  ntxreapers: require("../assets/NTX_Reapers.png"),
-  pelicans: require("../assets/Pelicans.png"),
-  royals: require("../assets/Royals.png"),
-  thedarkhorse: require("../assets/The_Dark_Horse.png"),
-  dallasmustangs: require("../assets/Dallas_Mustangs.png"),
-  briscoereds: require("../assets/Brisco_Co._Reds.png"),
-  dallasorioles30: require("../assets/Dallas_Orioles.png"),
-  texasdiablos: require("../assets/Texas_Diablos.png"),
-  theoldfashioneds: require("../assets/The_Old_Fashioneds.png"),
-  dallasspirits: require("../assets/Spirits.png"),
-  hurricanes: require("../assets/Hurricanes.png"),
-  knights: require("../assets/Knights.png"),
-  northdallasexpos: require("../assets/North_Dallas_Expos.png"),
-  reds: require("../assets/Reds.png"),
-  redsox45: require("../assets/Red_Sox_45.png"),
-  bluejays: require("../assets/Blue_Jays.png"),
-  dallasorioles60: require("../assets/Dallas_Orioles_60.png"),
-  dallasrangers: require("../assets/Dallas_Rangers.png"),
-  redsox60: require("../assets/Red_Sox_60.png"),
-  dallasgiants: require("../assets/Dallas_Giants.png"),
-  dallasmonsters: require("../assets/Dallas_Monsters.png"),
-  gannsbulls: require("../assets/Ganns_Bulls.png"),
-  grandprairieexpos: require("../assets/Grand_Prairie_Expos.png"),
-  uptowngrays: require("../assets/Updown_Grays.png"),
-  victoryparkindians: require("../assets/Victory_Park_Indians.png"),
-};
-
-function normalizeTeamName(value = "") {
-  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
-function getTeamLogo(teamName = "", division = "") {
-  const key = normalizeTeamName(teamName);
-  const divisionKey = normalizeTeamName(division);
-
-  if (key.includes("dallasorioles") && divisionKey.includes("60")) {
-    return teamLogoImages.dallasorioles60;
-  }
-  if (key.includes("dallasorioles")) return teamLogoImages.dallasorioles30;
-  if (key.includes("redsox") && divisionKey.includes("60")) {
-    return teamLogoImages.redsox60;
-  }
-  if (key.includes("redsox")) return teamLogoImages.redsox45;
-
-  return teamLogoImages[key] || require("../assets/NTABL-Logo.png");
-}
-
 function formatGameDate(startTime?: number | null) {
   if (!startTime) return "DATE TBD";
   return new Date(startTime).toLocaleDateString("en-US", {
@@ -142,13 +85,9 @@ function formatGameDate(startTime?: number | null) {
 
 function formatGameTime(startTime?: number | null) {
   if (!startTime) return "TIME TBD";
-
-  const correctedStartTime = Number(startTime) + 60 * 60 * 1000;
-
-  return new Date(correctedStartTime).toLocaleTimeString("en-US", {
+  return new Date(startTime).toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
-    timeZone: "America/Chicago",
   });
 }
 
@@ -179,16 +118,6 @@ function isPastGame(game: ScheduleGame) {
 }
 
 export default function SeasonSchedules() {
-  const params = useLocalSearchParams<{
-    alertTitle?: string;
-    alertMessage?: string;
-    alertId?: string;
-  }>();
-  const [receivedAlert, setReceivedAlert] = useState<{
-    title: string;
-    message: string;
-    id: string;
-  } | null>(null);
   const [manager, setManager] = useState<ManagerData | null>(null);
   const [games, setGames] = useState<ScheduleGame[]>([]);
   const [loading, setLoading] = useState(true);
@@ -199,28 +128,6 @@ export default function SeasonSchedules() {
   const [teamAttendance, setTeamAttendance] = useState<Record<string, { summary: TeamAttendanceSummary; members: TeamAttendanceMember[] }>>({});
   const [teamAttendanceOpen, setTeamAttendanceOpen] = useState<Record<string, boolean>>({});
   const [teamAttendanceLoading, setTeamAttendanceLoading] = useState<Record<string, boolean>>({});
-  const [alertGame, setAlertGame] = useState<ScheduleGame | null>(null);
-  const [alertAudience, setAlertAudience] = useState<AlertAudience>("all");
-  const [alertMessage, setAlertMessage] = useState("");
-  const [alertSending, setAlertSending] = useState(false);
-  const [alertResult, setAlertResult] = useState("");
-
-  useEffect(() => {
-    const message = String(params.alertMessage || "").trim();
-    if (!message) return;
-
-    setReceivedAlert({
-      title: String(params.alertTitle || "Team Alert"),
-      message,
-      id: String(params.alertId || Date.now()),
-    });
-
-    router.setParams({
-      alertTitle: undefined,
-      alertMessage: undefined,
-      alertId: undefined,
-    });
-  }, [params.alertId, params.alertMessage, params.alertTitle]);
 
   const loadSchedule = useCallback(async (refresh = false) => {
     try {
@@ -287,7 +194,6 @@ export default function SeasonSchedules() {
   const programId = String(manager?.programId || "");
   const personId = String(manager?.playerId || manager?.leagueAppsId || "");
   const isManager = String(manager?.role || "").toLowerCase() === "manager";
-  const teamLogo = getTeamLogo(manager?.teamName || "", manager?.division || "");
 
   const loadMyAttendance = useCallback(async (
     currentManager: ManagerData | null,
@@ -326,9 +232,6 @@ export default function SeasonSchedules() {
   async function saveAttendance(game: ScheduleGame, status: AttendanceStatus) {
     if (!programId || !teamId || !personId || attendanceSaving[game.gameId]) return;
 
-    const currentStatus = attendanceByGame[game.gameId]?.status || "";
-    const nextStatus = currentStatus === status ? "" : status;
-
     setAttendanceSaving((prev) => ({ ...prev, [game.gameId]: true }));
 
     try {
@@ -339,7 +242,7 @@ export default function SeasonSchedules() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ personId, status: nextStatus, note: "" }),
+          body: JSON.stringify({ personId, status, note: "" }),
         }
       );
 
@@ -401,68 +304,6 @@ export default function SeasonSchedules() {
     if (opening) await loadTeamAttendance(game);
   }
 
-  async function openAlertModal(game: ScheduleGame) {
-    setAlertGame(game);
-    setAlertAudience("all");
-    setAlertMessage("");
-    setAlertResult("");
-
-    if (!teamAttendance[game.gameId]) {
-      await loadTeamAttendance(game);
-    }
-  }
-
-  function closeAlertModal() {
-    if (alertSending) return;
-    setAlertGame(null);
-    setAlertMessage("");
-    setAlertResult("");
-  }
-
-  function getAlertRecipientCount() {
-    if (!alertGame) return null;
-
-    const attendance = teamAttendance[alertGame.gameId];
-    if (!attendance?.summary) return null;
-
-    if (alertAudience === "responded") {
-      return attendance.summary.yes + attendance.summary.maybe + attendance.summary.no;
-    }
-
-    if (alertAudience === "not_replied") {
-      return attendance.summary.noResponse;
-    }
-
-    return attendance.summary.total;
-  }
-
-  const alertRecipientCount = getAlertRecipientCount();
-
-  async function sendTeamAlert() {
-    if (!alertGame || !programId || !teamId || !personId || !alertMessage.trim() || alertSending) return;
-    setAlertSending(true);
-    setAlertResult("");
-    try {
-      const response = await fetch(
-        `${API_BASE}/api/team-alerts/${encodeURIComponent(programId)}/${encodeURIComponent(teamId)}/${encodeURIComponent(alertGame.gameId)}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ senderPersonId: personId, audience: alertAudience, message: alertMessage.trim() }),
-        }
-      );
-      const data = await response.json();
-      if (!response.ok || data?.ok !== true) throw new Error(data?.message || "Team alert could not be sent.");
-      const count = Number(data.recipientCount || 0);
-      const pushed = Number(data.pushSent || 0);
-      setAlertResult(`Alert sent to ${count} teammate${count === 1 ? "" : "s"}${pushed ? ` • ${pushed} push sent` : ""}.`);
-    } catch (err: any) {
-      setAlertResult(err?.message || "Team alert could not be sent.");
-    } finally {
-      setAlertSending(false);
-    }
-  }
-
   function renderGame(game: ScheduleGame, past: boolean) {
     const result = past ? getResult(game, teamId) : null;
     const score = getScore(game, teamId);
@@ -475,9 +316,6 @@ export default function SeasonSchedules() {
     const location = [game.locationName, game.subLocationName]
       .filter(Boolean)
       .join(" • ");
-    const locationUrl = game.locationId
-      ? `https://ntabl.leagueapps.com/location/${game.locationId}`
-      : "";
 
     return (
       <View key={game.gameId} style={styles.gameCard}>
@@ -510,14 +348,7 @@ export default function SeasonSchedules() {
               <Text style={styles.opponentLabel}>OPPONENT</Text>
               {!!homeAwayLabel && (
                 <View style={[styles.homeAwayBadge, homeAwayLabel === "HOME" ? styles.homeBadge : styles.awayBadge]}>
-                  <Text
-                    style={[
-                      styles.homeAwayBadgeText,
-                      homeAwayLabel === "AWAY" && styles.awayBadgeText,
-                    ]}
-                  >
-                    {homeAwayLabel}
-                  </Text>
+                  <Text style={styles.homeAwayBadgeText}>{homeAwayLabel}</Text>
                 </View>
               )}
             </View>
@@ -538,29 +369,10 @@ export default function SeasonSchedules() {
         </View>
 
         {!!location && (
-          locationUrl ? (
-            <Pressable
-              style={({ pressed }) => [
-                styles.detailRow,
-                styles.locationLinkRow,
-                pressed && styles.locationLinkPressed,
-              ]}
-              onPress={() => Linking.openURL(locationUrl)}
-              accessibilityRole="link"
-              accessibilityLabel={`Open ${location} location and directions`}
-            >
-              <Ionicons name="location-outline" size={18} color="#1d4ed8" />
-              <Text style={[styles.detailText, styles.locationLinkText]}>
-                {location}
-              </Text>
-              <Ionicons name="open-outline" size={16} color="#1d4ed8" />
-            </Pressable>
-          ) : (
-            <View style={styles.detailRow}>
-              <Ionicons name="location-outline" size={18} color="#475569" />
-              <Text style={styles.detailText}>{location}</Text>
-            </View>
-          )
+          <View style={styles.detailRow}>
+            <Ionicons name="location-outline" size={18} color="#475569" />
+            <Text style={styles.detailText}>{location}</Text>
+          </View>
         )}
 
         {!!game.notes && (
@@ -619,14 +431,6 @@ export default function SeasonSchedules() {
 
             {isManager && (
               <View style={styles.managerAttendanceBox}>
-                <Pressable style={styles.alertTeamButton} onPress={() => openAlertModal(game)}>
-                  <View style={styles.alertTeamButtonRow}>
-                    <Ionicons name="notifications-outline" size={19} color="#334155" />
-                    <Text style={styles.alertTeamButtonText}>ALERT TEAM</Text>
-                  </View>
-                  <Text style={styles.alertTeamButtonSubtext}>All • Responded • Not Replied</Text>
-                </Pressable>
-
                 <Pressable
                   style={styles.teamAttendanceButton}
                   onPress={() => toggleTeamAttendance(game)}
@@ -688,6 +492,21 @@ export default function SeasonSchedules() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.screen}>
+        <View style={styles.header}>
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={25} color="#ffffff" />
+          </Pressable>
+
+          <View style={styles.headerTextWrap}>
+            <Text style={styles.headerTitle}>TEAM SCHEDULE</Text>
+            <Text style={styles.headerTeam}>
+              {manager?.teamName || "Your Team"}
+            </Text>
+          </View>
+
+          <View style={styles.headerSpacer} />
+        </View>
+
         {loading ? (
           <View style={styles.centerState}>
             <ActivityIndicator size="large" />
@@ -703,37 +522,9 @@ export default function SeasonSchedules() {
               />
             }
           >
-            <View style={styles.headerRow}>
-              <Pressable
-                style={styles.backButton}
-                onPress={() => router.replace("/dashboard")}
-              >
-                <View style={styles.smallButtonRow}>
-                  <Ionicons
-                    name="chevron-back-outline"
-                    size={16}
-                    color="#ffffff"
-                    style={{ marginRight: 3 }}
-                  />
-                  <Text style={styles.backButtonText}>Back</Text>
-                </View>
-              </Pressable>
-            </View>
-
-            <View style={styles.heroCard}>
-              <Image
-                source={teamLogo}
-                style={styles.heroLogo}
-                resizeMode="contain"
-              />
-              <Text style={styles.heroTitle}>Team Schedule</Text>
-              <Text style={styles.heroTeam}>
-                {manager?.teamName || "Your Team"}
-              </Text>
-              {!!manager?.division && (
-                <Text style={styles.heroDivision}>{manager.division}</Text>
-              )}
-            </View>
+            {!!manager?.division && (
+              <Text style={styles.divisionText}>{manager.division}</Text>
+            )}
 
             {!!error && (
               <View style={styles.errorCard}>
@@ -775,102 +566,6 @@ export default function SeasonSchedules() {
             <Text style={styles.sourceText}>Schedule provided by LeagueApps</Text>
           </ScrollView>
         )}
-
-        <Modal
-          visible={!!receivedAlert}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setReceivedAlert(null)}
-        >
-          <View style={styles.modalBackdrop}>
-            <View style={styles.receivedAlertModal}>
-              <View style={styles.receivedAlertHeader}>
-                <View style={styles.receivedAlertTitleRow}>
-                  <Ionicons name="notifications" size={22} color="#1d4ed8" />
-                  <Text style={styles.receivedAlertTitle}>
-                    {receivedAlert?.title || "Team Alert"}
-                  </Text>
-                </View>
-              </View>
-
-              <Text style={styles.receivedAlertMessage}>
-                {receivedAlert?.message}
-              </Text>
-
-              <View style={styles.receivedAlertActions}>
-                <Pressable
-                  style={styles.receivedAlertOkButton}
-                  onPress={() => setReceivedAlert(null)}
-                >
-                  <Text style={styles.receivedAlertOkButtonText}>OK</Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
-        <Modal visible={!!alertGame} transparent animationType="fade" onRequestClose={closeAlertModal}>
-          <View style={styles.modalBackdrop}>
-            <View style={styles.alertModal}>
-              <View style={styles.alertModalHeader}>
-                <View>
-                  <Text style={styles.alertModalTitle}>Alert Team</Text>
-                  <Text style={styles.alertModalGame}>{alertGame?.opponentName ? `vs. ${alertGame.opponentName}` : "Upcoming Game"}</Text>
-                </View>
-                <Pressable onPress={closeAlertModal} disabled={alertSending}>
-                  <Ionicons name="close" size={26} color="#475569" />
-                </Pressable>
-              </View>
-              <Text style={styles.alertFieldLabel}>AUDIENCE</Text>
-              <View style={styles.audienceRow}>
-                {([["all", "All"], ["responded", "Responded"], ["not_replied", "Not Replied"]] as [AlertAudience, string][]).map(([value, label]) => (
-                  <Pressable
-                    key={value}
-                    onPress={() => setAlertAudience(value)}
-                    style={[
-                      styles.audienceButton,
-                      alertAudience === value &&
-                        (value === "all"
-                          ? styles.audienceAllSelected
-                          : value === "responded"
-                          ? styles.audienceRespondedSelected
-                          : styles.audienceNotRepliedSelected),
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.audienceButtonText,
-                        alertAudience === value &&
-                          (value === "all"
-                            ? styles.audienceButtonTextSelected
-                            : value === "responded"
-                            ? styles.audienceRespondedText
-                            : styles.audienceNotRepliedText),
-                      ]}
-                    >
-                      {label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-              <Text style={styles.alertRecipientCount}>
-                {alertRecipientCount == null
-                  ? "Calculating players to alert..."
-                  : `${alertRecipientCount} player${alertRecipientCount === 1 ? "" : "s"} will be alerted`}
-              </Text>
-              <Text style={styles.alertFieldLabel}>MESSAGE</Text>
-              <TextInput value={alertMessage} onChangeText={(value) => setAlertMessage(value.slice(0, 300))} placeholder="Enter a short team alert..." multiline maxLength={300} style={styles.alertInput} textAlignVertical="top" />
-              <Text style={styles.characterCount}>{alertMessage.length} / 300</Text>
-              {!!alertResult && <Text style={styles.alertResultText}>{alertResult}</Text>}
-              <View style={styles.modalActions}>
-                <Pressable style={styles.cancelAlertButton} onPress={closeAlertModal} disabled={alertSending}><Text style={styles.cancelAlertButtonText}>Cancel</Text></Pressable>
-                <Pressable style={[styles.sendAlertButton, (!alertMessage.trim() || alertSending) && styles.sendAlertButtonDisabled]} onPress={sendTeamAlert} disabled={!alertMessage.trim() || alertSending}>
-                  {alertSending ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.sendAlertButtonText}>Send Alert</Text>}
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        </Modal>
       </View>
     </>
   );
@@ -881,75 +576,57 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f1f5f9",
   },
-  content: {
-    width: "100%",
+  header: {
+    backgroundColor: "#111827",
+    paddingTop: 54,
+    paddingBottom: 18,
     paddingHorizontal: 16,
-    paddingTop: 32,
-    paddingBottom: 50,
-  },
-  headerRow: {
     flexDirection: "row",
-    justifyContent: "flex-start",
-    marginBottom: 10,
+    alignItems: "center",
   },
   backButton: {
-    backgroundColor: "#1d4ed8",
-    borderRadius: 9,
-    paddingVertical: 7,
-    paddingHorizontal: 13,
-  },
-  backButtonText: {
-    color: "#ffffff",
-    fontWeight: "800",
-    fontSize: 14,
-  },
-  smallButtonRow: {
-    flexDirection: "row",
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(255,255,255,0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
-  heroCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 18,
+  headerTextWrap: {
+    flex: 1,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    shadowColor: "#000000",
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    paddingHorizontal: 8,
   },
-  heroLogo: {
-    width: 125,
-    height: 125,
-    marginBottom: 6,
+  headerSpacer: {
+    width: 42,
   },
-  heroTitle: {
-    fontSize: 26,
+  headerTitle: {
+    color: "#ffffff",
+    fontSize: 21,
     fontWeight: "900",
-    color: "#1f4e9e",
-    textAlign: "center",
+    letterSpacing: 0.8,
   },
-  heroTeam: {
-    color: "#111827",
-    fontSize: 18,
-    fontWeight: "900",
-    textAlign: "center",
+  headerTeam: {
+    color: "#d1d5db",
+    fontSize: 15,
+    fontWeight: "700",
     marginTop: 3,
   },
-  heroDivision: {
-    color: "#64748b",
-    fontSize: 13,
-    fontWeight: "700",
+  content: {
+    width: "100%",
+    maxWidth: 760,
+    alignSelf: "center",
+    padding: 16,
+    paddingBottom: 40,
+  },
+  divisionText: {
     textAlign: "center",
-    marginTop: 4,
+    color: "#475569",
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 14,
   },
   section: {
-    width: "100%",
-    alignSelf: "center",
     marginBottom: 18,
   },
   sectionTitle: {
@@ -964,8 +641,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 16,
     marginBottom: 12,
-    borderWidth: 1.5,
-    borderColor: "#b8c4d4",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
   },
   cardTopRow: {
     flexDirection: "row",
@@ -1038,24 +715,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 999,
-    borderWidth: 1,
   },
-  homeBadge: {
-    backgroundColor: "#dcfce7",
-    borderColor: "#86d9a5",
-  },
-  awayBadge: {
-    backgroundColor: "#334155",
-    borderColor: "#334155",
-  },
+  homeBadge: { backgroundColor: "#dbeafe" },
+  awayBadge: { backgroundColor: "#e2e8f0" },
   homeAwayBadgeText: {
-    color: "#334155",
+    color: "#1e3a8a",
     fontSize: 10,
     fontWeight: "900",
     letterSpacing: 0.7,
-  },
-  awayBadgeText: {
-    color: "#ffffff",
   },
   opponentName: {
     color: "#111827",
@@ -1086,18 +753,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  locationLinkRow: {
-    paddingVertical: 4,
-    paddingHorizontal: 3,
-    borderRadius: 7,
-  },
-  locationLinkPressed: {
-    opacity: 0.65,
-  },
-  locationLinkText: {
-    color: "#1d4ed8",
-    fontWeight: "700",
-  },
   notesBox: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -1115,9 +770,9 @@ const styles = StyleSheet.create({
 attendanceBox: {
   marginTop: 16,
   padding: 14,
-  backgroundColor: "#e2e8f0",
+  backgroundColor: "#f8fafc",
   borderWidth: 1,
-  borderColor: "#94a3b8",
+  borderColor: "#cbd5e1",
   borderRadius: 12,
 },
   attendanceLabel: {
@@ -1156,8 +811,8 @@ attendanceBox: {
     borderColor: "#15803d",
   },
   attendanceMaybeSelected: {
-    backgroundColor: "#ca8a04",
-    borderColor: "#ca8a04",
+    backgroundColor: "#a16207",
+    borderColor: "#a16207",
   },
   attendanceNoSelected: {
     backgroundColor: "#b91c1c",
@@ -1168,7 +823,7 @@ attendanceBox: {
     backgroundColor: "#f8fafc",
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#2d73ce",
+    borderColor: "#e2e8f0",
     overflow: "hidden",
   },
   teamAttendanceButton: {
@@ -1229,93 +884,6 @@ attendanceBox: {
   statusNone: {
     color: "#94a3b8",
   },
-  alertTeamButton: { backgroundColor: "#fef9c3", paddingHorizontal: 12, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: "#e7c94b" },
-  alertTeamButtonRow: { flexDirection: "row", alignItems: "center", gap: 7 },
-  alertTeamButtonText: { color: "#334155", fontSize: 12, fontWeight: "900", letterSpacing: 0.5 },
-  alertTeamButtonSubtext: { color: "#475569", fontSize: 10, fontWeight: "700", marginTop: 3 },
-  receivedAlertModal: {
-    width: "100%",
-    maxWidth: 520,
-    backgroundColor: "#ffffff",
-    borderRadius: 18,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "#cbd5e1",
-  },
-  receivedAlertHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  receivedAlertTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    flex: 1,
-  },
-  receivedAlertTitle: {
-    color: "#111827",
-    fontSize: 20,
-    fontWeight: "900",
-  },
-  receivedAlertMessage: {
-    color: "#334155",
-    fontSize: 16,
-    lineHeight: 23,
-    fontWeight: "600",
-  },
-  receivedAlertActions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    marginTop: 20,
-  },
-  receivedAlertOkButton: {
-    minWidth: 90,
-    backgroundColor: "#1d4ed8",
-    borderRadius: 9,
-    paddingHorizontal: 18,
-    paddingVertical: 11,
-    alignItems: "center",
-  },
-  receivedAlertOkButtonText: {
-    color: "#ffffff",
-    fontWeight: "900",
-  },
-
-  modalBackdrop: { flex: 1, backgroundColor: "rgba(15,23,42,0.55)", alignItems: "center", justifyContent: "center", padding: 20 },
-  alertModal: { width: "100%", maxWidth: 560, backgroundColor: "#ffffff", borderRadius: 18, padding: 18 },
-  alertModalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 },
-  alertModalTitle: { color: "#111827", fontSize: 22, fontWeight: "900" },
-  alertModalGame: { color: "#64748b", fontSize: 13, fontWeight: "700", marginTop: 2 },
-  alertRecipientCount: {
-    marginTop: 10,
-    marginBottom: 14,
-    textAlign: "center",
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#475569",
-  },
-
-  alertFieldLabel: { color: "#475569", fontSize: 11, fontWeight: "900", letterSpacing: 0.7, marginBottom: 7 },
-  audienceRow: { flexDirection: "row", gap: 7, marginBottom: 16 },
-  audienceButton: { flex: 1, minHeight: 40, borderRadius: 9, borderWidth: 1, borderColor: "#cbd5e1", alignItems: "center", justifyContent: "center", paddingHorizontal: 6 },
-  audienceAllSelected: { backgroundColor: "#dbeafe", borderColor: "#93c5fd" },
-  audienceRespondedSelected: { backgroundColor: "#dcfce7", borderColor: "#86d9a5" },
-  audienceNotRepliedSelected: { backgroundColor: "#fee2e2", borderColor: "#fca5a5" },
-  audienceButtonText: { color: "#334155", fontSize: 11, fontWeight: "800", textAlign: "center" },
-  audienceButtonTextSelected: { color: "#1e40af" },
-  audienceRespondedText: { color: "#166534" },
-  audienceNotRepliedText: { color: "#991b1b" },
-  alertInput: { minHeight: 120, borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 10, padding: 12, color: "#111827", fontSize: 14, backgroundColor: "#f8fafc" },
-  characterCount: { color: "#64748b", fontSize: 11, fontWeight: "700", textAlign: "right", marginTop: 5 },
-  alertResultText: { color: "#1e3a8a", fontSize: 12, fontWeight: "700", marginTop: 8 },
-  modalActions: { flexDirection: "row", justifyContent: "flex-end", gap: 9, marginTop: 16 },
-  cancelAlertButton: { borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 9, paddingHorizontal: 16, paddingVertical: 11 },
-  cancelAlertButtonText: { color: "#475569", fontWeight: "800" },
-  sendAlertButton: { minWidth: 120, backgroundColor: "#16a34a", borderRadius: 9, paddingHorizontal: 18, paddingVertical: 11, alignItems: "center", justifyContent: "center" },
-  sendAlertButtonDisabled: { opacity: 0.5 },
-  sendAlertButtonText: { color: "#ffffff", fontWeight: "900" },
   centerState: {
     flex: 1,
     alignItems: "center",
