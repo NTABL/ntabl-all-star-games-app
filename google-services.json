@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "802138141000",
+    "project_id": "ntabl-7bf04",
+    "storage_bucket": "ntabl-7bf04.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:802138141000:android:325bce88a185e94174037d",
+        "android_client_info": {
+          "package_name": "com.ntabl.allstargames"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB6wPgGKQq0-Xy4rB9I6rg_6pqR4sjWia0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -10,18 +10,20 @@
     "assetBundlePatterns": [
       "**/*"
     ],
-    "plugins": [
-      "expo-router",
-      "expo-video",
-      "expo-secure-store",
-      "expo-font"
-    ],
+ "plugins": [
+   "expo-router",
+   "expo-video",
+   "expo-secure-store",
+   "expo-font",
+   "expo-notifications"
+ ],
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#0b1f3a"
     },
     "android": {
       "package": "com.ntabl.allstargames",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0b1f3a"

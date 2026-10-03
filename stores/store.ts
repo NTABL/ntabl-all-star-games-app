@@ -2,12 +2,21 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const MANAGER_KEY = "ntabl_manager_context";
 const ADMIN_CONTEXT_KEY = "ntabl_pre_impersonation_context";
+const LAST_ASSIGNMENT_KEY = "ntabl_last_assignment_key";
 
 let managerCache: any = null;
 
 export async function setManagerContext(data: any) {
   managerCache = data;
   await AsyncStorage.setItem(MANAGER_KEY, JSON.stringify(data));
+
+  const assignmentKey = String(
+    data?.activeAssignmentKey || data?.assignmentKey || "",
+  ).trim();
+
+  if (assignmentKey && !data?.isImpersonating) {
+    await AsyncStorage.setItem(LAST_ASSIGNMENT_KEY, assignmentKey);
+  }
 }
 
 export async function getManagerContext() {
@@ -18,6 +27,34 @@ export async function getManagerContext() {
 
   managerCache = JSON.parse(saved);
   return managerCache;
+}
+
+export async function restoreLastManagerAssignment(data: any) {
+  if (!data) return data;
+
+  const assignments = Array.isArray(data?.assignments)
+    ? data.assignments
+    : [];
+
+  if (!assignments.length) return data;
+
+  const lastAssignmentKey = await AsyncStorage.getItem(LAST_ASSIGNMENT_KEY);
+
+  if (!lastAssignmentKey) return data;
+
+  const selected = assignments.find(
+    (assignment: any) =>
+      String(assignment?.assignmentKey || "") === String(lastAssignmentKey),
+  );
+
+  if (!selected) return data;
+
+  return {
+    ...data,
+    ...selected,
+    assignments,
+    activeAssignmentKey: selected.assignmentKey,
+  };
 }
 
 export async function clearManagerContext() {
@@ -44,7 +81,7 @@ export async function switchManagerAssignment(assignmentKey: string) {
 
   const selected = assignments.find(
     (assignment: any) =>
-      String(assignment?.assignmentKey || "") === String(assignmentKey || "")
+      String(assignment?.assignmentKey || "") === String(assignmentKey || ""),
   );
 
   if (!selected) return null;

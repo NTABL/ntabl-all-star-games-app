@@ -1,5 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
+import * as Device from "expo-device";
+import * as Notifications from "expo-notifications";
 import { router, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -18,7 +20,10 @@ import {
   View,
 } from "react-native";
 import { setAnnouncerLoggedIn } from "../stores/adminstore";
-import { setManagerContext } from "../stores/store";
+import {
+  restoreLastManagerAssignment,
+  setManagerContext,
+} from "../stores/store";
 import { API_BASE } from "../utils/appconfig";
 import {
   authenticateWithBiometrics,
@@ -54,6 +59,115 @@ async function fetchWithTimeout(
 
 function isAbortError(error: unknown) {
   return error instanceof Error && error.name === "AbortError";
+}
+
+async function registerPushNotifications(manager: any) {
+  try {
+    if (Platform.OS === "web" || !Device.isDevice) return;
+
+    const assignments = Array.isArray(manager?.assignments)
+      ? manager.assignments
+      : [];
+
+    const personIds = Array.from(
+      new Set(
+        [manager, ...assignments]
+          .map((assignment: any) =>
+            String(
+              assignment?.playerId ||
+                assignment?.leagueAppsId ||
+                "",
+            ).trim(),
+          )
+          .filter(Boolean),
+      ),
+    );
+
+    if (!personIds.length) {
+      console.log("PUSH REGISTRATION SKIPPED: No person IDs.");
+      return;
+    }
+
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "NTABL Team Alerts",
+        importance: Notifications.AndroidImportance.HIGH,
+      });
+    }
+
+    const existingPermissions =
+      await Notifications.getPermissionsAsync();
+
+    let finalStatus = existingPermissions.status;
+
+    if (finalStatus !== "granted") {
+      const requestedPermissions =
+        await Notifications.requestPermissionsAsync();
+
+      finalStatus = requestedPermissions.status;
+    }
+
+    if (finalStatus !== "granted") {
+      console.log(
+        "PUSH REGISTRATION SKIPPED: Notification permission not granted.",
+      );
+      return;
+    }
+
+    const projectId =
+      Constants.expoConfig?.extra?.eas?.projectId ||
+      Constants.easConfig?.projectId;
+
+    if (!projectId) {
+      console.log(
+        "PUSH REGISTRATION SKIPPED: EAS project ID not found.",
+      );
+      return;
+    }
+
+    const pushToken = (
+      await Notifications.getExpoPushTokenAsync({ projectId })
+    ).data;
+
+    if (!pushToken) {
+      console.log(
+        "PUSH REGISTRATION SKIPPED: No Expo push token returned.",
+      );
+      return;
+    }
+
+    for (const personId of personIds) {
+      const response = await fetchWithTimeout(
+        `${API_BASE}/api/push-token`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            personId,
+            token: pushToken,
+          }),
+        },
+        NETWORK_TIMEOUT_MS,
+      );
+
+      const json = await response.json();
+
+      if (!response.ok || !json?.ok) {
+        console.log(
+          "PUSH REGISTRATION FAILED:",
+          personId,
+          json?.message || "Push token could not be saved.",
+        );
+        continue;
+      }
+
+      console.log("PUSH REGISTRATION SUCCESS:", personId);
+    }
+  } catch (error) {
+    console.log("PUSH REGISTRATION ERROR:", error);
+  }
 }
 
 export default function Login() {
@@ -300,7 +414,10 @@ export default function Login() {
         return;
       }
 
-      await setManagerContext(data.manager);
+const managerContext = await restoreLastManagerAssignment(data.manager);
+
+await setManagerContext(managerContext);
+await registerPushNotifications(managerContext);
 
       const savedCredentials = await getManagerCredentials();
 
