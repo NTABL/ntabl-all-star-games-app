@@ -59,7 +59,12 @@ export async function restoreLastManagerAssignment(data: any) {
 
 export async function clearManagerContext() {
   managerCache = null;
-  await AsyncStorage.multiRemove([MANAGER_KEY, ADMIN_CONTEXT_KEY]);
+
+  await AsyncStorage.multiRemove([
+    MANAGER_KEY,
+    ADMIN_CONTEXT_KEY,
+    LAST_ASSIGNMENT_KEY,
+  ]);
 }
 
 export async function beginImpersonation(impersonatedContext: any) {
