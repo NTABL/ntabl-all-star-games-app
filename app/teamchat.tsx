@@ -381,13 +381,13 @@ export default function TeamChat() {
 
           <View style={styles.headerCenter}>
             <View style={styles.titleRow}>
+              <Text style={styles.headerTitle}>Team Chat</Text>
               <Ionicons
                 name="chatbubbles"
                 size={24}
                 color="#ffffff"
-                style={{ marginRight: 7 }}
+                style={{ marginLeft: 7 }}
               />
-              <Text style={styles.headerTitle}>Team Chat</Text>
             </View>
 
             <Text
@@ -580,12 +580,12 @@ const styles = StyleSheet.create({
 
   header: {
     backgroundColor: "#1f4e9e",
-    paddingTop: Platform.OS === "ios" ? 54 : 36,
+    paddingTop: 18,
     paddingBottom: 14,
     paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 120,
+    minHeight: 92,
   },
 
   backButton: {
