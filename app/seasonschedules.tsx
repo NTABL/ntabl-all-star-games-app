@@ -640,6 +640,7 @@ export default function SeasonSchedules() {
                         teamName: manager?.teamName || "My Team",
                         opponentName: game.opponentName || "Opponent",
                         gameDate: formatGameDate(game.startTime),
+                        gameTime: formatGameTime(game.startTime),
                       },
                     });
                   }}

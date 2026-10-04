@@ -372,11 +372,13 @@ export default function TeamChat() {
             accessibilityRole="button"
             accessibilityLabel="Back"
           >
-            <Ionicons
-              name="chevron-back"
-              size={24}
-              color="#ffffff"
-            />
+            <View style={styles.backIconCenter}>
+              <Ionicons
+                name="arrow-back"
+                size={22}
+                color="#ffffff"
+              />
+            </View>
           </Pressable>
 
           <View style={styles.headerCenter}>
@@ -595,6 +597,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff20",
     alignItems: "center",
     justifyContent: "flex-start",
+  },
+
+  backIconCenter: {
+    width: 42,
+    height: 42,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   headerCenter: {
