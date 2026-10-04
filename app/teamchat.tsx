@@ -220,9 +220,24 @@ export default function TeamChat() {
   }
 
   function requestClearChat() {
+    const message =
+      "This will permanently remove all messages from this team's chat. This cannot be undone.";
+
+    if (Platform.OS === "web") {
+      const confirmed =
+        typeof globalThis.confirm === "function"
+          ? globalThis.confirm(`Clear Team Chat?\n\n${message}`)
+          : false;
+
+      if (confirmed) {
+        void clearChat();
+      }
+      return;
+    }
+
     Alert.alert(
       "Clear Team Chat?",
-      "This will permanently remove all messages from this team's chat. This cannot be undone.",
+      message,
       [
         {
           text: "Cancel",
@@ -231,7 +246,9 @@ export default function TeamChat() {
         {
           text: "Clear Chat",
           style: "destructive",
-          onPress: clearChat,
+          onPress: () => {
+            void clearChat();
+          },
         },
       ]
     );
@@ -379,13 +396,14 @@ export default function TeamChat() {
           <Pressable
             style={styles.backButton}
             onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
           >
             <Ionicons
-              name="chevron-back"
+              name="arrow-back"
               size={22}
               color="#ffffff"
             />
-            <Text style={styles.backButtonText}>Back</Text>
           </Pressable>
 
           <View style={styles.headerCenter}>
@@ -401,14 +419,12 @@ export default function TeamChat() {
 
             <Text
               style={styles.headerTeam}
-              numberOfLines={1}
             >
               {manager?.teamName || ""}
             </Text>
 
             <Text
               style={styles.headerDivision}
-              numberOfLines={1}
             >
               {manager?.division || ""}
             </Text>
@@ -423,15 +439,15 @@ export default function TeamChat() {
                 ]}
                 disabled={clearing}
                 onPress={requestClearChat}
+                accessibilityRole="button"
+                accessibilityLabel="Clear Team Chat"
               >
                 <Ionicons
                   name="trash-outline"
                   size={18}
                   color="#ffffff"
                 />
-                <Text style={styles.clearButtonText}>
-                  {clearing ? "Clearing" : "Clear"}
-                </Text>
+
               </Pressable>
             )}
           </View>
@@ -581,22 +597,19 @@ const styles = StyleSheet.create({
   },
 
   backButton: {
-    width: 76,
-    flexDirection: "row",
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#ffffff20",
     alignItems: "center",
-    paddingVertical: 8,
-  },
-
-  backButtonText: {
-    color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "800",
+    justifyContent: "center",
   },
 
   headerCenter: {
     flex: 1,
+    minWidth: 0,
     alignItems: "center",
-    paddingHorizontal: 4,
+    paddingHorizontal: 8,
   },
 
   titleRow: {
@@ -616,7 +629,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "800",
     marginTop: 4,
-    maxWidth: "100%",
+    width: "100%",
+    textAlign: "center",
   },
 
   headerDivision: {
@@ -624,21 +638,22 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     marginTop: 1,
-    maxWidth: "100%",
+    width: "100%",
+    textAlign: "center",
   },
 
   headerRight: {
-    width: 76,
-    alignItems: "flex-end",
+    width: 42,
+    alignItems: "center",
   },
 
   clearButton: {
+    width: 42,
+    height: 42,
     backgroundColor: "#c62828",
-    borderRadius: 8,
-    paddingVertical: 7,
-    paddingHorizontal: 8,
+    borderRadius: 21,
     alignItems: "center",
-    minWidth: 60,
+    justifyContent: "center",
   },
 
   clearButtonText: {
