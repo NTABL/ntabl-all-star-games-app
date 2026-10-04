@@ -6,6 +6,7 @@ import {
   Alert,
   FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -34,6 +35,7 @@ export default function TeamChat() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [canClearChat, setCanClearChat] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -220,38 +222,8 @@ export default function TeamChat() {
   }
 
   function requestClearChat() {
-    const message =
-      "This will permanently remove all messages from this team's chat. This cannot be undone.";
-
-    if (Platform.OS === "web") {
-      const confirmed =
-        typeof globalThis.confirm === "function"
-          ? globalThis.confirm(`Clear Team Chat?\n\n${message}`)
-          : false;
-
-      if (confirmed) {
-        void clearChat();
-      }
-      return;
-    }
-
-    Alert.alert(
-      "Clear Team Chat?",
-      message,
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Clear Chat",
-          style: "destructive",
-          onPress: () => {
-            void clearChat();
-          },
-        },
-      ]
-    );
+    if (clearing) return;
+    setShowClearConfirm(true);
   }
 
   async function clearChat() {
@@ -283,6 +255,7 @@ export default function TeamChat() {
       }
 
       setMessages([]);
+      setShowClearConfirm(false);
 
       Alert.alert(
         "Team Chat Cleared",
@@ -575,6 +548,25 @@ export default function TeamChat() {
             </Pressable>
           </View>
         )}
+
+        <Modal visible={showClearConfirm} transparent animationType="fade" onRequestClose={() => !clearing && setShowClearConfirm(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.confirmModal}>
+              <View style={styles.confirmIcon}><Ionicons name="trash-outline" size={26} color="#c62828" /></View>
+              <Text style={styles.confirmTitle}>Clear Team Chat?</Text>
+              <Text style={styles.confirmText}>This will permanently remove all messages from this team's chat. This cannot be undone.</Text>
+              <View style={styles.confirmActions}>
+                <Pressable style={styles.cancelConfirmButton} disabled={clearing} onPress={() => setShowClearConfirm(false)}>
+                  <Text style={styles.cancelConfirmText}>Cancel</Text>
+                </Pressable>
+                <Pressable style={[styles.clearConfirmButton, clearing && { opacity: 0.55 }]} disabled={clearing} onPress={() => void clearChat()}>
+                  {clearing ? <ActivityIndicator size="small" color="#ffffff" /> : <Ionicons name="trash-outline" size={17} color="#ffffff" />}
+                  <Text style={styles.clearConfirmText}>{clearing ? "Clearing..." : "Clear Chat"}</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </KeyboardAvoidingView>
     </>
   );
@@ -602,14 +594,14 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     backgroundColor: "#ffffff20",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-start",
   },
 
   headerCenter: {
     flex: 1,
     minWidth: 0,
-    alignItems: "center",
-    paddingHorizontal: 8,
+    alignItems: "flex-start",
+    paddingHorizontal: 10,
   },
 
   titleRow: {
@@ -630,7 +622,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     marginTop: 4,
     width: "100%",
-    textAlign: "center",
+    textAlign: "left",
   },
 
   headerDivision: {
@@ -639,7 +631,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginTop: 1,
     width: "100%",
-    textAlign: "center",
+    textAlign: "left",
   },
 
   headerRight: {
@@ -876,4 +868,14 @@ const styles = StyleSheet.create({
   sendButtonDisabled: {
     backgroundColor: "#9ca3af",
   },
+  modalOverlay:{flex:1,backgroundColor:"rgba(15, 23, 42, 0.48)",alignItems:"center",justifyContent:"center",paddingHorizontal:24},
+  confirmModal:{width:"100%",maxWidth:390,backgroundColor:"#fff",borderRadius:18,paddingHorizontal:22,paddingTop:24,paddingBottom:20,alignItems:"center"},
+  confirmIcon:{width:52,height:52,borderRadius:26,backgroundColor:"#fee2e2",alignItems:"center",justifyContent:"center",marginBottom:12},
+  confirmTitle:{color:"#111827",fontSize:20,fontWeight:"900",textAlign:"center"},
+  confirmText:{color:"#4b5563",fontSize:14,lineHeight:20,textAlign:"center",marginTop:8},
+  confirmActions:{width:"100%",flexDirection:"row",gap:10,marginTop:20},
+  cancelConfirmButton:{flex:1,minHeight:44,borderRadius:10,borderWidth:1,borderColor:"#cbd5e1",backgroundColor:"#fff",alignItems:"center",justifyContent:"center"},
+  cancelConfirmText:{color:"#334155",fontSize:14,fontWeight:"800"},
+  clearConfirmButton:{flex:1,minHeight:44,borderRadius:10,backgroundColor:"#c62828",flexDirection:"row",gap:7,alignItems:"center",justifyContent:"center"},
+  clearConfirmText:{color:"#fff",fontSize:14,fontWeight:"900"},
 });
