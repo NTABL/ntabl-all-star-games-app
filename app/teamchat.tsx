@@ -373,8 +373,8 @@ export default function TeamChat() {
             accessibilityLabel="Back"
           >
             <Ionicons
-              name="arrow-back"
-              size={22}
+              name="chevron-back"
+              size={24}
               color="#ffffff"
             />
           </Pressable>
