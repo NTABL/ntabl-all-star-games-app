@@ -173,9 +173,7 @@ function getScore(game: ScheduleGame, teamId: string) {
 
 function isPastGame(game: ScheduleGame) {
   const state = String(game.state || "").toUpperCase();
-  if (["COMPLETED", "FINAL", "PLAYED"].includes(state)) return true;
-  if (game.team1Score != null || game.team2Score != null) return true;
-  return !!game.startTime && Number(game.startTime) < Date.now();
+  return ["COMPLETED", "FINAL", "PLAYED"].includes(state);
 }
 
 export default function SeasonSchedules() {
@@ -570,6 +568,43 @@ export default function SeasonSchedules() {
           </View>
         )}
 
+        {isManager && (
+          <View style={{ marginTop: 14 }}>
+            <Pressable
+              style={styles.gameLineupButton}
+              onPress={() => {
+                const opponentTeamId = String(
+                  game.opponentId ||
+                    (String(game.team1Id || "") === teamId
+                      ? game.team2Id || ""
+                      : game.team1Id || "")
+                );
+
+                router.push({
+                  pathname: "/gamelineupbuilder" as any,
+                  params: {
+                    programId,
+                    teamId,
+                    gameId: String(game.gameId || ""),
+                    opponentTeamId,
+                    managerPersonId: personId,
+                    teamName: manager?.teamName || "My Team",
+                    opponentName: game.opponentName || "Opponent",
+                    gameDate: formatGameDate(game.startTime),
+                    gameTime: formatGameTime(game.startTime),
+                  },
+                });
+              }}
+            >
+              <View style={styles.gameLineupButtonRow}>
+                <Ionicons name="list-outline" size={20} color="#ffffff" />
+                <Text style={styles.gameLineupButtonText}>GAME LINEUP</Text>
+              </View>
+              <Text style={styles.gameLineupButtonSubtext}>Build, edit, save and share with opponent</Text>
+            </Pressable>
+          </View>
+        )}
+
         {!past && (
           <View style={styles.attendanceBox}>
             <Text style={styles.attendanceLabel}>YOUR ATTENDANCE</Text>
@@ -619,39 +654,6 @@ export default function SeasonSchedules() {
 
             {isManager && (
               <View style={styles.managerAttendanceBox}>
-                <Pressable
-                  style={styles.gameLineupButton}
-                  onPress={() => {
-                    const opponentTeamId = String(
-                      game.opponentId ||
-                        (String(game.team1Id || "") === teamId
-                          ? game.team2Id || ""
-                          : game.team1Id || "")
-                    );
-
-                    router.push({
-                      pathname: "/gamelineupbuilder" as any,
-                      params: {
-                        programId,
-                        teamId,
-                        gameId: String(game.gameId || ""),
-                        opponentTeamId,
-                        managerPersonId: personId,
-                        teamName: manager?.teamName || "My Team",
-                        opponentName: game.opponentName || "Opponent",
-                        gameDate: formatGameDate(game.startTime),
-                        gameTime: formatGameTime(game.startTime),
-                      },
-                    });
-                  }}
-                >
-                  <View style={styles.gameLineupButtonRow}>
-                    <Ionicons name="list-outline" size={20} color="#ffffff" />
-                    <Text style={styles.gameLineupButtonText}>GAME LINEUP</Text>
-                  </View>
-                  <Text style={styles.gameLineupButtonSubtext}>Build, edit, save and share with opponent</Text>
-                </Pressable>
-
                 <Pressable style={styles.alertTeamButton} onPress={() => openAlertModal(game)}>
                   <View style={styles.alertTeamButtonRow}>
                     <Ionicons name="notifications-outline" size={19} color="#334155" />
