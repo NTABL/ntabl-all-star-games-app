@@ -173,7 +173,29 @@ function getScore(game: ScheduleGame, teamId: string) {
 
 function isPastGame(game: ScheduleGame) {
   const state = String(game.state || "").toUpperCase();
-  return ["COMPLETED", "FINAL", "PLAYED"].includes(state);
+  if (["COMPLETED", "FINAL", "PLAYED"].includes(state)) return true;
+  if (game.team1Score != null || game.team2Score != null) return true;
+  return !!game.startTime && Number(game.startTime) < Date.now();
+}
+
+function getCentralDateKey(value: number) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(value));
+
+  const year = Number(parts.find((part) => part.type === "year")?.value || 0);
+  const month = Number(parts.find((part) => part.type === "month")?.value || 0);
+  const day = Number(parts.find((part) => part.type === "day")?.value || 0);
+
+  return year * 10000 + month * 100 + day;
+}
+
+function isLineupViewOnly(game: ScheduleGame) {
+  if (!game.startTime) return false;
+  return getCentralDateKey(Date.now()) > getCentralDateKey(Number(game.startTime));
 }
 
 export default function SeasonSchedules() {
@@ -568,8 +590,8 @@ export default function SeasonSchedules() {
           </View>
         )}
 
-        {isManager && (
-          <View style={{ marginTop: 14 }}>
+        {past && isManager && (
+          <View style={styles.pastLineupBox}>
             <Pressable
               style={styles.gameLineupButton}
               onPress={() => {
@@ -579,6 +601,7 @@ export default function SeasonSchedules() {
                       ? game.team2Id || ""
                       : game.team1Id || "")
                 );
+                const viewOnly = isLineupViewOnly(game);
 
                 router.push({
                   pathname: "/gamelineupbuilder" as any,
@@ -592,15 +615,26 @@ export default function SeasonSchedules() {
                     opponentName: game.opponentName || "Opponent",
                     gameDate: formatGameDate(game.startTime),
                     gameTime: formatGameTime(game.startTime),
+                    viewOnly: viewOnly ? "true" : "false",
                   },
                 });
               }}
             >
               <View style={styles.gameLineupButtonRow}>
-                <Ionicons name="list-outline" size={20} color="#ffffff" />
-                <Text style={styles.gameLineupButtonText}>GAME LINEUP</Text>
+                <Ionicons
+                  name={isLineupViewOnly(game) ? "eye-outline" : "list-outline"}
+                  size={20}
+                  color="#ffffff"
+                />
+                <Text style={styles.gameLineupButtonText}>
+                  {isLineupViewOnly(game) ? "VIEW LINEUP" : "GAME LINEUP"}
+                </Text>
               </View>
-              <Text style={styles.gameLineupButtonSubtext}>Build, edit, save and share with opponent</Text>
+              <Text style={styles.gameLineupButtonSubtext}>
+                {isLineupViewOnly(game)
+                  ? "Completed game lineup • View only"
+                  : "Build, edit, save and share with opponent"}
+              </Text>
             </Pressable>
           </View>
         )}
@@ -654,6 +688,40 @@ export default function SeasonSchedules() {
 
             {isManager && (
               <View style={styles.managerAttendanceBox}>
+                <Pressable
+                  style={styles.gameLineupButton}
+                  onPress={() => {
+                    const opponentTeamId = String(
+                      game.opponentId ||
+                        (String(game.team1Id || "") === teamId
+                          ? game.team2Id || ""
+                          : game.team1Id || "")
+                    );
+
+                    router.push({
+                      pathname: "/gamelineupbuilder" as any,
+                      params: {
+                        programId,
+                        teamId,
+                        gameId: String(game.gameId || ""),
+                        opponentTeamId,
+                        managerPersonId: personId,
+                        teamName: manager?.teamName || "My Team",
+                        opponentName: game.opponentName || "Opponent",
+                        gameDate: formatGameDate(game.startTime),
+                        gameTime: formatGameTime(game.startTime),
+                        viewOnly: "false",
+                      },
+                    });
+                  }}
+                >
+                  <View style={styles.gameLineupButtonRow}>
+                    <Ionicons name="list-outline" size={20} color="#ffffff" />
+                    <Text style={styles.gameLineupButtonText}>GAME LINEUP</Text>
+                  </View>
+                  <Text style={styles.gameLineupButtonSubtext}>Build, edit, save and share with opponent</Text>
+                </Pressable>
+
                 <Pressable style={styles.alertTeamButton} onPress={() => openAlertModal(game)}>
                   <View style={styles.alertTeamButtonRow}>
                     <Ionicons name="notifications-outline" size={19} color="#334155" />
@@ -1264,6 +1332,7 @@ attendanceBox: {
   statusNone: {
     color: "#94a3b8",
   },
+  pastLineupBox: { marginTop: 14, borderRadius: 10, overflow: "hidden" },
   gameLineupButton: { backgroundColor: "#1e3a8a", paddingHorizontal: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#172554" },
   gameLineupButtonRow: { flexDirection: "row", alignItems: "center", gap: 7 },
   gameLineupButtonText: { color: "#ffffff", fontSize: 12, fontWeight: "900", letterSpacing: 0.5 },
