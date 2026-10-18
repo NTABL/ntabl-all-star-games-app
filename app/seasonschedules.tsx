@@ -615,6 +615,7 @@ export default function SeasonSchedules() {
                     opponentName: game.opponentName || "Opponent",
                     gameDate: formatGameDate(game.startTime),
                     gameTime: formatGameTime(game.startTime),
+                    homeAway: game.homeAway === "Team 1" ? "home" : game.homeAway === "Team 2" ? "away" : "",
                     viewOnly: viewOnly ? "true" : "false",
                   },
                 });
@@ -710,6 +711,7 @@ export default function SeasonSchedules() {
                         opponentName: game.opponentName || "Opponent",
                         gameDate: formatGameDate(game.startTime),
                         gameTime: formatGameTime(game.startTime),
+                        homeAway: game.homeAway === "Team 1" ? "home" : game.homeAway === "Team 2" ? "away" : "",
                         viewOnly: "false",
                       },
                     });

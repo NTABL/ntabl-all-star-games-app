@@ -48,6 +48,11 @@ export default function GameLineupBuilderScreen() {
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [shareNotice,setShareNotice]=useState<null|{title:string;message:string}>(null);
+  const [scoreSharePrompt,setScoreSharePrompt]=useState(false);
+  const [scoreShareBusy,setScoreShareBusy]=useState(false);
+  const [scoreShareError,setScoreShareError]=useState('');
+  const [saveNotice,setSaveNotice]=useState<null|{title:string;message:string;success:boolean}>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout>|null>(null);
 
   const batting = useMemo(() => battingIds.map(id => players.find(x=>x.id===id)).filter((x):x is Player=>!!x && x.batting!==false), [players, battingIds]);
@@ -99,13 +104,24 @@ export default function GameLineupBuilderScreen() {
   }
 
   async function saveLineup(auto=false){
+    if(!auto && autoSaveTimer.current){
+      clearTimeout(autoSaveTimer.current);
+      autoSaveTimer.current=null;
+    }
     if(viewOnly || saving) return false;
     try{
       setSaving(true); if(!auto)setStatus("Saving...");
       const r=await fetch(`${API_BASE}/api/game-lineups/${encodeURIComponent(programId)}/${encodeURIComponent(teamId)}/${encodeURIComponent(gameId)}/save`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({managerPersonId,players:payloadPlayers()})});
       const j=await r.json(); if(!r.ok||!j?.ok)throw new Error(j?.message||"Lineup could not be saved.");
-      setDirty(false); setStatus(`${auto?"Auto-saved":"Saved"}: ${new Date().toLocaleTimeString()}`); return true;
-    }catch(e:any){ setStatus("Save failed"); if(!auto)Alert.alert("Save Lineup",e?.message||"Lineup could not be saved."); return false; }
+      const savedTime=new Date().toLocaleTimeString();
+      setDirty(false); setStatus(`${auto?"Auto-saved":"Saved"}: ${savedTime}`);
+      if(!auto)setSaveNotice({title:"Lineup Saved",message:`Your game lineup was successfully saved at ${savedTime}.`,success:true});
+      return true;
+    }catch(e:any){
+      setStatus("Save failed");
+      if(!auto)setSaveNotice({title:"Save Failed",message:e?.message||"Lineup could not be saved. Please try again.",success:false});
+      return false;
+    }
     finally{setSaving(false);}
   }
 
@@ -116,7 +132,7 @@ export default function GameLineupBuilderScreen() {
       const r=await fetch(`${API_BASE}/api/game-lineups/${encodeURIComponent(programId)}/${encodeURIComponent(teamId)}/${encodeURIComponent(gameId)}/share`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({managerPersonId,players:payloadPlayers()})});
       const j=await r.json(); if(!r.ok||!j?.ok)throw new Error(j?.message||"Lineup could not be shared.");
       setDirty(false); setSharedAt(j.sharedAt||new Date().toISOString()); setCanUnshare(!gameStartTime || Date.now() < gameStartTime); setStatus("Shared with opponent");
-      Alert.alert("Lineup Shared",`Your lineup is now visible to ${opponentName}.`);
+      setShareNotice({title:"Lineup Shared",message:`Your lineup is now visible to ${opponentName}.`});
     }catch(e:any){Alert.alert("Share Lineup",e?.message||"Lineup could not be shared.");}
     finally{setSaving(false);}
   }
@@ -128,9 +144,27 @@ export default function GameLineupBuilderScreen() {
       const r=await fetch(`${API_BASE}/api/game-lineups/${encodeURIComponent(programId)}/${encodeURIComponent(teamId)}/${encodeURIComponent(gameId)}/unshare`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({managerPersonId})});
       const j=await r.json(); if(!r.ok||!j?.ok)throw new Error(j?.message||"Lineup could not be unshared.");
       setSharedAt(""); setCanUnshare(false); setStatus("Lineup is private");
-      Alert.alert("Lineup Unshared",`Your lineup is no longer visible to ${opponentName}.`);
+      setShareNotice({title:"Lineup Unshared",message:`Your lineup is no longer visible to ${opponentName}.`});
     }catch(e:any){Alert.alert("Unshare Lineup",e?.message||"Lineup could not be unshared.");}
     finally{setSaving(false);}
+  }
+
+
+  function openScoreGame(){
+    if(saving)return;
+    if(!sharedAt){setScoreShareError('');setScoreSharePrompt(true);return;}
+    router.push({pathname:"/gamescorebook",params:{programId,teamId,gameId,opponentTeamId,managerPersonId,teamName,opponentName,gameDate,gameTime}});
+  }
+  async function shareAndScore(){
+    if(viewOnly||saving||scoreShareBusy)return;
+    setScoreShareBusy(true);setScoreShareError('');
+    try{
+      const r=await fetch(`${API_BASE}/api/game-lineups/${encodeURIComponent(programId)}/${encodeURIComponent(teamId)}/${encodeURIComponent(gameId)}/share`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({managerPersonId,players:payloadPlayers()})});
+      const j=await r.json();if(!r.ok||!j?.ok)throw new Error(j?.message||'Unable to share lineup.');
+      setDirty(false);setSharedAt(j.sharedAt||new Date().toISOString());setCanUnshare(!gameStartTime||Date.now()<gameStartTime);setStatus('Shared with opponent');setScoreSharePrompt(false);
+      router.push({pathname:"/gamescorebook",params:{programId,teamId,gameId,opponentTeamId,managerPersonId,teamName,opponentName,gameDate,gameTime}});
+    }catch(e:any){setScoreShareError(e?.message||'Could not share lineup. Try again.');}
+    finally{setScoreShareBusy(false);}
   }
 
   function toggleBatting(player:Player,value:boolean){
@@ -179,7 +213,7 @@ export default function GameLineupBuilderScreen() {
             <Text style={styles.completedNoticeText}>Completed game lineup • View only</Text>
           </View>
         ) : (
-          <View style={styles.toolbar}><Pressable style={[styles.topButton,styles.save]} disabled={saving} onPress={()=>saveLineup(false)}><Ionicons name="save-outline" size={18} color="#fff"/><Text style={styles.buttonText}>Save</Text></Pressable><Pressable style={[styles.topButton,styles.share]} disabled={saving} onPress={shareLineup}><Ionicons name="share-social-outline" size={18} color="#fff"/><Text style={styles.buttonText}>Share Lineup</Text></Pressable>{sharedAt&&canUnshare?<Pressable style={[styles.topButton,styles.unshare]} disabled={saving} onPress={unshareLineup}><Ionicons name="eye-off-outline" size={18} color="#fff"/><Text style={styles.buttonText}>Unshare Lineup</Text></Pressable>:null}<Pressable style={[styles.topButton,styles.add]} onPress={()=>setAddOpen(true)}><Ionicons name="person-add-outline" size={18} color="#fff"/><Text style={styles.buttonText}>Add Player</Text></Pressable></View>
+          <View style={styles.toolbar}><Pressable style={[styles.topButton,styles.save]} disabled={saving} onPress={()=>saveLineup(false)}><Ionicons name="save-outline" size={18} color="#fff"/><Text style={styles.buttonText}>Save</Text></Pressable><Pressable style={[styles.topButton,styles.share]} disabled={saving} onPress={shareLineup}><Ionicons name="share-social-outline" size={18} color="#fff"/><Text style={styles.buttonText}>Share Lineup</Text></Pressable>{sharedAt&&canUnshare?<Pressable style={[styles.topButton,styles.unshare]} disabled={saving} onPress={unshareLineup}><Ionicons name="eye-off-outline" size={18} color="#fff"/><Text style={styles.buttonText}>Unshare Lineup</Text></Pressable>:null}<Pressable style={[styles.topButton,{backgroundColor:"#0f766e"}]} onPress={openScoreGame}><Ionicons name="baseball-outline" size={18} color="#fff"/><Text style={styles.buttonText}>Scorebook</Text></Pressable></View>
         )}
         <Text style={styles.status}>{status||"Auto-save after 2 seconds"}{sharedAt?` • Last shared ${new Date(sharedAt).toLocaleTimeString()}`:" • Not shared"}</Text>
         <Text style={styles.section}>Batting Lineup ({batting.length})</Text>
@@ -200,6 +234,7 @@ export default function GameLineupBuilderScreen() {
           <View style={styles.sideGutter} />
         </View>
         <Text style={styles.section}>Substitutes ({subs.length})</Text>{subs.length?<View style={styles.lineupWithGutters}><View style={styles.sideGutter}/><View style={styles.lineupListColumn}>{subs.map(x=><View key={x.id}>{playerCard(x,!viewOnly)}</View>)}</View><View style={styles.sideGutter}/></View>:<Text style={styles.empty}>No substitutes listed.</Text>}
+        {!viewOnly?<View style={{alignItems:'center',marginTop:24,marginBottom:12}}><Pressable style={[styles.topButton,styles.add,{width:190,height:46}]} onPress={()=>setAddOpen(true)}><Ionicons name="person-add-outline" size={18} color="#fff"/><Text style={styles.buttonText}>Add Player</Text></Pressable></View>:null}
       </>:<>
         {!opponentShared?<View style={styles.locked}><Ionicons name="eye-off-outline" size={40} color="#64748b"/><Text style={styles.lockedTitle}>Lineup Not Shared Yet</Text><Text style={styles.empty}>{opponentName} has not shared a lineup for this game.</Text><Pressable style={styles.refresh} onPress={loadOpponent}><Text style={styles.refreshText}>Check Again</Text></Pressable></View>:<>
           <Text style={styles.status}>Shared {opponentSharedAt?new Date(opponentSharedAt).toLocaleString():""}</Text><Text style={styles.section}>Batting Lineup ({opponentBatting.length})</Text><View style={styles.lineupWithGutters}><View style={styles.sideGutter}/><View style={styles.lineupListColumn}>{opponentBatting.map((x,i)=><View key={x.id}>{playerCard(x,false,i+1)}</View>)}</View><View style={styles.sideGutter}/></View><Text style={styles.section}>Substitutes ({opponentSubs.length})</Text>{opponentSubs.length?<View style={styles.lineupWithGutters}><View style={styles.sideGutter}/><View style={styles.lineupListColumn}>{opponentSubs.map(x=><View key={x.id}>{playerCard(x,false)}</View>)}</View><View style={styles.sideGutter}/></View>:<Text style={styles.empty}>No substitutes listed.</Text>}
@@ -207,6 +242,9 @@ export default function GameLineupBuilderScreen() {
       </>}
     </ScrollView>
 
+    <Modal visible={scoreSharePrompt} transparent animationType="fade" onRequestClose={()=>{if(!scoreShareBusy)setScoreSharePrompt(false);}}><View style={styles.overlay}><View style={[styles.modal,{gap:14}]}><Ionicons name="alert-circle-outline" size={48} color="#d97706" style={{alignSelf:"center"}}/><Text style={[styles.modalTitle,{textAlign:'center'}]}>Lineup Not Shared</Text><Text style={[styles.help,{textAlign:'center',fontSize:15}]}>You have not shared your lineup with the other team yet. Do you wish to continue or would you like to share the lineup now?</Text>{scoreShareError?<Text style={{color:'#b91c1c',fontWeight:'800',textAlign:'center'}}>{scoreShareError}</Text>:null}<View style={{flexDirection:'row',flexWrap:'wrap',justifyContent:'center',gap:8}}><Pressable disabled={scoreShareBusy} style={[styles.modalSave,{backgroundColor:'#64748b',minWidth:95,alignItems:'center'}]} onPress={()=>setScoreSharePrompt(false)}><Text style={styles.buttonText}>Cancel</Text></Pressable><Pressable disabled={scoreShareBusy} style={[styles.modalSave,{backgroundColor:'#1d4ed8',minWidth:105,alignItems:'center'}]} onPress={()=>{setScoreSharePrompt(false);router.push({pathname:"/gamescorebook",params:{programId,teamId,gameId,opponentTeamId,managerPersonId,teamName,opponentName,gameDate,gameTime}});}}><Text style={styles.buttonText}>Continue</Text></Pressable><Pressable disabled={scoreShareBusy} style={[styles.modalSave,{backgroundColor:'#15803d',minWidth:120,alignItems:'center',opacity:scoreShareBusy?.6:1}]} onPress={()=>void shareAndScore()}><Text style={styles.buttonText}>{scoreShareBusy?'Sharing...':'Share & Score'}</Text></Pressable></View></View></View></Modal>
+    <Modal visible={!!saveNotice} transparent animationType="fade" onRequestClose={()=>setSaveNotice(null)}><View style={styles.overlay}><View style={[styles.modal,{alignItems:"center",gap:12}]}><Ionicons name={saveNotice?.success?"checkmark-circle":"alert-circle"} size={48} color={saveNotice?.success?"#15803d":"#b91c1c"}/><Text style={[styles.modalTitle,{textAlign:"center"}]}>{saveNotice?.title}</Text><Text style={[styles.help,{textAlign:"center",fontSize:15}]}>{saveNotice?.message}</Text><Pressable style={[styles.modalSave,{minWidth:160,alignItems:"center"}]} onPress={()=>setSaveNotice(null)}><Text style={styles.buttonText}>OK</Text></Pressable></View></View></Modal>
+    <Modal visible={!!shareNotice} transparent animationType="fade" onRequestClose={()=>setShareNotice(null)}><View style={styles.overlay}><View style={[styles.modal,{alignItems:'center',gap:12}]}><Ionicons name="checkmark-circle" size={48} color="#15803d"/><Text style={[styles.modalTitle,{textAlign:'center'}]}>{shareNotice?.title}</Text><Text style={[styles.help,{textAlign:'center',fontSize:15}]}>{shareNotice?.message}</Text><Pressable style={[styles.modalSave,{minWidth:160,alignItems:'center'}]} onPress={()=>setShareNotice(null)}><Text style={styles.buttonText}>OK</Text></Pressable></View></View></Modal>
     <Modal visible={!!editing} transparent animationType="fade" onRequestClose={()=>setEditing(null)}><View style={styles.overlay}><View style={styles.modal}><Text style={styles.modalTitle}>Edit Player</Text><TextInput style={styles.input} value={editing?.name||""} onChangeText={v=>setEditing(e=>e?{...e,name:v}:e)} placeholder="Player name"/><TextInput style={styles.input} value={editing?.jerseyNumber||""} onChangeText={v=>setEditing(e=>e?{...e,jerseyNumber:v}:e)} placeholder="Jersey number"/><Pressable style={styles.pickerButton} onPress={()=>setPositionPickerFor("edit")}><Text style={[styles.pickerText,!editing?.position&&styles.pickerPlaceholder]}>{editing?.position||"Select position"}</Text><Ionicons name="chevron-down" size={18} color="#475569"/></Pressable><View style={styles.modalButtons}><Pressable style={styles.cancel} onPress={()=>setEditing(null)}><Text>Cancel</Text></Pressable><Pressable style={styles.modalSave} onPress={saveEdit}><Text style={styles.buttonText}>Save</Text></Pressable></View></View></View></Modal>
     <Modal visible={addOpen} transparent animationType="fade" onRequestClose={()=>setAddOpen(false)}><View style={styles.overlay}><View style={styles.modal}><Text style={styles.modalTitle}>Add Player</Text><Text style={styles.help}>Adds a player to this game only.</Text><TextInput style={styles.input} value={newPlayer.name} onChangeText={v=>setNewPlayer(x=>({...x,name:v}))} placeholder="Player name"/><TextInput style={styles.input} value={newPlayer.jerseyNumber} onChangeText={v=>setNewPlayer(x=>({...x,jerseyNumber:v}))} placeholder="Jersey number"/><Pressable style={styles.pickerButton} onPress={()=>setPositionPickerFor("add")}><Text style={[styles.pickerText,!newPlayer.position&&styles.pickerPlaceholder]}>{newPlayer.position||"Select position"}</Text><Ionicons name="chevron-down" size={18} color="#475569"/></Pressable><View style={styles.modalButtons}><Pressable style={styles.cancel} onPress={()=>setAddOpen(false)}><Text>Cancel</Text></Pressable><Pressable style={styles.modalSave} onPress={addPlayer}><Text style={styles.buttonText}>Add Player</Text></Pressable></View></View></View></Modal>
     <Modal visible={!!positionPickerFor} transparent animationType="fade" onRequestClose={()=>setPositionPickerFor(null)}><View style={styles.overlay}><View style={styles.modal}><Text style={styles.modalTitle}>Select Position</Text><View style={styles.positionGrid}>{POSITIONS.map(pos=><Pressable key={pos} style={styles.positionChoice} onPress={()=>{if(positionPickerFor==="edit")setEditing(e=>e?{...e,position:pos}:e);else setNewPlayer(x=>({...x,position:pos}));setPositionPickerFor(null);}}><Text style={styles.positionChoiceText}>{pos}</Text></Pressable>)}</View><Pressable style={styles.cancelWide} onPress={()=>setPositionPickerFor(null)}><Text>Cancel</Text></Pressable></View></View></Modal>
