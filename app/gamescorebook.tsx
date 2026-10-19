@@ -351,13 +351,35 @@ export default function GameScorebook(){
  useEffect(()=>{let cancelled=false;(async()=>{try{
   if(!programId||!gameId||!teamId||!opponentTeamId||!managerPersonId)throw new Error('Open Score Game from the game lineup screen.');
   const old=await loadScorebook(programId,gameId,teamId,managerPersonId);
-  if(old){if(old.ownerTeamId!==teamId)throw new Error('This scorebook belongs to a different scoring team.');if(!cancelled){docRef.current=old;setDoc(old);setInning(replayV2(old).inning);setSide(replayV2(old).half==='top'?'away':'home');}return;}
+  if(old&&old.ownerTeamId!==teamId)throw new Error('This scorebook belongs to a different scoring team.');
+  // Always fetch the latest Game Lineup, even when a scorebook already exists.
   const base=`${API_BASE}/api/game-lineups/${enc(programId)}/${enc(teamId)}/${enc(gameId)}`;
-  const [a,b]=await Promise.all([fetch(`${base}?managerPersonId=${enc(managerPersonId)}`),fetch(`${base}/opponent/${enc(opponentTeamId)}?managerPersonId=${enc(managerPersonId)}`).catch(()=>null)]);
+  const [a,b]=await Promise.all([fetch(`${base}?managerPersonId=${enc(managerPersonId)}`,{cache:'no-store'}),fetch(`${base}/opponent/${enc(opponentTeamId)}?managerPersonId=${enc(managerPersonId)}`,{cache:'no-store'}).catch(()=>null)]);
   const mine=await a.json();if(!a.ok||!mine?.ok)throw new Error(mine?.message||'Could not load team lineup.');
   let opp:any={ok:true,shared:false,players:[]};
   if(b?.ok){try{const data=await b.json();if(data?.ok)opp=data;}catch{}}
   const own=importGameLineup(teamId,teamName,Array.isArray(mine.players)?mine.players:[]),other=importGameLineup(opponentTeamId,opponentName,opp.shared&&Array.isArray(opp.players)?opp.players:[]);
+  if(old){
+   // Before scoring starts, the saved Game Lineup is authoritative. Once plays
+   // exist, never reorder slots or replace historical lineup entries: those
+   // identifiers are referenced by recorded pitches, runners and substitutions.
+   const safeToReplace=(old.events||[]).length===0;
+   const mergeTeam=(previous:typeof own,incoming:typeof own)=>{
+    if(safeToReplace)return incoming;
+    const existingIds=new Set([...previous.slots.flatMap(s=>s.appearances.map(a=>String(a.player.id))),...previous.bench.map(p=>String(p.id))]);
+    const additions=[...incoming.slots.flatMap(s=>s.appearances.map(a=>a.player)),...incoming.bench]
+     .filter(p=>!existingIds.has(String(p.id))&&existingIds.add(String(p.id)));
+    return {...previous,bench:[...previous.bench,...additions]};
+   };
+   const updated:ScorebookV2Document={...old,
+    home:mergeTeam(old.home,old.homeTeamId===teamId?own:other),
+    away:mergeTeam(old.away,old.awayTeamId===teamId?own:other)};
+   if(JSON.stringify(updated.home)!==JSON.stringify(old.home)||JSON.stringify(updated.away)!==JSON.stringify(old.away)){
+    await saveScorebook(updated);
+   }
+   if(!cancelled){docRef.current=updated;setDoc(updated);const state=replayV2(updated);setInning(state.inning);setSide(state.half==='top'?'away':'home');}
+   return;
+  }
   const now=new Date().toISOString();const fresh:ScorebookV2Document={schemaVersion:1,programId,gameId,ownerTeamId:teamId,homeTeamId:myHome?teamId:opponentTeamId,awayTeamId:myHome?opponentTeamId:teamId,home:myHome?own:other,away:myHome?other:own,createdAt:now,updatedAt:now,events:[],status:'draft'};
   await saveScorebook(fresh);if(!cancelled){docRef.current=fresh;setDoc(fresh);}
  }catch(e:any){if(!cancelled)setMessage(e?.message||'Could not open scorebook.');}finally{if(!cancelled)setLoading(false);}})();return()=>{cancelled=true;};},[programId,gameId,teamId,opponentTeamId,managerPersonId,myHome,teamName,opponentName]);
