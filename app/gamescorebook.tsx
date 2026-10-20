@@ -155,7 +155,7 @@ function ScoreSquare({plays,allEvents=[],active,finalized=false,large=false,comp
   {/* Outfield fence: a visible arc above the outfielders. Home-run spray crosses it. */}
   <Path d="M 100 175 Q 288 -22 476 175" fill="none" stroke="#64748b" strokeWidth={4} strokeDasharray="11 6"/>
   <Polygon points="288,395 362,315 288,243 213,315" fill={scored?RUN_GREEN:'none'} stroke="#b8b8b8" strokeWidth={2.5}/>
-  {baseRunners.map(r=>{const [x,y]=BASES[r.base];return <G key={'occupied'+r.base}><Circle cx={x} cy={y} r={25} fill="#f59e0b" stroke="#78350f" strokeWidth={3}/><SvgText x={x} y={y+8} textAnchor="middle" fontSize={26} fontWeight="900" fill="#111827">{r.base}</SvgText></G>;})}
+  {baseRunners.map(r=>{const [x,y]=BASES[r.base];return <G key={'occupied'+r.base}><Circle cx={x} cy={y} r={25} fill="#f59e0b" stroke="#78350f" strokeWidth={3}/><SvgText fontFamily="Arial" x={x} y={y+8} textAnchor="middle" fontSize={26} fontWeight="900" fill="#111827">{r.base}</SvgText></G>;})}
   {BASES.map(([x,y],i)=><G key={'base'+i}><Rect x={x-6} y={y-6} width={12} height={12} fill="black" transform={`rotate(45 ${x} ${y})`}/></G>)}
   <Circle cx={288} cy={408} r={38} stroke="#b8b8b8" strokeWidth={2} fill="white"/>
   <Polygon points="282,393 294,393 294,404 288,411 282,404" fill="black"/>
@@ -163,13 +163,13 @@ function ScoreSquare({plays,allEvents=[],active,finalized=false,large=false,comp
   {spray?<Path d={sprayShape} fill="none" stroke={sprayColor} strokeWidth={4} strokeDasharray={sprayOutcome==='error'||trajectory==='ground'||last?.notes?.includes('ground')?'10 7':undefined} strokeLinecap="round"/>:null}
   {spray?<Circle cx={endX} cy={endY} r={6} fill={sprayColor}/>:null}
   {ABBRS.map(([name,x,y])=><G key={name}>
-   <SvgText x={x} y={y+12} textAnchor="middle" fontSize={36} fontWeight="bold" fill={SCORE_BLUE}>{name}</SvgText>
+   <SvgText fontFamily="Arial" x={x} y={y+12} textAnchor="middle" fontSize={36} fontWeight="bold" fill={SCORE_BLUE}>{name}</SvgText>
    {selected===name?<Circle cx={x} cy={y} r={32} stroke={['BT','SF','FC'].includes(name)?'#A47700':RUN_GREEN} strokeWidth={3.5} fill="none"/>:null}
   </G>)}
-  {isK?<SvgText x={288} y={353} textAnchor="middle" fontSize={105} fontWeight="600" fill="#333" transform={looking?'translate(576 0) scale(-1 1)':undefined}>K</SvgText>:notation?<SvgText x={288} y={345} textAnchor="middle" fontSize={notation.length>4?35:48} fontWeight="600" fill={isSkipped||last?.result==='OUT'?OUT_RED:'#173b57'}>{notation}</SvgText>:null}
+  {isK?<SvgText fontFamily="Arial" x={288} y={353} textAnchor="middle" fontSize={105} fontWeight="600" fill="#333" transform={looking?'translate(576 0) scale(-1 1)':undefined}>K</SvgText>:notation?<SvgText fontFamily="Arial" x={288} y={345} textAnchor="middle" fontSize={notation.length>4?35:48} fontWeight="600" fill={isSkipped||last?.result==='OUT'?OUT_RED:'#173b57'}>{notation}</SvgText>:null}
   {[[48,483],[107,483],[166,483]].map(([x,y],i)=><Circle key={'ball'+i} cx={x} cy={y} r={24} stroke={SCORE_BLUE} strokeWidth={3.5} fill={i<balls?RUN_GREEN:'white'}/>)}
   {[[48,540],[107,540]].map(([x,y],i)=><Circle key={'strike'+i} cx={x} cy={y} r={24} stroke={SCORE_BLUE} strokeWidth={3.5} fill={i<strikes?OUT_RED:'white'}/>)}
-  {[400,469,539].map((x,i)=><G key={'out'+i}><SvgText x={x} y={545} textAnchor="middle" fontSize={38} fontWeight="bold" fill={SCORE_BLUE}>{i+1}</SvgText>{batterOut&&i+1<=outNumber&&i+1>outNumber-Math.max(1,last?.runners?.filter((r:any)=>r.isOut).length||1)?<Circle cx={x} cy={533} r={25} stroke={OUT_RED} strokeWidth={3.5} fill="none"/>:null}</G>)}
+  {[400,469,539].map((x,i)=><G key={'out'+i}><SvgText fontFamily="Arial" x={x} y={545} textAnchor="middle" fontSize={38} fontWeight="bold" fill={SCORE_BLUE}>{i+1}</SvgText>{batterOut&&i+1<=outNumber&&i+1>outNumber-Math.max(1,last?.runners?.filter((r:any)=>r.isOut).length||1)?<Circle cx={x} cy={533} r={25} stroke={OUT_RED} strokeWidth={3.5} fill="none"/>:null}</G>)}
  </Svg>;
   function tapSquare(e:any){
    // On react-native-web, nativeEvent.locationX/Y can be undefined or relative
@@ -337,6 +337,10 @@ export default function GameScorebook(){
  const startHelpShown=useRef(false);
  const [confirmAction,setConfirmAction]=useState<null|'start'|'end'|'edit'|'reset'>(null);
  const [confirmBusy,setConfirmBusy]=useState(false);
+ const [resetPhrase,setResetPhrase]=useState('');
+ const [swapOpen,setSwapOpen]=useState(false);
+ const [swapBusy,setSwapBusy]=useState(false);
+ const [assignmentRevision,setAssignmentRevision]=useState(0);
  const [screenRedo,setScreenRedo]=useState<any[]>([]);
  const [previewResult,setPreviewResult]=useState<PlateAppearanceResult|null>(null);
  const [runnerOtherFor,setRunnerOtherFor]=useState<string|null>(null);
@@ -378,6 +382,23 @@ export default function GameScorebook(){
   let opp:any={ok:true,shared:false,players:[]};
   if(b?.ok){try{const data=await b.json();if(data?.ok)opp=data;}catch{}}
   const own=importGameLineup(teamId,teamName,Array.isArray(mine.players)?mine.players:[]),other=importGameLineup(opponentTeamId,opponentName,opp.shared&&Array.isArray(opp.players)?opp.players:[]);
+  // The server assignment is authoritative for both scoring managers.
+  const assignmentResponse=await fetch(`${API_BASE}/api/scorebook-assignment/${enc(programId)}/${enc(gameId)}?teamId=${enc(teamId)}&managerPersonId=${enc(managerPersonId)}`,{cache:'no-store'});
+  const assignmentData=await assignmentResponse.json().catch(()=>({}));
+  if(!assignmentResponse.ok||!assignmentData.ok)throw new Error(assignmentData.message||'Could not verify official home/visitor assignment.');
+  let assignment=assignmentData.assignment;
+  if(!cancelled)setAssignmentRevision(assignment?.revision||0);
+  if(assignment&&(![teamId,opponentTeamId].includes(assignment.homeTeamId)||![teamId,opponentTeamId].includes(assignment.awayTeamId)||assignment.homeTeamId===assignment.awayTeamId))throw new Error('Official assignment does not match this matchup.');
+  if(old&&assignment&&(old.homeTeamId!==assignment.homeTeamId||old.awayTeamId!==assignment.awayTeamId)&&(old.events.length||old.status!=='draft'))throw new Error('Official home/visitor assignment differs from this scored game. No plays were changed. Contact the league to resolve this before scoring.');
+  if(!assignment&&!old){
+   // First manager establishes the official assignment before creating a scorebook.
+   const homeTeamId=myHome?teamId:opponentTeamId,awayTeamId=myHome?opponentTeamId:teamId;
+   const createdResponse=await fetch(`${API_BASE}/api/scorebook-assignment/${enc(programId)}/${enc(gameId)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId,managerPersonId,homeTeamId,awayTeamId,expectedRevision:0})});
+   const created=await createdResponse.json().catch(()=>({}));
+   if(!createdResponse.ok||!created.ok)throw new Error(created.message||'Could not establish official home/visitor assignment. Reopen Score Game.');
+   if(!cancelled)setAssignmentRevision(created.assignment.revision);
+   assignment=created.assignment;
+  }
   if(old){
    // Before scoring starts, the saved Game Lineup is authoritative. Once plays
    // exist, never reorder slots or replace historical lineup entries: those
@@ -392,16 +413,20 @@ export default function GameScorebook(){
     const refresh=(player:typeof incoming.bench[number])=>{const latest=currentById.get(String(player.id));return latest?{...player,name:latest.name||player.name,jerseyNumber:latest.jerseyNumber||player.jerseyNumber}:player;};
     return {...previous,slots:previous.slots.map(slot=>({...slot,appearances:slot.appearances.map(a=>({...a,player:refresh(a.player)}))})),bench:[...previous.bench.map(refresh),...additions]};
    };
-   const updated:ScorebookV2Document={...old,
-    home:mergeTeam(old.home,old.homeTeamId===teamId?own:other),
-    away:mergeTeam(old.away,old.awayTeamId===teamId?own:other)};
-   if(JSON.stringify(updated.home)!==JSON.stringify(old.home)||JSON.stringify(updated.away)!==JSON.stringify(old.away)){
+   const effectiveHome=assignment?.homeTeamId||old.homeTeamId;
+   const effectiveAway=assignment?.awayTeamId||old.awayTeamId;
+   const priorHome=effectiveHome===old.homeTeamId?old.home:old.away;
+   const priorAway=effectiveAway===old.awayTeamId?old.away:old.home;
+   const updated:ScorebookV2Document={...old,homeTeamId:effectiveHome,awayTeamId:effectiveAway,
+    home:mergeTeam(priorHome,effectiveHome===teamId?own:other),
+    away:mergeTeam(priorAway,effectiveAway===teamId?own:other)};
+   if(JSON.stringify(updated.home)!==JSON.stringify(old.home)||JSON.stringify(updated.away)!==JSON.stringify(old.away)||updated.homeTeamId!==old.homeTeamId||updated.awayTeamId!==old.awayTeamId){
     await saveScorebook(updated);
    }
    if(!cancelled){docRef.current=updated;setDoc(updated);const state=replayV2(updated);setInning(state.inning);setSide(state.half==='top'?'away':'home');}
    return;
   }
-  const now=new Date().toISOString();const fresh:ScorebookV2Document={schemaVersion:1,programId,gameId,ownerTeamId:teamId,homeTeamId:myHome?teamId:opponentTeamId,awayTeamId:myHome?opponentTeamId:teamId,home:myHome?own:other,away:myHome?other:own,createdAt:now,updatedAt:now,events:[],status:'draft'};
+  const now=new Date().toISOString();const fresh:ScorebookV2Document={schemaVersion:1,programId,gameId,ownerTeamId:teamId,homeTeamId:assignment?.homeTeamId||(myHome?teamId:opponentTeamId),awayTeamId:assignment?.awayTeamId||(myHome?opponentTeamId:teamId),home:(assignment?assignment.homeTeamId===teamId:myHome)?own:other,away:(assignment?assignment.awayTeamId===teamId:!myHome)?own:other,createdAt:now,updatedAt:now,events:[],status:'draft'};
   await saveScorebook(fresh);if(!cancelled){docRef.current=fresh;setDoc(fresh);}
  }catch(e:any){if(!cancelled)setMessage(e?.message||'Could not open scorebook.');}finally{if(!cancelled)setLoading(false);}})();return()=>{cancelled=true;};},[programId,gameId,teamId,opponentTeamId,managerPersonId,myHome,teamName,opponentName]);
  // Explain why scoring controls are disabled before the first game start.
@@ -696,15 +721,24 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
  function setScheduledInnings(n:7|9){const d=docRef.current;if(!d)return;void commit({...d,scheduledInnings:n} as ScorebookV2Document);setInningsOpen(false);}
  function swapHomeAway(){
   const d=docRef.current;if(!d)return;
-  if(d.status!=='draft'||d.events.length>0){
-   Alert.alert('Swap Home and Away','To protect recorded pitches, runs, and inning history, teams can only be swapped before scoring begins. This game already has scoring activity.');
-   return;
-  }
-  Alert.alert('Swap Home and Away?',`Make ${d.home.teamName} the visiting team and ${d.away.teamName} the home team?`,[
-   {text:'Cancel',style:'cancel'},
-   {text:'Swap Teams',onPress:()=>{const latest=docRef.current;if(!latest||latest.status!=='draft'||latest.events.length)return;
-    void commit({...latest,home:latest.away,away:latest.home,homeTeamId:latest.awayTeamId,awayTeamId:latest.homeTeamId});setSide('away');}}
-  ]);
+  if(d.status!=='draft'||d.events.length){setGameActionError('Home/visitor can only be changed before scoring begins. Existing plays must not be relabeled.');return;}
+  setSwapOpen(true);
+ }
+ async function confirmSwapHomeAway(){
+  const d=docRef.current;if(!d||swapBusy)return;
+  setSwapBusy(true);
+  try{
+   await saveQueue.current;
+   const response=await fetch(`${API_BASE}/api/scorebook-assignment/${enc(programId)}/${enc(gameId)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId,managerPersonId,homeTeamId:d.awayTeamId,awayTeamId:d.homeTeamId,expectedRevision:assignmentRevision})});
+   const data=await response.json().catch(()=>({}));
+   if(!response.ok||!data.ok)throw new Error(data.message||'Could not save official home/visitor assignment.');
+   setAssignmentRevision(data.assignment.revision);
+   const next:ScorebookV2Document={...d,home:d.away,away:d.home,homeTeamId:d.awayTeamId,awayTeamId:d.homeTeamId};
+   const saved=await commit(next);
+   if(!saved)throw new Error('Official assignment saved, but this scorebook did not refresh. Reopen Score Game before scoring.');
+   setSide('away');setSwapOpen(false);setMessage('Official home/visitor assignment saved for both teams. Other manager must reopen Score Game to refresh.');
+  }catch(e:any){setGameActionError(e?.message||'Could not swap teams.');setSwapOpen(false);}
+  finally{setSwapBusy(false);}
  }
  function changeStatus(){const d=docRef.current;if(!d)return;setConfirmAction(d.status==='draft'?'start':d.status==='inProgress'?'end':'edit');}
  async function confirmGameAction(){
@@ -712,6 +746,7 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
   setConfirmBusy(true);
   try{
    if(action==='reset'){
+    if(resetPhrase.trim().toUpperCase()!=='RESET')throw new Error('Type RESET to confirm.');
     await saveQueue.current;
     await resetGameScorebook(programId,gameId,teamId,managerPersonId);
     docRef.current=null;setDoc(null);setScoreOpen(false);setMessage('Game scorebook reset. Return to lineup and reopen Score Game.');
@@ -728,7 +763,7 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
    }
    else if(action==='end'){setPostgameError('');setPostgameOpen(true);}
    else if(action==='edit')await commit({...d,status:'inProgress',editHistory:[...(d.editHistory||[]),{at:new Date().toISOString(),description:'Reopened final game for editing'}]});
-   setConfirmAction(null);
+   setConfirmAction(null);setResetPhrase('');
   }catch(e:any){setGameActionError(e?.message||'Please try again.');}
   finally{setConfirmBusy(false);}
  }
@@ -1452,7 +1487,8 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
      </View>
     </View>
    </Modal>
-      <Modal visible={!!confirmAction} transparent animationType="fade" onRequestClose={()=>{if(!confirmBusy)setConfirmAction(null);}}><View style={{flex:1,backgroundColor:'#0009',justifyContent:'center',padding:20}}><View style={{backgroundColor:'white',borderRadius:18,padding:20,gap:14,borderWidth:2,borderColor:INK}}><View style={{alignItems:'center',gap:8}}><Ionicons name={confirmAction==='reset'?'trash-outline':confirmAction==='end'?'flag-outline':confirmAction==='start'?'play-circle-outline':'create-outline'} size={42} color={confirmAction==='reset'||confirmAction==='end'?'#b91c1c':INK}/><Text style={[styles.heading,{fontSize:21,textAlign:'center'}]}>{confirmAction==='reset'?'Reset Game Data?':confirmAction==='end'?'End Game?':confirmAction==='start'?'Start Game?':'Reopen Game for Editing?'}</Text><Text style={[styles.muted,{textAlign:'center',fontSize:14,lineHeight:21}]}>{confirmAction==='reset'?'This resets your team’s scorebook for this game, including recorded plays and statistics. Your previous scorebook is archived on the server. The opposing team’s scorebook, rosters, and lineups are not changed.':confirmAction==='end'?'Open the Postgame Summary to review statistics and pitching decisions before finalizing?':confirmAction==='start'?'Begin scoring this game?':'Reopen this completed game for corrections? This change will be logged locally.'}</Text></View><View style={{flexDirection:'row',gap:10}}><Pressable disabled={confirmBusy} style={[styles.button,{flex:1,backgroundColor:'#64748b',minHeight:56,alignItems:'center',justifyContent:'center',paddingHorizontal:6}]} onPress={()=>setConfirmAction(null)}><Text style={styles.white}>Cancel</Text></Pressable><Pressable disabled={confirmBusy} style={[styles.button,{flex:1,backgroundColor:confirmAction==='reset'||confirmAction==='end'?'#b91c1c':'#15803d',opacity:confirmBusy?.6:1,minHeight:56,alignItems:'center',justifyContent:'center',paddingHorizontal:6}]} onPress={()=>void confirmGameAction()}><Text style={[styles.white,{textAlign:'center',fontSize:14}]}>{confirmBusy?'Working...':confirmAction==='reset'?'Reset Game':confirmAction==='end'?'Review Postgame':confirmAction==='start'?'Start Game':'Reopen'}</Text></Pressable></View></View></View></Modal>
+      <Modal visible={swapOpen} transparent animationType="fade" onRequestClose={()=>{if(!swapBusy)setSwapOpen(false);}}><View style={{flex:1,backgroundColor:'#000a',justifyContent:'center',padding:20}}><View style={{backgroundColor:'white',borderRadius:16,padding:20,gap:15}}><Text style={[styles.heading,{fontSize:21,textAlign:'center'}]}>Confirm Official Home / Visitor</Text><Text style={{color:INK,textAlign:'center',fontSize:15,lineHeight:23}}>Visitor: {doc.home.teamName}{'\n'}Home: {doc.away.teamName}</Text><Text style={[styles.muted,{textAlign:'center',fontSize:13,lineHeight:20}]}>This change will be saved for BOTH managers. Each manager keeps their own scorebook. The opponent must reopen Score Game to see the update. Swapping is blocked once either team has started scoring.</Text><View style={{flexDirection:'row',gap:10}}><Pressable disabled={swapBusy} style={[styles.button,{flex:1,backgroundColor:'#64748b'}]} onPress={()=>setSwapOpen(false)}><Text style={styles.white}>Cancel</Text></Pressable><Pressable disabled={swapBusy} style={[styles.button,{flex:1,backgroundColor:'#1d4ed8'}]} onPress={()=>void confirmSwapHomeAway()}><Text style={styles.white}>{swapBusy?'Saving…':'Save Assignment'}</Text></Pressable></View></View></View></Modal>
+      <Modal visible={!!confirmAction} transparent animationType="fade" onRequestClose={()=>{if(!confirmBusy){setConfirmAction(null);setResetPhrase('');}}}><View style={{flex:1,backgroundColor:'#000b',justifyContent:'center',padding:20}}><View style={{backgroundColor:'white',borderRadius:18,padding:20,gap:14,borderWidth:confirmAction==='reset'?3:2,borderColor:confirmAction==='reset'?'#b91c1c':INK}}><View style={{alignItems:'center',gap:8}}><Ionicons name={confirmAction==='reset'?'warning-outline':confirmAction==='end'?'flag-outline':confirmAction==='start'?'play-circle-outline':'create-outline'} size={48} color={confirmAction==='reset'||confirmAction==='end'?'#b91c1c':INK}/><Text style={[styles.heading,{fontSize:21,textAlign:'center',color:confirmAction==='reset'?'#b91c1c':INK}]}>{confirmAction==='reset'?'WARNING: ALL SCOREBOOK DATA WILL BE ERASED':confirmAction==='end'?'End Game?':confirmAction==='start'?'Start Game?':'Reopen Game for Editing?'}</Text><Text style={[styles.muted,{textAlign:'center',fontSize:14,lineHeight:21}]}>{confirmAction==='reset'?'This permanently clears ALL recorded plays, pitches, innings, runs, outs, substitutions and game statistics from YOUR TEAM’S scorebook for this game. A server archive is retained for recovery by an administrator. The opponent’s scorebook and saved Game Lineup Builder lineups are NOT erased.':confirmAction==='end'?'Open the Postgame Summary to review statistics and pitching decisions before finalizing?':confirmAction==='start'?'Begin scoring this game?':'Reopen this completed game for corrections? This change will be logged locally.'}</Text></View>{confirmAction==='reset'?<View style={{gap:6}}><Text style={{fontWeight:'900',color:'#991b1b',textAlign:'center'}}>Type RESET below to unlock the erase button</Text><TextInput autoCapitalize="characters" autoCorrect={false} value={resetPhrase} onChangeText={setResetPhrase} placeholder="Type RESET" style={[styles.input,{borderWidth:2,borderColor:'#b91c1c',textAlign:'center',fontWeight:'800'}]}/></View>:null}<View style={{flexDirection:'row',gap:10}}><Pressable disabled={confirmBusy} style={[styles.button,{flex:1,backgroundColor:'#64748b',minHeight:56,alignItems:'center',justifyContent:'center'}]} onPress={()=>{setConfirmAction(null);setResetPhrase('');}}><Text style={styles.white}>Cancel</Text></Pressable><Pressable disabled={confirmBusy||(confirmAction==='reset'&&resetPhrase.trim().toUpperCase()!=='RESET')} style={[styles.button,{flex:1,backgroundColor:confirmAction==='reset'||confirmAction==='end'?'#b91c1c':'#15803d',opacity:confirmBusy||(confirmAction==='reset'&&resetPhrase.trim().toUpperCase()!=='RESET')?.35:1,minHeight:56,alignItems:'center',justifyContent:'center'}]} onPress={()=>void confirmGameAction()}><Text style={[styles.white,{textAlign:'center',fontSize:14}]}>{confirmBusy?'Working...':confirmAction==='reset'?'ERASE SCOREBOOK':confirmAction==='end'?'Review Postgame':confirmAction==='start'?'Start Game':'Reopen'}</Text></Pressable></View></View></View></Modal>
       <Modal visible={!!errorFor} transparent animationType="fade" onRequestClose={()=>setErrorFor(null)}><View style={{flex:1,backgroundColor:'#0009',justifyContent:'center',padding:14}}><View style={{backgroundColor:'white',borderRadius:14,padding:12,alignItems:'center',gap:8}}><Text style={styles.heading}>Defensive Error</Text><FieldingDiamond sequence={[]} onSelect={n=>{if(errorFor)setRunnerErrors(v=>({...v,[errorFor]:n}));setErrorFor(null);}}/><Text style={[styles.muted,{textAlign:'center'}]}>Touch the player who made the error.</Text><Pressable style={[styles.chip,{width:'100%'}]} onPress={()=>{setErrorFor(null);}}><Text style={styles.bold}>Cancel</Text></Pressable></View></View></Modal>
  </View>;
 }
