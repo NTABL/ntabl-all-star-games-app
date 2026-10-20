@@ -303,7 +303,7 @@ export default function GameScorebook(){
  const [subSlot,setSubSlot]=useState(1);
  const [subPlayerId,setSubPlayerId]=useState('');
  const [subPosition,setSubPosition]=useState('');
- const [playerEdit,setPlayerEdit]=useState<null|{team:'away'|'home';slot:number;entryId:string;name:string;number:string;position:string}>(null);
+ const [playerEdit,setPlayerEdit]=useState<null|{team:'away'|'home';slot:number;entryId:string;name:string;number:string;position:string;courtesyRunner:boolean}>(null);
  const [playerEditMode,setPlayerEditMode]=useState<'edit'|'replace'>('edit');
  const [individualStats,setIndividualStats]=useState<null|{playerId:string;teamId:string;name:string;pitcher:boolean}>(null);
  const [replacementId,setReplacementId]=useState('');
@@ -854,7 +854,7 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
   const slot=team.slots.find(x=>x.slot===slotNumber);
   const active=slot?.appearances.find(a=>a.exitedAtEvent===undefined)||slot?.appearances[slot.appearances.length-1];
   if(!active)return;
-  setPlayerEdit({team:which,slot:slotNumber,entryId:active.entryId,name:active.player.name,number:active.player.jerseyNumber||'',position:active.position||'--'});
+  setPlayerEdit({team:which,slot:slotNumber,entryId:active.entryId,name:active.player.name,number:active.player.jerseyNumber||'',position:active.position||'--',courtesyRunner:!!active.player.courtesyRunner});
   setPlayerEditMode('edit');setReplacementId('');setPlayerEditError('');setPositionConflict(null);
  }
  async function savePlayerEdit(clearConflict=false){
@@ -872,6 +872,7 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
   const conflict=fieldPositions.includes(position)?team.slots.flatMap(s=>s.appearances.filter(a=>a.exitedAtEvent===undefined).map(a=>({slot:s.slot,a}))).find(x=>x.slot!==edit.slot&&x.a.position.toUpperCase()===position):undefined;
   if(conflict&&!clearConflict){setPositionConflict({name:conflict.a.player.name,position});return;}
   const changedPosition=position!==active.position.toUpperCase();
+  const changedCourtesy=!replacing&&edit.courtesyRunner!==!!active.player.courtesyRunner;
   const sequence=d.events.length+1;
   const at=new Date().toISOString();
   const change:any={kind:'lineupChange',id:id(),sequence,at,teamId:team.teamId,slot:edit.slot,player:incoming,action:replacing?'substitution':'positionChange',position,previousPosition:active.position,previousPlayerId:active.player.id};
@@ -880,11 +881,11 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
    if(s.slot!==edit.slot)return s;
    if(replacing){return {...s,appearances:[...s.appearances.map(a=>a.entryId===active.entryId?{...a,exitedAtEvent:sequence}:a),{entryId:change.id,player:{...incoming,position},enteredAtEvent:sequence,position,reason:'substitution' as const}]};}
    // Position-only change keeps the batter's identity and batting appearance intact.
-   return {...s,appearances:s.appearances.map(a=>a.entryId===active.entryId?{...a,position,player:{...a.player,name:edit.name.trim(),jerseyNumber:edit.number.trim(),position}}:a)};
+   return {...s,appearances:s.appearances.map(a=>a.entryId===active.entryId?{...a,position,player:{...a.player,name:edit.name.trim(),jerseyNumber:edit.number.trim(),position,courtesyRunner:edit.courtesyRunner}}:a)};
   });
   const newTeam={...team,slots:newSlots,bench:replacing?[...team.bench.filter(p=>p.id!==incoming.id),{...active.player,position:'--'}]:team.bench,benchDefenderIds:replacing?((team as any).benchDefenderIds||[]).filter((pid:string)=>pid!==incoming.id):(team as any).benchDefenderIds};
-  const recordEvent=replacing||changedPosition||!!conflict;
-  const next={...d,home:edit.team==='home'?newTeam:d.home,away:edit.team==='away'?newTeam:d.away,events:recordEvent?[...d.events,change]:d.events,editHistory:[...(d.editHistory||[]),{at,description:replacing?`${incoming.name} replaces ${active.player.name} in batting slot ${edit.slot}`:`${edit.name}: ${active.position||'--'} → ${position}${conflict?' (previous defender moved to --)':''}`} ]};
+  const recordEvent=replacing||changedPosition||!!conflict; // CR flag changes are metadata, not scoring plays.
+  const next={...d,home:edit.team==='home'?newTeam:d.home,away:edit.team==='away'?newTeam:d.away,events:recordEvent?[...d.events,change]:d.events,editHistory:[...(d.editHistory||[]),{at,description:replacing?`${incoming.name} replaces ${active.player.name} in batting slot ${edit.slot}`:`${edit.name}: ${active.position||'--'} → ${position}${conflict?' (previous defender moved to --)':''}${changedCourtesy?` · CR ${edit.courtesyRunner?'enabled':'disabled'}`:''}`} ]};
   if(await commit(next as ScorebookV2Document)){setPlayerEdit(null);setPositionConflict(null);setPlayerEditError('');}
  }
  function openBench(which:'away'|'home',allowBatting=false,returnToEdit=false){
@@ -1204,6 +1205,7 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
       </View>:null}
      <ScrollView keyboardShouldPersistTaps="handled" style={{maxHeight:430}}>
       {benchPlayerId?<><Text style={styles.muted}>Player name</Text><TextInput style={styles.input} value={benchName} onChangeText={setBenchName}/><Text style={[styles.muted,{marginTop:10}]}>Uniform number</Text><TextInput style={styles.input} value={benchNumber} onChangeText={setBenchNumber}/></>:playerEditMode==='edit'?<><Text style={styles.muted}>Name correction (same player)</Text><TextInput style={styles.input} value={playerEdit?.name||''} onChangeText={name=>setPlayerEdit(e=>e?{...e,name}:e)}/><Text style={[styles.muted,{marginTop:10}]}>Uniform number</Text><TextInput style={styles.input} value={playerEdit?.number||''} onChangeText={number=>setPlayerEdit(e=>e?{...e,number}:e)}/></>:<><Text style={styles.muted}>Choose a bench player to enter this batting slot. The original batter's earlier stats remain intact.</Text>{(playerEdit?.team==='away'?doc.away:doc.home).bench.map(p=><Pressable key={p.id} style={[styles.chip,{marginTop:5,backgroundColor:replacementId===p.id?'#bbf7d0':'#f1f5f9'}]} onPress={()=>setReplacementId(p.id)}><Text style={styles.bold}>#{p.jerseyNumber||'--'} {p.name}</Text></Pressable>)}</>}
+      {!benchPlayerId&&playerEditMode==='edit'&&playerEdit?<Pressable accessibilityRole="checkbox" accessibilityState={{checked:playerEdit.courtesyRunner}} onPress={()=>setPlayerEdit(e=>e?{...e,courtesyRunner:!e.courtesyRunner}:e)} style={{flexDirection:'row',alignItems:'center',gap:12,marginTop:16,padding:12,borderRadius:10,borderWidth:1,borderColor:playerEdit.courtesyRunner?'#fca5a5':'#cbd5e1',backgroundColor:playerEdit.courtesyRunner?'#fee9e9':'#f8fafc'}}><View style={{width:26,height:26,borderRadius:6,borderWidth:2,borderColor:playerEdit.courtesyRunner?'#b91c1c':'#64748b',backgroundColor:playerEdit.courtesyRunner?'#b91c1c':'white',alignItems:'center',justifyContent:'center'}}>{playerEdit.courtesyRunner?<Ionicons name="checkmark" size={19} color="white"/>:null}</View><View style={{flex:1}}><Text style={{fontSize:15,fontWeight:'800',color:playerEdit.courtesyRunner?'#991b1b':INK}}>Courtesy Runner (CR)</Text><Text style={{fontSize:12,color:'#475569'}}>Highlight this player light red in the scorebook. Does not place a runner on base.</Text></View></Pressable>:null}
       <Text style={[styles.heading,{fontSize:16,marginTop:14}]}>Defensive Position</Text><Text style={styles.muted}>DH, EH and -- are not defensive positions. Changing a position does not change batting order.</Text>
       <View style={{flexDirection:'row',flexWrap:'wrap',justifyContent:'center',gap:7,marginTop:8}}>{editPositions.map(pos=><Pressable key={pos} onPress={()=>benchPlayerId?setBenchPosition(pos):setPlayerEdit(e=>e?{...e,position:pos}:e)} style={[styles.chip,{minWidth:57,backgroundColor:(benchPlayerId?benchPosition:(playerEdit?.position||'--'))===pos?'#bfdbfe':'#f1f5f9',alignItems:'center'}]}><Text style={styles.bold}>{pos}</Text></Pressable>)}</View>
       {benchError&&benchPlayerId?<Text style={{color:'#b91c1c',fontWeight:'800',marginTop:12}}>{benchError}</Text>:null}
