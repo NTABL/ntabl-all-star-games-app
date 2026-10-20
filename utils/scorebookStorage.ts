@@ -72,3 +72,20 @@ export async function clearTestScorebook(programId:string,gameId:string,ownerTea
   await pending.get(key)?.catch(()=>{});
   await AsyncStorage.removeItem(key);
 }
+
+/** Reset only the active manager's team-owned scorebook, retaining a server archive. */
+export async function resetGameScorebook(programId:string,gameId:string,ownerTeamId:string,managerPersonId:string):Promise<void>{
+  const key=storageKey(programId,gameId,ownerTeamId);
+  await pending.get(key); // never reset while an older write is in flight
+  if(remote){
+    const response=await fetch(`${endpoint(programId,gameId,ownerTeamId)}/reset`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({managerPersonId,expectedRevision:revisions.get(key) ?? 0})
+    });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||!data.ok)throw new Error(data.message||'Reset was not accepted. Reopen Score Game.');
+    revisions.set(key,data.revision);
+    blocked.delete(key);
+  }
+  await AsyncStorage.removeItem(key);
+}

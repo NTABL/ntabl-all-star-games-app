@@ -9,7 +9,7 @@ import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatli
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { API_BASE } from "../utils/appconfig";
 
-const POSITIONS = ["P","C","1B","2B","3B","SS","LF","CF","RF","IF","OF","DH"];
+const POSITIONS = ["--","P","C","1B","2B","3B","SS","LF","CF","RF","IF","OF","DH"];
 
 type Player = {
   id: string; personId?: string; name: string; jerseyNumber: string; position: string;
@@ -152,6 +152,7 @@ export default function GameLineupBuilderScreen() {
 
   function openScoreGame(){
     if(saving)return;
+    if(dirty){setScoreShareError("Save your lineup changes before opening Score Game.");setScoreSharePrompt(true);return;}
     if(!sharedAt){setScoreShareError('');setScoreSharePrompt(true);return;}
     router.push({pathname:"/gamescorebook",params:{programId,teamId,gameId,opponentTeamId,managerPersonId,teamName,opponentName,gameDate,gameTime}});
   }
@@ -167,14 +168,24 @@ export default function GameLineupBuilderScreen() {
     finally{setScoreShareBusy(false);}
   }
 
+  function checkPosition(candidate:Player, excludingId?:string):boolean{
+    const position=(candidate.position||'').trim().toUpperCase();
+    if(!position||position==='--'||position==='DH'||position==='IF'||position==='OF')return true;
+    const other=players.find(p=>p.id!==excludingId&&p.batting!==false&&(p.position||'').trim().toUpperCase()===position);
+    if(!other)return true;
+    const message=`${other.name} is already assigned to ${position}. Continue with the duplicate defensive position?`;
+    if(Platform.OS==='web'&&typeof window!=='undefined')return window.confirm(message);
+    Alert.alert('Duplicate Defensive Position',message);return false;
+  }
   function toggleBatting(player:Player,value:boolean){
     if(viewOnly) return;
+    if(value&&!checkPosition(player,player.id))return;
     setPlayers(cur=>cur.map(x=>x.id===player.id?{...x,batting:value}:x));
     setBattingIds(cur=>value?(cur.includes(player.id)?cur:[...cur,player.id]):cur.filter(id=>id!==player.id)); markChanged();
   }
   function toggleCR(player:Player){ if(viewOnly) return; setPlayers(cur=>cur.map(x=>x.id===player.id?{...x,courtesyRunner:!x.courtesyRunner}:x)); markChanged(); }
-  function saveEdit(){ if(viewOnly || !editing)return; setPlayers(cur=>cur.map(x=>x.id===editing.id?editing:x)); setEditing(null); markChanged(); }
-  function doSub(sub:Player){ if(viewOnly || !subTarget)return; setPlayers(cur=>cur.map(x=>x.id===subTarget.id?{...x,batting:false}:x.id===sub.id?{...x,batting:true}:x)); setBattingIds(cur=>cur.map(id=>id===subTarget.id?sub.id:id)); setSubTarget(null); markChanged(); }
+  function saveEdit(){ if(viewOnly || !editing)return; if(editing.batting!==false&&!checkPosition(editing,editing.id))return; setPlayers(cur=>cur.map(x=>x.id===editing.id?editing:x)); setEditing(null); markChanged(); }
+  function doSub(sub:Player){ if(viewOnly || !subTarget)return; if(!checkPosition(sub,subTarget.id))return; setPlayers(cur=>cur.map(x=>x.id===subTarget.id?{...x,batting:false}:x.id===sub.id?{...x,batting:true}:x)); setBattingIds(cur=>cur.map(id=>id===subTarget.id?sub.id:id)); setSubTarget(null); markChanged(); }
   function addPlayer(){
     if(viewOnly) return;
     if(!newPlayer.name.trim()){Alert.alert("Add Player","Player name is required.");return;}
