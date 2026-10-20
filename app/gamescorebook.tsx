@@ -171,17 +171,36 @@ function ScoreSquare({plays,allEvents=[],active,finalized=false,large=false,comp
   {[[48,540],[107,540]].map(([x,y],i)=><Circle key={'strike'+i} cx={x} cy={y} r={24} stroke={SCORE_BLUE} strokeWidth={3.5} fill={i<strikes?OUT_RED:'white'}/>)}
   {[400,469,539].map((x,i)=><G key={'out'+i}><SvgText x={x} y={545} textAnchor="middle" fontSize={38} fontWeight="bold" fill={SCORE_BLUE}>{i+1}</SvgText>{batterOut&&i+1<=outNumber&&i+1>outNumber-Math.max(1,last?.runners?.filter((r:any)=>r.isOut).length||1)?<Circle cx={x} cy={533} r={25} stroke={OUT_RED} strokeWidth={3.5} fill="none"/>:null}</G>)}
  </Svg>;
- function tapSquare(e:any){
-  if(onRunnerTap&&baseRunners.length){const {locationX,locationY}=e.nativeEvent;const x=locationX*600/size,y=locationY*600/size;const hit=baseRunners.find(r=>Math.hypot(BASES[r.base][0]-x,BASES[r.base][1]-y)<38);if(hit){onRunnerTap(hit.base);return;}}
-  if(onLanding){const {locationX,locationY}=e.nativeEvent;const x=locationX*600/size,y=locationY*600/size;
-   // The arc and field area are above the infield; taps on abbreviations still select outcomes.
-   if(x>95&&x<505&&y>40&&y<395){onLanding({x:Math.max(0,Math.min(1,(x-100)/400)),y:Math.max(0,Math.min(1,(380-y)/315))});return;}
+  function tapSquare(e:any){
+   // On react-native-web, nativeEvent.locationX/Y can be undefined or relative
+   // to a nested SVG child rather than the outer Pressable. Calculate from the
+   // actual square's bounding box instead. Native Expo keeps locationX/Y.
+   const native=e?.nativeEvent||{};
+   let locationX=Number(native.locationX),locationY=Number(native.locationY);
+   if(Platform.OS==='web'){
+    const target=e?.currentTarget;
+    const rect=target?.getBoundingClientRect?.();
+    const clientX=Number(native.clientX??e?.clientX);
+    const clientY=Number(native.clientY??e?.clientY);
+    if(rect&&Number.isFinite(clientX)&&Number.isFinite(clientY)){
+     locationX=(clientX-rect.left)*size/rect.width;
+     locationY=(clientY-rect.top)*size/rect.height;
+    }else if(Number.isFinite(Number(native.pageX))&&Number.isFinite(Number(native.pageY))&&rect){
+     locationX=Number(native.pageX)-rect.left;
+     locationY=Number(native.pageY)-rect.top;
+    }
+   }
+   if(!Number.isFinite(locationX)||!Number.isFinite(locationY)){onPress?.();return;}
+   const x=locationX*600/size,y=locationY*600/size;
+   if(onRunnerTap&&baseRunners.length){const hit=baseRunners.find(r=>Math.hypot(BASES[r.base][0]-x,BASES[r.base][1]-y)<52);if(hit){onRunnerTap(hit.base);return;}}
+   if(onLanding){
+    if(x>95&&x<505&&y>40&&y<395){onLanding({x:Math.max(0,Math.min(1,(x-100)/400)),y:Math.max(0,Math.min(1,(380-y)/315))});return;}
+   }
+   if(onAbbr){
+    const hit=ABBRS.find(([,cx,cy])=>Math.abs(cx-x)<45&&Math.abs(cy-y)<30);if(hit){onAbbr(hit[0]);return;}
+   }
+   onPress?.();
   }
-  if(onAbbr){const {locationX,locationY}=e.nativeEvent;const x=locationX*600/size,y=locationY*600/size;
-   const hit=ABBRS.find(([,cx,cy])=>Math.abs(cx-x)<45&&Math.abs(cy-y)<30);if(hit){onAbbr(hit[0]);return;}
-  }
-  onPress?.();
- }
  return <View style={{alignItems:'center'}}>
   <Pressable onPress={tapSquare} style={{width:size,height:size,borderWidth:0,backgroundColor:active?(finalized?'#e5e7eb':'#fff7d6'):'white'}}>{drawing}</Pressable>
 
@@ -365,7 +384,7 @@ export default function GameScorebook(){
    // identifiers are referenced by recorded pitches, runners and substitutions.
    const safeToReplace=(old.events||[]).length===0;
    const mergeTeam=(previous:typeof own,incoming:typeof own)=>{
-    if(safeToReplace)return incoming;
+    if(safeToReplace)return incoming.slots.length>0?incoming:previous;
     const existingIds=new Set([...previous.slots.flatMap(s=>s.appearances.map(a=>String(a.player.id))),...previous.bench.map(p=>String(p.id))]);
     const additions=[...incoming.slots.flatMap(s=>s.appearances.map(a=>a.player)),...incoming.bench]
      .filter(p=>!existingIds.has(String(p.id))&&existingIds.add(String(p.id)));
