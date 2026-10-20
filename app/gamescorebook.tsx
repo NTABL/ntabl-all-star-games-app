@@ -369,7 +369,12 @@ export default function GameScorebook(){
  const [fieldingHelpVisible,setFieldingHelpVisible]=useState(false);
  const [trajectory,setTrajectory]=useState<'ground'|'line'|'fly'>('ground'),[landing,setLanding]=useState<SprayPoint|null>(null);
  const docRef=useRef<ScorebookV2Document|null>(null);const lock=useRef(false);
- const redoStack=useRef<ScorebookV2Event[][]>([]);const [redoCount,setRedoCount]=useState(0);
+ // Full-document snapshots are required: lineup substitutions change slots and bench,
+ // not just the event log. Keep undo history for this open scoring session.
+ const undoStack=useRef<ScorebookV2Document[]>([]);
+ const redoStack=useRef<ScorebookV2Document[]>([]);
+ const [undoCount,setUndoCount]=useState(0);
+ const [redoCount,setRedoCount]=useState(0);
  const saveQueue=useRef<Promise<void>>(Promise.resolve());
  useEffect(()=>{let cancelled=false;(async()=>{try{
   if(!programId||!gameId||!teamId||!opponentTeamId||!managerPersonId)throw new Error('Open Score Game from the game lineup screen.');
@@ -467,7 +472,13 @@ export default function GameScorebook(){
    setMessage('Cannot save: this scorebook belongs to another team or game.');return false;
   }
   // Update the display immediately; serialize local writes without blocking taps on disk I/O.
-  if(historyAction==='normal'&&next.events!==docRef.current?.events){redoStack.current=[];setRedoCount(0);}
+  if(historyAction==='normal' && docRef.current &&
+     (next.events!==docRef.current.events || next.home!==docRef.current.home || next.away!==docRef.current.away)){
+   undoStack.current.push(docRef.current);
+   if(undoStack.current.length>100)undoStack.current.shift();
+   setUndoCount(undoStack.current.length);
+   redoStack.current=[];setRedoCount(0);
+  }
   const previousDoc=docRef.current;
   const previousState=previousDoc?replayV2(previousDoc):null;
   docRef.current=next;setDoc(next);
@@ -703,18 +714,23 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
   }})).concat([{text:'Cancel',onPress:()=>{}}]));
  }
  function undo(){
-  const d=docRef.current;if(!d||!d.events.length||d.status!=='inProgress')return;
-  const removed=d.events[d.events.length-1];
-  // A completed plate appearance can have a preceding pitch; undo the play as one action.
-  const previous=d.events.slice(0,-1);
-  redoStack.current.push([removed]);setRedoCount(redoStack.current.length);
-  void commit({...d,events:previous},'undo');
+  const d=docRef.current;
+  if(!d||d.status!=='inProgress'||!undoStack.current.length||lock.current)return;
+  const previous=undoStack.current.pop()!;
+  redoStack.current.push(d);
+  setUndoCount(undoStack.current.length);
+  setRedoCount(redoStack.current.length);
+  void commit(previous,'undo');
   setLanding(null);setPreviewResult(null);setMenu(null);
  }
  function redo(){
-  const d=docRef.current;if(!d||!redoStack.current.length||d.status!=='inProgress')return;
-  const events=redoStack.current.pop()!;setRedoCount(redoStack.current.length);
-  void commit({...d,events:[...d.events,...events]},'redo');
+  const d=docRef.current;
+  if(!d||d.status!=='inProgress'||!redoStack.current.length||lock.current)return;
+  const next=redoStack.current.pop()!;
+  undoStack.current.push(d);
+  setUndoCount(undoStack.current.length);
+  setRedoCount(redoStack.current.length);
+  void commit(next,'redo');
   setLanding(null);setPreviewResult(null);setMenu(null);
  }
  function redoScreen(){setScreenRedo(old=>{if(!old.length)return old;const snap=old[old.length-1];setScreenUndo(u=>[...u,{menu,result,trajectory,landing,fielders:[...fielders],advances:advances.map(a=>({...a})),runnerReasons:{...runnerReasons},runnerErrors:{...runnerErrors},playErrorPosition,runnerOtherReasons:{...runnerOtherReasons},runnerOutDetails:{...runnerOutDetails},runnerOutFor}]);setResult(snap.result);setTrajectory(snap.trajectory);setLanding(snap.landing);setFielders(snap.fielders);setAdvances(snap.advances);setRunnerReasons(snap.runnerReasons);setRunnerErrors(snap.runnerErrors);setPlayErrorPosition(snap.playErrorPosition);setRunnerOtherReasons(snap.runnerOtherReasons);setRunnerOutDetails(snap.runnerOutDetails||{});setRunnerOutFor(snap.runnerOutFor||null);setMenu(snap.menu);return old.slice(0,-1);});}
@@ -1167,7 +1183,7 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
   <View style={{backgroundColor:'#e1eff7',borderTopWidth:1,borderColor:RULE,paddingHorizontal:10,paddingTop:10,paddingBottom:Math.max(safeAreaInsets.bottom,44)+8}}>
    <View style={{flexDirection:'row',gap:8}}>
     <Pressable onPress={()=>setOptionsOpen(true)} style={[styles.button,{flex:1,backgroundColor:INK,minHeight:49,justifyContent:'center'}]}><Text style={styles.white}>☰ Options</Text></Pressable>
-    <Pressable onPress={undo} disabled={!doc.events.length||!active} style={[styles.button,{flex:1,backgroundColor:active&&doc.events.length?'#a16207':'#94a3b8',minHeight:49,justifyContent:'center'}]}><Text style={styles.white}>↶ Undo</Text></Pressable>
+    <Pressable onPress={undo} disabled={!undoCount||!active} style={[styles.button,{flex:1,backgroundColor:active&&undoCount?'#a16207':'#94a3b8',minHeight:49,justifyContent:'center'}]}><Text style={styles.white}>↶ Undo</Text></Pressable>
     <Pressable onPress={redo} disabled={!redoCount} style={[styles.button,{flex:1,backgroundColor:redoCount?'#0e7490':'#94a3b8',minHeight:49,justifyContent:'center'}]}><Text style={styles.white}>↷ Redo</Text></Pressable>
    </View>
   </View>
