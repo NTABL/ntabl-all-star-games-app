@@ -15,6 +15,8 @@ export function replayV2(doc:ScorebookV2Document):V2State{
    if(e.pitch==='foulBunt')s.strikes=Math.min(3,s.strikes+1);
    continue;
   }
+  // Courtesy runner is recorded for play-by-play only; never changes game state.
+  if(e.kind==='runner' && (e as any).action==='CR')continue;
   const advances=e.runners;
   const next=[...s.bases];
   for(const r of advances)if(r.from>0&&next[r.from-1]===r.playerId)next[r.from-1]=null;
