@@ -789,77 +789,85 @@ async function sendHelpRequest() {
 
 
 
+<View style={styles.compactTileGrid}>
 {allStarFeaturesEnabled && shouldShowWaiver && (
-  <Pressable
+  <View style={styles.compactTileSlot}>
+<Pressable
     style={[
       styles.waiverButton,
       waiverSigned && styles.waiverButtonComplete,
     ]}
     onPress={() => router.push("/waiver")}
   >
-    <View style={styles.buttonContentRow}>
+    <View style={[styles.buttonContentRow, styles.compactTileContent]}>
       <Ionicons
         name={waiverSigned ? "checkmark-circle" : "document-text-outline"}
-        size={22}
+        size={23}
         color="#ffffff"
-        style={{ marginRight: 8 }}
+        style={{ marginBottom: 6 }}
       />
 
-      <Text style={styles.waiverButtonText}>
+      <Text style={[styles.waiverButtonText, styles.compactTileText]}>
         {waiverSigned ? "Waiver Completed" : "Complete Waiver"}
       </Text>
     </View>
   </Pressable>
+</View>
 )}
 
           {managerData?.programId && managerData?.teamId && (
-            <Pressable
-              style={styles.teamScheduleButton}
+            <View style={styles.compactTileSlot}>
+<Pressable
+              style={[styles.teamScheduleButton, styles.compactTileButton]}
               onPress={() => router.push("/seasonschedules")}
             >
-              <View style={styles.buttonContentRow}>
+              <View style={[styles.buttonContentRow, styles.compactTileContent]}>
                 <Ionicons
                   name="calendar-number-outline"
-                  size={22}
+                  size={23}
                   color="#ffffff"
-                  style={{ marginRight: 8 }}
+                  style={{ marginBottom: 6 }}
                 />
-                <Text style={styles.teamScheduleButtonText}>Team Schedule</Text>
+                <Text style={[styles.teamScheduleButtonText, styles.compactTileText]}>Team Schedule</Text>
               </View>
             </Pressable>
+</View>
           )}
 
           {managerData?.programId && managerData?.teamId && (
-  <Pressable
-    style={styles.teamChatButton}
+  <View style={styles.compactTileSlot}>
+<Pressable
+    style={[styles.teamChatButton, styles.compactTileButton]}
     onPress={() => router.push("/teamchat")}
   >
-    <View style={styles.buttonContentRow}>
+    <View style={[styles.buttonContentRow, styles.compactTileContent]}>
       <Ionicons
         name="chatbubbles-outline"
-        size={22}
+        size={23}
         color="#ffffff"
-        style={{ marginRight: 8 }}
+        style={{ marginBottom: 6 }}
       />
 
-      <Text style={styles.teamChatButtonText}>
+      <Text style={[styles.teamChatButtonText, styles.compactTileText]}>
         Team Chat
       </Text>
     </View>
   </Pressable>
+</View>
 )}
 
           {allStarFeaturesEnabled && (
-          <Pressable style={styles.primaryButton} onPress={handleOpenSelections}>
-            <View style={styles.buttonContentRow}>
+          <View style={styles.compactTileSlot}>
+<Pressable style={[styles.primaryButton, styles.compactTileButton]} onPress={handleOpenSelections}>
+            <View style={[styles.buttonContentRow, styles.compactTileContent]}>
               <Ionicons
                 name="people-outline"
-                size={22}
+                size={23}
                 color="#ffffff"
-                style={{ marginRight: 8 }}
+                style={{ marginBottom: 6 }}
               />
 
-              <Text style={styles.primaryButtonText}>
+              <Text style={[styles.primaryButtonText, styles.compactTileText]}>
                 {isPlayer
                   ? "View All-Star Selections"
                   : status === "Submitted"
@@ -868,138 +876,155 @@ async function sendHelpRequest() {
               </Text>
             </View>
           </Pressable>
+</View>
 
           )}
 
           {managerData?.isAllStarManager && managerData?.allStarManagerAccess && (
-            <Pressable
-              style={styles.allStarManagerButton}
+            <View style={styles.compactTileSlot}>
+<Pressable
+              style={[styles.allStarManagerButton, styles.compactTileButton]}
               onPress={handleAllStarManagerAccess}
             >
-              <View style={styles.buttonContentRow}>
+              <View style={[styles.buttonContentRow, styles.compactTileContent]}>
                 <Ionicons
                   name="person-outline"
-                  size={22}
+                  size={23}
                   color="#ffffff"
-                  style={{ marginRight: 8 }}
+                  style={{ marginBottom: 6 }}
                 />
 
-                <Text style={styles.allStarManagerButtonText}>
+                <Text style={[styles.allStarManagerButtonText, styles.compactTileText]}>
                   All-Star Manager Access
                 </Text>
               </View>
             </Pressable>
+</View>
           )}
 
           {allStarFeaturesEnabled && (
-          <Pressable
-            style={styles.scheduleButton}
+          <View style={styles.compactTileSlot}>
+<Pressable
+            style={[styles.scheduleButton, styles.compactTileButton]}
             onPress={handleOpenSchedule}
           >
-            <View style={styles.buttonContentRow}>
+            <View style={[styles.buttonContentRow, styles.compactTileContent]}>
               <Ionicons
                 name="calendar-outline"
-                size={22}
+                size={23}
                 color="#ffffff"
-                style={{ marginRight: 8 }}
+                style={{ marginBottom: 6 }}
               />
 
-              <Text style={styles.scheduleButtonText}>
+              <Text style={[styles.scheduleButtonText, styles.compactTileText]}>
                 All-Star Game Schedules
               </Text>
             </View>
           </Pressable>
+</View>
 
           )}
 
 
           {allStarFeaturesEnabled && managerData && (
-            <Pressable
-              style={styles.announcerButton}
+            <View style={styles.compactTileSlot}>
+<Pressable
+              style={[styles.announcerButton, styles.compactTileButton]}
               onPress={() => router.push("/announcer")}
             >
-              <View style={styles.buttonContentRow}>
+              <View style={[styles.buttonContentRow, styles.compactTileContent]}>
                 <Ionicons
                   name="baseball-outline"
-                  size={22}
+                  size={23}
                   color="#ffffff"
-                  style={{ marginRight: 8 }}
+                  style={{ marginBottom: 6 }}
                 />
 
-                <Text style={styles.announcerButtonText}>All-Star Game View</Text>
+                <Text style={[styles.announcerButtonText, styles.compactTileText]}>All-Star Game View</Text>
               </View>
             </Pressable>
+</View>
           )}
 
-          <Pressable
-            style={styles.changePasswordButton}
+          <View style={styles.compactTileSlot}>
+<Pressable
+            style={[styles.changePasswordButton, styles.compactTileButton]}
             onPress={() => router.push("/changepassword")}
           >
-            <View style={styles.buttonContentRow}>
+            <View style={[styles.buttonContentRow, styles.compactTileContent]}>
               <Ionicons
                 name="lock-closed-outline"
-                size={22}
+                size={23}
                 color="#ffffff"
-                style={{ marginRight: 8 }}
+                style={{ marginBottom: 6 }}
               />
 
-              <Text style={styles.changePasswordButtonText}>
+              <Text style={[styles.changePasswordButtonText, styles.compactTileText]}>
                 Change Password
               </Text>
             </View>
           </Pressable>
+</View>
 
-          <Pressable
-            style={styles.settingsListButton}
+          <View style={styles.compactTileSlot}>
+<Pressable
+            style={[styles.settingsListButton, styles.compactTileButton]}
             onPress={() => setShowSettingsModal(true)}
           >
-            <View style={styles.buttonContentRow}>
+            <View style={[styles.buttonContentRow, styles.compactTileContent]}>
               <Ionicons
                 name="settings-outline"
-                size={22}
+                size={23}
                 color="#ffffff"
-                style={{ marginRight: 8 }}
+                style={{ marginBottom: 6 }}
               />
 
-              <Text style={styles.settingsListButtonText}>Settings</Text>
+              <Text style={[styles.settingsListButtonText, styles.compactTileText]}>Settings</Text>
             </View>
           </Pressable>
+</View>
 {managerData && (
-  <Pressable
-    style={styles.helpButton}
+  <View style={styles.compactTileSlot}>
+<Pressable
+    style={[styles.helpButton, styles.compactTileButton]}
     onPress={() => setShowHelpModal(true)}
   >
-    <View style={styles.buttonContentRow}>
+    <View style={[styles.buttonContentRow, styles.compactTileContent]}>
       <Ionicons
         name="help-circle-outline"
-        size={22}
+        size={23}
         color="#111827"
-        style={{ marginRight: 8 }}
+        style={{ marginBottom: 6 }}
       />
 
-      <Text style={styles.helpButtonText}>
+      <Text style={[styles.helpButtonText, styles.compactTileText]}>
         Contact Support
       </Text>
     </View>
   </Pressable>
+</View>
 )}
           {isShawn && (
-            <Pressable
-              style={styles.adminButton}
+            <View style={styles.compactTileSlot}>
+<Pressable
+              style={[styles.adminButton, styles.compactTileButton]}
               onPress={() => router.push("/adminlogin")}
             >
-              <View style={styles.buttonContentRow}>
+              <View style={[styles.buttonContentRow, styles.compactTileContent]}>
                 <Ionicons
                   name="settings-outline"
-                  size={22}
+                  size={23}
                   color="#ffffff"
-                  style={{ marginRight: 8 }}
+                  style={{ marginBottom: 6 }}
                 />
 
-                <Text style={styles.adminButtonText}>Admin</Text>
+                <Text style={[styles.adminButtonText, styles.compactTileText]}>Admin</Text>
               </View>
             </Pressable>
+</View>
           )}
+
+</View>
           <Text style={styles.versionFooter}>
   NTABL All-Star App • Version 1.0
 </Text>
@@ -1805,6 +1830,36 @@ teamChatButtonText: {
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "700",
+  },
+
+  // Compact two-column dashboard navigation; original button colors and permissions remain.
+  compactTileGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginTop: 4,
+  },
+  compactTileSlot: {
+    width: "48.5%",
+    marginBottom: 10,
+  },
+  compactTileButton: {
+    marginTop: 0,
+    minHeight: 92,
+    flex: 1,
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 7,
+  },
+  compactTileContent: {
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  compactTileText: {
+    textAlign: "center",
+    fontSize: 13,
+    lineHeight: 17,
   },
 
   buttonContentRow: {
