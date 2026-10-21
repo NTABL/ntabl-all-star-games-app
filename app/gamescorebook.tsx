@@ -171,8 +171,8 @@ function ScoreSquare({plays,allEvents=[],active,finalized=false,large=false,comp
   {/* When this runner is retired attempting the next base, draw HALF the segment
       and cap its endpoint perpendicular to the baseline. Never draw to that base. */}
   {runnerOutAdvance&&runnerOutAdvance.from>0&&runnerOutAdvance.from<4?(()=>{const from=BASES[runnerOutAdvance.from],to=BASES[(runnerOutAdvance.from+1)%4];const dx=to[0]-from[0],dy=to[1]-from[1],len=Math.hypot(dx,dy)||1;const mx=from[0]+dx*.5,my=from[1]+dy*.5;return <G><Line x1={from[0]} y1={from[1]} x2={mx} y2={my} stroke="#222" strokeWidth={5} strokeLinecap="round"/><Line x1={mx-dy/len*13} y1={my+dx/len*13} x2={mx+dy/len*13} y2={my-dx/len*13} stroke="#222" strokeWidth={5} strokeLinecap="round"/></G>;})():null}
-  {/* Traditional perpendicular stop bar at the final safely reached base. */}
-  {highest>0&&highest<4&&!scored&&!runnerOutAdvance?(()=>{const from=BASES[highest-1],to=BASES[highest%4];const dx=to[0]-from[0],dy=to[1]-from[1],len=Math.hypot(dx,dy)||1;return <Line x1={to[0]-dy/len*12} y1={to[1]+dx/len*12} x2={to[0]+dy/len*12} y2={to[1]-dx/len*12} stroke="#222" strokeWidth={5} strokeLinecap="round"/>;})():null}
+  {/* A safely occupied base is a COMPLETE segment, with no stop bar.
+      Only a recorded runner out gets the halfway segment and perpendicular cap. */}
   {runnerMarkText?<SvgText x={288} y={220} textAnchor="middle" fontSize={29} fontWeight="bold" fill={runnerMarks.includes('CS')?OUT_RED:SCORE_BLUE}>{runnerMarkText}</SvgText>:null}
   {spray?<Path d={sprayShape} fill="none" stroke={sprayColor} strokeWidth={4} strokeDasharray={sprayOutcome==='error'||trajectory==='ground'||last?.notes?.includes('ground')?'10 7':undefined} strokeLinecap="round"/>:null}
   {spray?<Circle cx={endX} cy={endY} r={6} fill={sprayColor}/>:null}
