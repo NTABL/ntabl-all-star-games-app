@@ -72,7 +72,12 @@ export function buildTraditionalScorebookHtml(doc:any, battingStats:(pid:string,
   const seq=Number(e.sequence)||0;
   const advances=runnerHistory(e.playerId,seq);
   // Circle an out only when THIS recorded play makes an out, not when this runner is retired later.
-   const out=(Number(e.outsOnPlay)||0)>0;
+   const runnerOutEvent=events.find(x=>Number(x.sequence)>=seq&&(x.kind==='plateAppearance'||x.kind==='runner')&&(x.runners||[]).some((r:any)=>r.playerId===e.playerId&&r.isOut));
+   const runnerOutAdvance=runnerOutEvent?.runners?.find((r:any)=>r.playerId===e.playerId&&r.isOut);
+   const runnerOutNumber=runnerOutEvent?Math.min(3,events.filter(x=>(x.kind==='plateAppearance'||x.kind==='runner')&&x.inning===runnerOutEvent.inning&&x.half===runnerOutEvent.half&&x.battingTeamId===runnerOutEvent.battingTeamId&&Number(x.sequence)<Number(runnerOutEvent.sequence)).reduce((n,x)=>n+(Number(x.outsOnPlay)||0),0)+1):0;
+   const batterOut=!!(e.runners||[]).some((r:any)=>r.playerId===e.playerId&&r.isOut);
+   const batterOutNumber=batterOut?outNumber(e):0;
+   const out=!!(batterOut||runnerOutAdvance);
   const scored=advances.some((r:any)=>Number(r.to)===4&&!r.isOut);
   const maxBase=Math.max(0,...advances.filter((r:any)=>!r.isOut).map((r:any)=>Number(r.to)||0));
   const first=e.runners?.find((r:any)=>r.playerId===e.playerId);
@@ -105,9 +110,10 @@ export function buildTraditionalScorebookHtml(doc:any, battingStats:(pid:string,
   const sprayLength=Math.sqrt(dx*dx+dy*dy);
   const sprayAngle=Math.atan2(dy,dx)*180/Math.PI;
   const sprayLine=spray?`<i class="sprayline" style="width:${sprayLength.toFixed(2)}px;transform:rotate(${sprayAngle.toFixed(1)}deg)"></i><i class="spraypoint" style="left:calc(50% + ${dx.toFixed(2)}px);top:calc(54% + ${dy.toFixed(2)}px)"></i>`:'';
-  const stopMark=atLeast>0&&atLeast<4&&!scored?`<i class="stopmark stop${atLeast}"></i>`:'';
+  const stopMark=atLeast>0&&atLeast<4&&!scored&&!runnerOutAdvance?`<i class="stopmark stop${atLeast}"></i>`:'';
+  const cutdown=runnerOutAdvance&&Number(runnerOutAdvance.from)>0&&Number(runnerOutAdvance.from)<4?`<i class="cutdown cutdown${Number(runnerOutAdvance.from)}"><i></i></i>`:'';
   const runnerLabel=runnerMarkText?`<span class="runnermark">${esc(runnerMarkText)}</span>`:'';
-  return `<div class="play ${color}">${resultColumns}<div class="fieldlines"><i class="foul foulleft"></i><i class="foul foulright"></i></div><div class="diamond ${scored?'scored':''}${track}"><i class="side side1"></i><i class="side side2"></i><i class="side side3"></i><i class="side side4"></i>${stopMark}</div>${runnerLabel}${sprayLine}<span class="notation">${esc(['1B','2B','3B','HR','BB','IBB','HBP','FC','SF'].includes(String(result))?'':title)}</span>${rbi?`<span class="rbimark">${rbi} RBI</span>`:''}${pitchDots(e)}${out?`<span class="outmark">${outNumber(e)||'O'}</span>`:''}${error?`<span class="errornote">${esc(error)}</span>`:''}</div>`;
+  return `<div class="play ${color}">${resultColumns}<div class="fieldlines"><i class="foul foulleft"></i><i class="foul foulright"></i></div><div class="diamond ${scored?'scored':''}${track}"><i class="side side1"></i><i class="side side2"></i><i class="side side3"></i><i class="side side4"></i>${stopMark}${cutdown}</div>${runnerLabel}${sprayLine}<span class="notation">${esc(['1B','2B','3B','HR','BB','IBB','HBP','FC','SF'].includes(String(result))?'':title)}</span>${rbi?`<span class="rbimark">${rbi} RBI</span>`:''}${pitchDots(e)}${out?`<span class="outmark">${runnerOutNumber||batterOutNumber||'O'}</span>`:''}${error?`<span class="errornote">${esc(error)}</span>`:''}</div>`;
  };
  // Allocate a distinct column for each pass through the batting order in an inning.
  // The next inning must never be displaced into a continuation of the previous one.
@@ -246,6 +252,12 @@ export function buildTraditionalScorebookHtml(doc:any, battingStats:(pid:string,
  .resultlabel{height:7px;line-height:6.5px}
  .outmark{bottom:1px;right:3px}
 
+ .cutdown{position:absolute;display:block;width:50%;height:3px;background:#222;z-index:6;transform-origin:left center}
+ .cutdown>i{position:absolute;display:block;right:-1px;top:-5px;width:3px;height:13px;background:#222}
+ /* CSS diamond is rotated 45deg: sides follow the clockwise basepath. */
+ .cutdown1{right:-1px;top:-1px;transform:rotate(90deg)}
+ .cutdown2{right:-1px;bottom:-1px;transform:rotate(180deg)}
+ .cutdown3{left:-1px;bottom:-1px;transform:rotate(270deg)}
  .stopmark{position:absolute;display:block;width:10px;height:2px;background:#222;z-index:4;transform:rotate(-45deg)}.stop1{right:-5px;top:-1px}.stop2{right:-5px;bottom:-1px;transform:rotate(45deg)}.stop3{left:-5px;bottom:-1px}.runnermark{position:absolute;top:27%;left:50%;transform:translateX(-50%);font-size:8px;font-weight:800;color:#0e5685;z-index:5;background:rgba(255,255,255,.75);padding:0 1px;white-space:nowrap}
 
 /* Preserve pitch count fills when printing to PDF. */

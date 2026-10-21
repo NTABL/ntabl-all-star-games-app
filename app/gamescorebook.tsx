@@ -144,7 +144,12 @@ function ScoreSquare({plays,allEvents=[],active,finalized=false,large=false,comp
  const isK=last?.result==='K'||previewResult==='K';
  const looking=!!last?.strikeoutLooking;
  const batterOut=!!last?.runners?.some((r:any)=>r.playerId===last.playerId&&r.isOut);
- const outNumber=batterOut?Math.min(3,Math.max(0,outsCount)):0;
+ // The runner's original batting square owns the out when he is retired later.
+ const runnerOutEvent=runnerId&&!isSkipped?allEvents.find((e:any)=>Number(e.sequence)>=Number(last.sequence)&&(e.kind==='plateAppearance'||e.kind==='runner')&&(e.runners||[]).some((r:any)=>r.playerId===runnerId&&r.isOut)):null;
+ const runnerOutAdvance=runnerOutEvent?(runnerOutEvent as any).runners.find((r:any)=>r.playerId===runnerId&&r.isOut):null;
+ const runnerOutOrdinal=runnerOutEvent?Math.min(3,allEvents.filter((e:any)=>(e.kind==='plateAppearance'||e.kind==='runner')&&e.inning===runnerOutEvent.inning&&e.half===runnerOutEvent.half&&e.battingTeamId===runnerOutEvent.battingTeamId&&Number(e.sequence)<Number(runnerOutEvent.sequence)).reduce((n:number,e:any)=>n+(Number(e.outsOnPlay)||0),0)+1):0;
+ const batterOutOrdinal=batterOut?Math.min(3,Math.max(0,outsCount)):0;
+ const outNumber=batterOutOrdinal||runnerOutOrdinal;
  // Active plate appearances must never inherit the previous batter's spray.
  const spray=landing??(last?.spray?.landing??null);
  const sprayOutcome=previewResult==='ROE'?'error':(landing?'hit':last?.spray?.outcome)||(['OUT','K','SAC','SF'].includes(selected)?'out':selected==='ROE'?'error':'hit');
@@ -163,8 +168,11 @@ function ScoreSquare({plays,allEvents=[],active,finalized=false,large=false,comp
   <Circle cx={288} cy={408} r={38} stroke="#b8b8b8" strokeWidth={2} fill="white"/>
   <Polygon points="282,393 294,393 294,404 288,411 282,404" fill="black"/>
   {Array.from({length:Math.min(4,highest)},(_,i)=>{const [x,y]=BASES[i],[xx,yy]=BASES[(i+1)%4];return <Line key={'runner'+i} x1={x} y1={y} x2={xx} y2={yy} stroke="#222" strokeWidth={5} strokeLinecap="round"/>;})}
+  {/* When this runner is retired attempting the next base, draw HALF the segment
+      and cap its endpoint perpendicular to the baseline. Never draw to that base. */}
+  {runnerOutAdvance&&runnerOutAdvance.from>0&&runnerOutAdvance.from<4?(()=>{const from=BASES[runnerOutAdvance.from],to=BASES[(runnerOutAdvance.from+1)%4];const dx=to[0]-from[0],dy=to[1]-from[1],len=Math.hypot(dx,dy)||1;const mx=from[0]+dx*.5,my=from[1]+dy*.5;return <G><Line x1={from[0]} y1={from[1]} x2={mx} y2={my} stroke="#222" strokeWidth={5} strokeLinecap="round"/><Line x1={mx-dy/len*13} y1={my+dx/len*13} x2={mx+dy/len*13} y2={my-dx/len*13} stroke="#222" strokeWidth={5} strokeLinecap="round"/></G>;})():null}
   {/* Traditional perpendicular stop bar at the final safely reached base. */}
-  {highest>0&&highest<4&&!scored?(()=>{const from=BASES[highest-1],to=BASES[highest%4];const dx=to[0]-from[0],dy=to[1]-from[1],len=Math.hypot(dx,dy)||1;return <Line x1={to[0]-dy/len*12} y1={to[1]+dx/len*12} x2={to[0]+dy/len*12} y2={to[1]-dx/len*12} stroke="#222" strokeWidth={5} strokeLinecap="round"/>;})():null}
+  {highest>0&&highest<4&&!scored&&!runnerOutAdvance?(()=>{const from=BASES[highest-1],to=BASES[highest%4];const dx=to[0]-from[0],dy=to[1]-from[1],len=Math.hypot(dx,dy)||1;return <Line x1={to[0]-dy/len*12} y1={to[1]+dx/len*12} x2={to[0]+dy/len*12} y2={to[1]-dx/len*12} stroke="#222" strokeWidth={5} strokeLinecap="round"/>;})():null}
   {runnerMarkText?<SvgText x={288} y={220} textAnchor="middle" fontSize={29} fontWeight="bold" fill={runnerMarks.includes('CS')?OUT_RED:SCORE_BLUE}>{runnerMarkText}</SvgText>:null}
   {spray?<Path d={sprayShape} fill="none" stroke={sprayColor} strokeWidth={4} strokeDasharray={sprayOutcome==='error'||trajectory==='ground'||last?.notes?.includes('ground')?'10 7':undefined} strokeLinecap="round"/>:null}
   {spray?<Circle cx={endX} cy={endY} r={6} fill={sprayColor}/>:null}
@@ -175,7 +183,7 @@ function ScoreSquare({plays,allEvents=[],active,finalized=false,large=false,comp
   {isK?<SvgText fontFamily="Arial" x={288} y={353} textAnchor="middle" fontSize={105} fontWeight="600" fill="#333" transform={looking?'translate(576 0) scale(-1 1)':undefined}>K</SvgText>:notation?<SvgText fontFamily="Arial" x={288} y={345} textAnchor="middle" fontSize={notation.length>4?35:48} fontWeight="600" fill={isSkipped||last?.result==='OUT'?OUT_RED:'#173b57'}>{notation}</SvgText>:null}
   {[[48,483],[107,483],[166,483]].map(([x,y],i)=><Circle key={'ball'+i} cx={x} cy={y} r={24} stroke={SCORE_BLUE} strokeWidth={3.5} fill={i<balls?RUN_GREEN:'white'}/>)}
   {[[48,540],[107,540]].map(([x,y],i)=><Circle key={'strike'+i} cx={x} cy={y} r={24} stroke={SCORE_BLUE} strokeWidth={3.5} fill={i<strikes?OUT_RED:'white'}/>)}
-  {[400,469,539].map((x,i)=><G key={'out'+i}><SvgText fontFamily="Arial" x={x} y={545} textAnchor="middle" fontSize={38} fontWeight="bold" fill={SCORE_BLUE}>{i+1}</SvgText>{batterOut&&i+1<=outNumber&&i+1>outNumber-Math.max(1,last?.runners?.filter((r:any)=>r.isOut).length||1)?<Circle cx={x} cy={533} r={25} stroke={OUT_RED} strokeWidth={3.5} fill="none"/>:null}</G>)}
+  {[400,469,539].map((x,i)=><G key={'out'+i}><SvgText fontFamily="Arial" x={x} y={545} textAnchor="middle" fontSize={38} fontWeight="bold" fill={SCORE_BLUE}>{i+1}</SvgText>{(i+1===batterOutOrdinal||i+1===runnerOutOrdinal)?<Circle cx={x} cy={533} r={25} stroke={OUT_RED} strokeWidth={3.5} fill="none"/>:null}</G>)}
  </Svg>;
   function tapSquare(e:any){
    // On react-native-web, nativeEvent.locationX/Y can be undefined or relative
