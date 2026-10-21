@@ -134,6 +134,8 @@ function ScoreSquare({plays,allEvents=[],active,finalized=false,large=false,comp
  const isSkipped=(last as any)?.specialResult==='SKIP_BATTER';
  // A skipped batter never advances or scores. Do not inherit any prior run by this player.
  const movements=runnerId&&!isSkipped?allEvents.filter((e:any)=>e.sequence>=last.sequence).flatMap((e:any)=>e.runners||[]).filter((r:any)=>r.playerId===runnerId):[];
+ const runnerMarks=!isSkipped&&runnerId?allEvents.filter((e:any)=>Number(e.sequence)>=Number(last.sequence)&&e.kind==='runner'&&((e.runners||[]).some((r:any)=>r.playerId===runnerId)||(e.runnerDetails||[]).some((r:any)=>r.playerId===runnerId))).map((e:any)=>String(e.action||'').toUpperCase()).filter((a:string)=>['SB','STOLEN_BASE','STOLENBASE','CS','CAUGHT_STEALING'].includes(a)).map((a:string)=>a.startsWith('S')?'SB':'CS'):[];
+ const runnerMarkText=Array.from(new Set(runnerMarks)).join(' / ');
  const scored=!isSkipped&&movements.some((r:any)=>r.to===4&&!r.isOut);
  let highest=0;
  for(const m of movements)if(!m.isOut)highest=Math.max(highest,m.to);
@@ -161,6 +163,9 @@ function ScoreSquare({plays,allEvents=[],active,finalized=false,large=false,comp
   <Circle cx={288} cy={408} r={38} stroke="#b8b8b8" strokeWidth={2} fill="white"/>
   <Polygon points="282,393 294,393 294,404 288,411 282,404" fill="black"/>
   {Array.from({length:Math.min(4,highest)},(_,i)=>{const [x,y]=BASES[i],[xx,yy]=BASES[(i+1)%4];return <Line key={'runner'+i} x1={x} y1={y} x2={xx} y2={yy} stroke="#222" strokeWidth={5} strokeLinecap="round"/>;})}
+  {/* Traditional perpendicular stop bar at the final safely reached base. */}
+  {highest>0&&highest<4&&!scored?(()=>{const from=BASES[highest-1],to=BASES[highest%4];const dx=to[0]-from[0],dy=to[1]-from[1],len=Math.hypot(dx,dy)||1;return <Line x1={to[0]-dy/len*12} y1={to[1]+dx/len*12} x2={to[0]+dy/len*12} y2={to[1]-dx/len*12} stroke="#222" strokeWidth={5} strokeLinecap="round"/>;})():null}
+  {runnerMarkText?<SvgText x={288} y={220} textAnchor="middle" fontSize={29} fontWeight="bold" fill={runnerMarks.includes('CS')?OUT_RED:SCORE_BLUE}>{runnerMarkText}</SvgText>:null}
   {spray?<Path d={sprayShape} fill="none" stroke={sprayColor} strokeWidth={4} strokeDasharray={sprayOutcome==='error'||trajectory==='ground'||last?.notes?.includes('ground')?'10 7':undefined} strokeLinecap="round"/>:null}
   {spray?<Circle cx={endX} cy={endY} r={6} fill={sprayColor}/>:null}
   {ABBRS.map(([name,x,y])=><G key={name}>
