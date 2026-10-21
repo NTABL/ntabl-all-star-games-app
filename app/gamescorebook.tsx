@@ -183,7 +183,7 @@ function ScoreSquare({plays,allEvents=[],active,finalized=false,large=false,comp
   {isK?<SvgText fontFamily="Arial" x={288} y={353} textAnchor="middle" fontSize={105} fontWeight="600" fill="#333" transform={looking?'translate(576 0) scale(-1 1)':undefined}>K</SvgText>:notation?<SvgText fontFamily="Arial" x={288} y={345} textAnchor="middle" fontSize={notation.length>4?35:48} fontWeight="600" fill={isSkipped||last?.result==='OUT'?OUT_RED:'#173b57'}>{notation}</SvgText>:null}
   {[[48,483],[107,483],[166,483]].map(([x,y],i)=><Circle key={'ball'+i} cx={x} cy={y} r={24} stroke={SCORE_BLUE} strokeWidth={3.5} fill={i<balls?RUN_GREEN:'white'}/>)}
   {[[48,540],[107,540]].map(([x,y],i)=><Circle key={'strike'+i} cx={x} cy={y} r={24} stroke={SCORE_BLUE} strokeWidth={3.5} fill={i<strikes?OUT_RED:'white'}/>)}
-  {[400,469,539].map((x,i)=><G key={'out'+i}><SvgText fontFamily="Arial" x={x} y={545} textAnchor="middle" fontSize={38} fontWeight="bold" fill={SCORE_BLUE}>{i+1}</SvgText>{(i+1===batterOutOrdinal||i+1===runnerOutOrdinal)?<Circle cx={x} cy={533} r={25} stroke={OUT_RED} strokeWidth={3.5} fill="none"/>:null}</G>)}
+  {[400,469,539].map((x,i)=><G key={'out'+i}><SvgText fontFamily="Arial" x={x} y={545} textAnchor="middle" fontSize={38} fontWeight="bold" fill={SCORE_BLUE}>{i+1}</SvgText>{(i+1===(batterOutOrdinal||runnerOutOrdinal))?<Circle cx={x} cy={533} r={25} stroke={OUT_RED} strokeWidth={3.5} fill="none"/>:null}</G>)}
  </Svg>;
   function tapSquare(e:any){
    // On react-native-web, nativeEvent.locationX/Y can be undefined or relative
