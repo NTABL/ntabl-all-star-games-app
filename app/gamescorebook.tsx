@@ -292,12 +292,6 @@ export default function GameScorebook(){
  const [gameSummaryOpen,setGameSummaryOpen]=useState(false);
  const [postgameOpen,setPostgameOpen]=useState(false);
  const [postgameAfterConfirm,setPostgameAfterConfirm]=useState(false);
- useEffect(()=>{
-  if(!postgameAfterConfirm||confirmAction!==null)return;
-  // Wait for the confirmation modal's closing animation before showing postgame.
-  const timer=setTimeout(()=>{setPostgameAfterConfirm(false);setPostgameOpen(true);},350);
-  return ()=>clearTimeout(timer);
- },[postgameAfterConfirm,confirmAction]);
  const [postgameWin,setPostgameWin]=useState('');
  const [postgameLoss,setPostgameLoss]=useState('');
  const [postgameSave,setPostgameSave]=useState('');
@@ -344,6 +338,12 @@ export default function GameScorebook(){
  const [startHelpOpen,setStartHelpOpen]=useState(false);
  const startHelpShown=useRef(false);
  const [confirmAction,setConfirmAction]=useState<null|'start'|'end'|'edit'|'reset'>(null);
+ useEffect(()=>{
+  if(!postgameAfterConfirm||confirmAction!==null)return;
+  // Wait for the confirmation modal's closing animation before showing postgame.
+  const timer=setTimeout(()=>{setPostgameAfterConfirm(false);setPostgameOpen(true);},350);
+  return ()=>clearTimeout(timer);
+ },[postgameAfterConfirm,confirmAction]);
  const [confirmBusy,setConfirmBusy]=useState(false);
  const [resetPhrase,setResetPhrase]=useState('');
  const [swapOpen,setSwapOpen]=useState(false);
