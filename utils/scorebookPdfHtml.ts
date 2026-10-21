@@ -10,7 +10,7 @@ export function buildTraditionalScorebookHtml(doc:any, battingStats:(pid:string,
  const playerName=(id:any)=>playerList.find((p:any)=>p.player?.id===id)?.player?.name||'';
  const isHit=(e:any)=>['1B','2B','3B','HR'].includes(e.result);
  const scoreEvents=events.filter(e=>e.kind==='plateAppearance'||e.kind==='runner');
- const teamRuns=(id:string,inning?:number)=>scoreEvents.filter(e=>e.battingTeamId===id&&(inning===undefined||Number(e.inning)===inning)).reduce((n,e)=>n+(Number(e.runsOnPlay)||0),0);
+ const teamRuns=(id:string,inning?:number)=>scoreEvents.filter(e=>e.battingTeamId===id&&(inning===undefined||Number(e.inning)===inning)).reduce((n,e)=>n+(Number(e.runsOnPlay)||0),0)+(inning===undefined?((doc as any).scoreAdjustments||[]).reduce((n:number,a:any)=>n+(Number(id===doc.awayTeamId?a.away:a.home)||0),0):0);
  const hitCount=(id:string,inning?:number)=>pa.filter(e=>e.battingTeamId===id&&(inning===undefined||Number(e.inning)===inning)&&isHit(e)).length;
  const runnerHistory=(pid:string,seq:number)=>events.filter(e=>Number(e.sequence)>=seq).flatMap(e=>e.runners||[]).filter((r:any)=>r.playerId===pid);
  const readableReason=(v:any)=>String(v||'').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/[_-]/g,' ').trim();

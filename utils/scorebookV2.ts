@@ -33,6 +33,9 @@ export function replayV2(doc:ScorebookV2Document):V2State{
   }
   turn();
  }
+ const adjustments=((doc as any).scoreAdjustments||[]) as {away?:number;home?:number}[];
+ s.awayRuns+=adjustments.reduce((n,a)=>n+(Number(a.away)||0),0);
+ s.homeRuns+=adjustments.reduce((n,a)=>n+(Number(a.home)||0),0);
  return s;
 }
 export function makePitch(doc:ScorebookV2Document,pitch:PitchKind):ScorebookV2Event{
