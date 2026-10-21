@@ -601,7 +601,7 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
     (play as any).specialResult='SKIP_BATTER';
     play.notes=countAsOut?'Batter skipped — charged one out':'Batter skipped — no out charged';
     await commit({...d,events:[...d.events,play]});
-    setSkipConfirmOpen(false);setMiscOpen(false);setMenu(null);setScoreOpen(false);
+    setSkipConfirmOpen(false);setMiscOpen(false);setMenu(null);setScoreOpen(true);
    }catch(e:any){Alert.alert('Skip Batter',e?.message||'Unable to skip batter.');}
   }
  async function selectedRunnerAction(action:string){
@@ -806,6 +806,8 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
    const w=(globalThis as any).window?.open('','_blank');
    if(!w){setPostgameError('Allow pop-ups for NTABL, then try again.');return;}
    w.document.open();w.document.write(html.replace('<\\/script>','</script>'));w.document.close();
+   // Automatically offer the browser print dialog; choose Save as PDF.
+   w.addEventListener('load',()=>{w.focus();w.print();},{once:true});
    return;
   }
   try{
@@ -1392,7 +1394,7 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
       <View style={{flexDirection:'row',gap:8}}>{(['away','home'] as const).map(t=><Pressable key={t} onPress={()=>{setBoxScoreSide(t);setBoxScoreOpen(true);}} style={[styles.button,{flex:1,backgroundColor:INK}]}><Text style={[styles.white,{fontSize:12,textAlign:'center'}]}>{t==='away'?'Visiting':'Home'} {doc.ownerTeamId===(t==='away'?doc.awayTeamId:doc.homeTeamId)?'Team Stats':'Stats (Reference)'}</Text></Pressable>)}</View>
       <Pressable onPress={()=>{setGameSummaryOpen(true);}} style={[styles.button,{backgroundColor:'#334155'}]}><Text style={styles.white}>Full Game Summary</Text></Pressable>
       <Text style={styles.muted}>Individual batting lines are available under Team Stats. Pitching totals remain preliminary until every pitch is assigned to a pitcher.</Text>
-      <View style={[styles.paper,{gap:8}]}><Text style={styles.heading}>Scorebook PDF</Text><Text style={styles.muted}>Generate a printable scorebook with each team's batting grid and a game summary. On the web, choose Save as PDF in the print dialog. On iPhone or Android, use the native share sheet to save or share the generated PDF. Traditional diamond rendering is still being developed.</Text><Pressable onPress={exportScorebookPdf} style={[styles.button,{backgroundColor:INK,height:44,padding:0,alignItems:'center',justifyContent:'center'}]}><Text style={[styles.white,{textAlign:'center'}]}>Save Traditional Scorebook PDF</Text></Pressable></View>
+      <View style={[styles.paper,{gap:8}]}><Text style={styles.heading}>Download Game Summary</Text><Text style={styles.muted}>Generate a printable scorebook with each team's batting grid and a game summary. On the web, choose Save as PDF in the print dialog. On iPhone or Android, use the native share sheet to save or share the generated PDF. Traditional diamond rendering is still being developed.</Text><Pressable onPress={exportScorebookPdf} style={[styles.button,{backgroundColor:INK,height:44,padding:0,alignItems:'center',justifyContent:'center'}]}><Text style={[styles.white,{textAlign:'center'}]}>Download Game Summary</Text></Pressable></View>
       {postgameError?<Text style={{color:'#b91c1c',fontWeight:'800'}}>{postgameError}</Text>:null}
       <Pressable disabled={confirmBusy} onPress={()=>void finalizePostgame()} style={[styles.button,{backgroundColor:'#15803d',height:44,padding:0,alignItems:'center',justifyContent:'center'}]}><Text style={[styles.white,{textAlign:'center'}]}>{confirmBusy?'Saving…':doc.status==='final'?'Re-finalize Game':'Finalize Game'}</Text></Pressable>
       <Pressable onPress={()=>setPostgameOpen(false)} style={[styles.button,{backgroundColor:'#64748b'}]}><Text style={styles.white}>Return to Scorebook</Text></Pressable>

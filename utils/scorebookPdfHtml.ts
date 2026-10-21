@@ -104,8 +104,23 @@ export function buildTraditionalScorebookHtml(doc:any, battingStats:(pid:string,
   const sprayLine=spray?`<i class="sprayline" style="width:${sprayLength.toFixed(2)}px;transform:rotate(${sprayAngle.toFixed(1)}deg)"></i><i class="spraypoint" style="left:calc(50% + ${dx.toFixed(2)}px);top:calc(54% + ${dy.toFixed(2)}px)"></i>`:'';
   return `<div class="play ${color}">${resultColumns}<div class="fieldlines"><i class="foul foulleft"></i><i class="foul foulright"></i></div><div class="diamond ${scored?'scored':''}${track}"><i class="side side1"></i><i class="side side2"></i><i class="side side3"></i><i class="side side4"></i></div>${sprayLine}<span class="notation">${esc(['1B','2B','3B','HR','BB','IBB','HBP','FC','SF'].includes(String(result))?'':title)}</span>${rbi?`<span class="rbimark">${rbi} RBI</span>`:''}${pitchDots(e)}${out?`<span class="outmark">${outNumber(e)||'O'}</span>`:''}${error?`<span class="errornote">${esc(error)}</span>`:''}</div>`;
  };
- const chunks=(n:number)=>Array.from({length:Math.ceil(n/9)},(_,i)=>Array.from({length:Math.min(9,n-i*9)},(_,j)=>i*9+j+1));
- const teamPage=(team:any,inns:number[],pageNo:number)=>{
+ // Allocate a distinct column for each pass through the batting order in an inning.
+ // The next inning must never be displaced into a continuation of the previous one.
+ type InningColumn={inning:number;pass:number};
+ const inningColumns=(team:any):InningColumn[]=>{
+  const slots=team.slots||[];
+  const cols:InningColumn[]=[];
+  for(let inning=1;inning<=maxInn;inning++){
+   const maxPass=Math.max(1,...slots.map((slot:any)=>{
+    const ids=new Set((slot.appearances||[]).map((a:any)=>a.player?.id));
+    return pa.filter(e=>e.battingTeamId===team.teamId&&Number(e.inning)===inning&&ids.has(e.playerId)).length;
+   }));
+   for(let pass=0;pass<maxPass;pass++)cols.push({inning,pass});
+  }
+  return cols;
+ };
+ const chunks=(cols:InningColumn[])=>Array.from({length:Math.ceil(cols.length/9)},(_,i)=>cols.slice(i*9,(i+1)*9));
+ const teamPage=(team:any,cols:InningColumn[],pageNo:number)=>{
   const slots=team.slots||[];
   const rows=slots.map((slot:any,index:number)=>{
    const appearances=slot.appearances||[];
@@ -113,17 +128,17 @@ export function buildTraditionalScorebookHtml(doc:any, battingStats:(pid:string,
    const playerIds=new Set(appearances.map((a:any)=>a.player?.id));
    const entries=pa.filter(e=>e.battingTeamId===team.teamId&&playerIds.has(e.playerId));
    const nameLines=appearances.map((a:any,j:number)=>`<div class="person">${esc(a.player?.jerseyNumber||'')} ${esc(a.player?.name||'')}${j?'<span class="subtag">SUB</span>':''}</div>`).join('');
-   const cells=inns.map(inn=>{
-    const plays=entries.filter(e=>Number(e.inning)===inn);
-    // Preserve multiple PAs in the same inning rather than overwriting one.
-    return `<td class="scorecell">${plays.length?plays.map(renderCell).join(''):'<div class="empty"><div class="emptydiamond"></div><span class="pitchdots"><span class="dotrow"><i class="dot"></i><i class="dot"></i><i class="dot"></i></span><span class="dotrow"><i class="dot"></i><i class="dot"></i></span></span></div>'}</td>`;
+   const cells=cols.map(({inning,pass})=>{
+    const plays=entries.filter(e=>Number(e.inning)===inning);
+    const play=plays[pass];
+    return `<td class="scorecell">${play?renderCell(play):'<div class="empty"><div class="emptydiamond"></div><span class="pitchdots"><span class="dotrow"><i class="dot"></i><i class="dot"></i><i class="dot"></i></span><span class="dotrow"><i class="dot"></i><i class="dot"></i></span></span></div>'}</td>`;
    }).join('');
    return `<tr><td class="order">${index+1}</td><td class="name">${nameLines}</td><td class="pos">${esc(current?.position||'—')}</td><td class="entered">${esc(appearances[0]?.enteredAtEvent===0?'1':appearances[0]?.enteredAtEvent??'')}</td>${cells}</tr>`;
   }).join('');
-  const foot=inns.map(inn=>`<td>${teamRuns(team.teamId,inn)} / ${hitCount(team.teamId,inn)}</td>`).join('');
-  return `<section class="sheet"><div class="game">${esc(doc.away.teamName)} at ${esc(doc.home.teamName)} <span>NTABL · ${doc.status==='final'?'FINAL':'IN PROGRESS'}</span></div><div class="heading"><div class="team">${esc(team.teamName)}</div><div class="summary"><div>RUNS <strong>${teamRuns(team.teamId)}</strong></div><div>HITS <strong>${hitCount(team.teamId)}</strong></div></div></div><table class="book"><colgroup><col style="width:3%"><col style="width:14%"><col style="width:3%"><col style="width:3%">${inns.map(()=>`<col style="width:${77/inns.length}%">`).join('')}</colgroup><thead><tr><th>#</th><th>PLAYER</th><th>POS</th><th>INN</th>${inns.map(n=>`<th>${n}</th>`).join('')}</tr></thead><tbody>${rows}</tbody><tfoot><tr><th colspan="4">RUNS / HITS</th>${foot}</tr></tfoot></table><div class="footer">NTABL SCOREBOOK · ${esc(team.teamName)} · ${pageNo>1?'CONTINUED · ':''}Owner: ${esc(doc.ownerTeamId===doc.awayTeamId?doc.away.teamName:doc.home.teamName)}</div></section>`;
+  const foot=cols.map(({inning,pass})=>`<td>${pass===0?`${teamRuns(team.teamId,inning)} / ${hitCount(team.teamId,inning)}`:'—'}</td>`).join('');
+  return `<section class="sheet"><div class="game">${esc(doc.away.teamName)} at ${esc(doc.home.teamName)} <span>NTABL · ${doc.status==='final'?'FINAL':'IN PROGRESS'}</span></div><div class="heading"><div class="team">${esc(team.teamName)}</div><div class="summary"><div>RUNS <strong>${teamRuns(team.teamId)}</strong></div><div>HITS <strong>${hitCount(team.teamId)}</strong></div></div></div><table class="book"><colgroup><col style="width:3%"><col style="width:14%"><col style="width:3%"><col style="width:3%">${cols.map(()=>`<col style="width:${77/cols.length}%">`).join('')}</colgroup><thead><tr><th>#</th><th>PLAYER</th><th>POS</th><th>INN</th>${cols.map(({inning,pass})=>`<th>${inning}${pass?` (cont. ${pass+1})`:''}</th>`).join('')}</tr></thead><tbody>${rows}</tbody><tfoot><tr><th colspan="4">RUNS / HITS</th>${foot}</tr></tfoot></table><div class="footer">NTABL SCOREBOOK · ${esc(team.teamName)} · ${pageNo>1?'CONTINUED · ':''}Owner: ${esc(doc.ownerTeamId===doc.awayTeamId?doc.away.teamName:doc.home.teamName)}</div></section>`;
  };
- const sheets=[doc.away,doc.home].flatMap((t:any)=>chunks(maxInn).map((inns,i)=>teamPage(t,inns,i+1)));
+ const sheets=[doc.away,doc.home].flatMap((t:any)=>chunks(inningColumns(t)).map((cols,i)=>teamPage(t,cols,i+1)));
  const named=(id?:string)=>id?playerName(id)||'Unidentified':'Not selected';
  const decisionRows=events.filter(e=>['plateAppearance','runner','lineupChange'].includes(e.kind)).map(e=>{
   const rbi=e.kind==='plateAppearance'&&Number.isFinite(Number(e.rbis))?Number(e.rbis):null;
