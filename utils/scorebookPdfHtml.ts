@@ -111,7 +111,7 @@ export function buildTraditionalScorebookHtml(doc:any, battingStats:(pid:string,
  const inningColumns=(team:any):InningColumn[]=>{
   const slots=team.slots||[];
   const cols:InningColumn[]=[];
-  for(let inning=1;inning<=maxInn;inning++){
+  for(let inning=1;inning<=Math.max(9,maxInn);inning++){
    const maxPass=Math.max(1,...slots.map((slot:any)=>{
     const ids=new Set((slot.appearances||[]).map((a:any)=>a.player?.id));
     return pa.filter(e=>e.battingTeamId===team.teamId&&Number(e.inning)===inning&&ids.has(e.playerId)).length;
@@ -120,7 +120,16 @@ export function buildTraditionalScorebookHtml(doc:any, battingStats:(pid:string,
   }
   return cols;
  };
- const chunks=(cols:InningColumn[])=>Array.from({length:Math.ceil(cols.length/10)},(_,i)=>cols.slice(i*10,(i+1)*10));
+ // Traditional paper-scorebook layout: always print nine fixed-width inning
+ // boxes per sheet, including unused innings. Batting-around passes get their
+ // own boxes and shift later innings to the right; continuation pages are also
+ // padded to nine boxes rather than stretching the final column.
+ const PAGE_COLUMNS=9;
+ const chunks=(cols:InningColumn[])=>Array.from({length:Math.ceil(cols.length/PAGE_COLUMNS)},(_,i)=>{
+  const page=cols.slice(i*PAGE_COLUMNS,(i+1)*PAGE_COLUMNS);
+  while(page.length<PAGE_COLUMNS)page.push({inning:0,pass:0});
+  return page;
+ });
  const teamPage=(team:any,cols:InningColumn[],pageNo:number)=>{
   const slots=team.slots||[];
   const rows=slots.map((slot:any,index:number)=>{
@@ -141,8 +150,8 @@ export function buildTraditionalScorebookHtml(doc:any, battingStats:(pid:string,
    }).join('');
    return `<tr><td class="order">${index+1}</td><td class="name">${nameLines}</td><td class="pos">${esc(current?.position||'—')}</td><td class="entered">${esc(appearances[0]?.enteredAtEvent===0?'1':appearances[0]?.enteredAtEvent??'')}</td>${cells}</tr>`;
   }).join('');
-  const foot=cols.map(({inning,pass})=>`<td>${pass===0?`${teamRuns(team.teamId,inning)} / ${hitCount(team.teamId,inning)}`:'—'}</td>`).join('');
-  return `<section class="sheet"><div class="game">${esc(doc.away.teamName)} at ${esc(doc.home.teamName)} <span>NTABL · ${doc.status==='final'?'FINAL':'IN PROGRESS'}</span></div><div class="heading"><div class="team">${esc(team.teamName)}</div><div class="summary"><div>RUNS <strong>${teamRuns(team.teamId)}</strong></div><div>HITS <strong>${hitCount(team.teamId)}</strong></div></div></div><table class="book"><colgroup><col style="width:3%"><col style="width:14%"><col style="width:3%"><col style="width:3%">${cols.map(()=>`<col style="width:${77/cols.length}%">`).join('')}</colgroup><thead><tr><th>#</th><th>PLAYER</th><th>POS</th><th>INN</th>${cols.map(({inning,pass})=>`<th>${inning}</th>`).join('')}</tr></thead><tbody>${rows}</tbody><tfoot><tr><th colspan="4">RUNS / HITS</th>${foot}</tr></tfoot></table><div class="footer">NTABL SCOREBOOK · ${esc(team.teamName)} · ${pageNo>1?'CONTINUED · ':''}Owner: ${esc(doc.ownerTeamId===doc.awayTeamId?doc.away.teamName:doc.home.teamName)}</div></section>`;
+  const foot=cols.map(({inning,pass})=>`<td>${inning>0&&pass===0?`${teamRuns(team.teamId,inning)} / ${hitCount(team.teamId,inning)}`:'—'}</td>`).join('');
+  return `<section class="sheet"><div class="game">${esc(doc.away.teamName)} at ${esc(doc.home.teamName)} <span>NTABL · ${doc.status==='final'?'FINAL':'IN PROGRESS'}</span></div><div class="heading"><div class="team">${esc(team.teamName)}</div><div class="summary"><div>RUNS <strong>${teamRuns(team.teamId)}</strong></div><div>HITS <strong>${hitCount(team.teamId)}</strong></div></div></div><table class="book"><colgroup><col style="width:3%"><col style="width:14%"><col style="width:3%"><col style="width:3%">${cols.map(()=>`<col style="width:${77/PAGE_COLUMNS}%">`).join('')}</colgroup><thead><tr><th>#</th><th>PLAYER</th><th>POS</th><th>INN</th>${cols.map(({inning})=>`<th>${inning||''}</th>`).join('')}</tr></thead><tbody>${rows}</tbody><tfoot><tr><th colspan="4">RUNS / HITS</th>${foot}</tr></tfoot></table><div class="footer">NTABL SCOREBOOK · ${esc(team.teamName)} · ${pageNo>1?'CONTINUED · ':''}Owner: ${esc(doc.ownerTeamId===doc.awayTeamId?doc.away.teamName:doc.home.teamName)}</div></section>`;
  };
  const sheets=[doc.away,doc.home].flatMap((t:any)=>chunks(inningColumns(t)).map((cols,i)=>teamPage(t,cols,i+1)));
  const named=(id?:string)=>id?playerName(id)||'Unidentified':'Not selected';
