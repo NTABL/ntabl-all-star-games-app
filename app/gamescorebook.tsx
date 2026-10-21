@@ -291,6 +291,13 @@ export default function GameScorebook(){
  const [boxScoreSide,setBoxScoreSide]=useState<'away'|'home'>('away');
  const [gameSummaryOpen,setGameSummaryOpen]=useState(false);
  const [postgameOpen,setPostgameOpen]=useState(false);
+ const [postgameAfterConfirm,setPostgameAfterConfirm]=useState(false);
+ useEffect(()=>{
+  if(!postgameAfterConfirm||confirmAction!==null)return;
+  // Wait for the confirmation modal's closing animation before showing postgame.
+  const timer=setTimeout(()=>{setPostgameAfterConfirm(false);setPostgameOpen(true);},350);
+  return ()=>clearTimeout(timer);
+ },[postgameAfterConfirm,confirmAction]);
  const [postgameWin,setPostgameWin]=useState('');
  const [postgameLoss,setPostgameLoss]=useState('');
  const [postgameSave,setPostgameSave]=useState('');
@@ -494,10 +501,9 @@ export default function GameScorebook(){
      if(previousState && previousState.inning>=((next as any).scheduledInnings===9?9:7) &&
         ((previousState.half==='top'&&state.half==='bottom'&&state.homeRuns>state.awayRuns)||
          (previousState.half==='bottom'&&state.half==='top'&&state.inning>previousState.inning&&state.homeRuns!==state.awayRuns))){
-       Alert.alert('End Game?', `The scheduled ${((next as any).scheduledInnings===9?9:7)} innings are complete, or the home team is ahead after the top of the final inning. End the game or continue playing?`, [
-        {text:'Continue Game',style:'cancel'},
-        {text:'End Game',onPress:()=>setConfirmAction('end')}
-       ]);
+       // Use the same End Game confirmation as Options, not a native alert stacked over a modal.
+       setSideChangePending(false);
+       setConfirmAction('end');
      }else{
      setSideChangePending(true);
      sideChangeTimer.current=setTimeout(()=>{
@@ -777,7 +783,7 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
      }
      setSide('away');setInning(1);setSelectedId(null);setSelectedEntry('');setMenu(null);setPreviewResult(null);setLanding(null);setScoreOpen(true);}
    }
-   else if(action==='end'){setPostgameError('');setPostgameOpen(true);}
+   else if(action==='end'){setPostgameError('');setPostgameAfterConfirm(true);}
    else if(action==='edit')await commit({...d,status:'inProgress',editHistory:[...(d.editHistory||[]),{at:new Date().toISOString(),description:'Reopened final game for editing'}]});
    setConfirmAction(null);setResetPhrase('');
   }catch(e:any){setGameActionError(e?.message||'Please try again.');}

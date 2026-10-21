@@ -5,7 +5,7 @@ export function buildTraditionalScorebookHtml(doc:any, battingStats:(pid:string,
  const esc=(v:any)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'} as any)[c]);
  const events:any[]=Array.isArray(doc.events)?doc.events:[];
  const pa=events.filter(e=>e.kind==='plateAppearance'&&e.specialResult!=='SKIP_BATTER');
- const maxInn=Math.max(9,...pa.map(e=>Number(e.inning)||1));
+ const maxInn=Math.max(1,...pa.map(e=>Number(e.inning)||1));
  const playerList=[doc.away,doc.home].flatMap((t:any)=>(t?.slots||[]).flatMap((s:any)=>s.appearances||[]));
  const playerName=(id:any)=>playerList.find((p:any)=>p.player?.id===id)?.player?.name||'';
  const isHit=(e:any)=>['1B','2B','3B','HR'].includes(e.result);
@@ -47,7 +47,7 @@ export function buildTraditionalScorebookHtml(doc:any, battingStats:(pid:string,
  const outNumber=(e:any)=>{
   if(e.outNumber!==undefined&&e.outNumber!==null)return Number(e.outNumber);
   if(e.outsAfter!==undefined&&e.outsAfter!==null)return Number(e.outsAfter);
-  const prior=events.filter(x=>Number(x.sequence)<=Number(e.sequence)&&x.half===e.half&&Number(x.inning)===Number(e.inning));
+  const prior=events.filter(x=>Number(x.sequence)<=Number(e.sequence)&&x.half===e.half&&Number(x.inning)===Number(e.inning)&&x.battingTeamId===e.battingTeamId);
   const n=prior.reduce((total,x)=>total+(Number(x.outsOnPlay)||0),0);
   return n>0&&n<=3?n:null;
  };
@@ -71,7 +71,8 @@ export function buildTraditionalScorebookHtml(doc:any, battingStats:(pid:string,
  const renderCell=(e:any)=>{
   const seq=Number(e.sequence)||0;
   const advances=runnerHistory(e.playerId,seq);
-  const out=advances.some((r:any)=>r.isOut);
+  // Circle an out only when THIS recorded play makes an out, not when this runner is retired later.
+   const out=(Number(e.outsOnPlay)||0)>0;
   const scored=advances.some((r:any)=>Number(r.to)===4&&!r.isOut);
   const maxBase=Math.max(0,...advances.filter((r:any)=>!r.isOut).map((r:any)=>Number(r.to)||0));
   const first=e.runners?.find((r:any)=>r.playerId===e.playerId);
@@ -119,7 +120,7 @@ export function buildTraditionalScorebookHtml(doc:any, battingStats:(pid:string,
   }
   return cols;
  };
- const chunks=(cols:InningColumn[])=>Array.from({length:Math.ceil(cols.length/9)},(_,i)=>cols.slice(i*9,(i+1)*9));
+ const chunks=(cols:InningColumn[])=>Array.from({length:Math.ceil(cols.length/10)},(_,i)=>cols.slice(i*10,(i+1)*10));
  const teamPage=(team:any,cols:InningColumn[],pageNo:number)=>{
   const slots=team.slots||[];
   const rows=slots.map((slot:any,index:number)=>{
