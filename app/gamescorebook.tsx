@@ -292,6 +292,7 @@ export default function GameScorebook(){
  const [gameSummaryOpen,setGameSummaryOpen]=useState(false);
  const [postgameOpen,setPostgameOpen]=useState(false);
  const [postgameAfterConfirm,setPostgameAfterConfirm]=useState(false);
+ const [editAfterPostgame,setEditAfterPostgame]=useState(false);
  const [postgameWin,setPostgameWin]=useState('');
  const [postgameLoss,setPostgameLoss]=useState('');
  const [postgameSave,setPostgameSave]=useState('');
@@ -344,6 +345,11 @@ export default function GameScorebook(){
   const timer=setTimeout(()=>{setPostgameAfterConfirm(false);setPostgameOpen(true);},350);
   return ()=>clearTimeout(timer);
  },[postgameAfterConfirm,confirmAction]);
+ useEffect(()=>{
+  if(!editAfterPostgame||postgameOpen)return;
+  const timer=setTimeout(()=>{setEditAfterPostgame(false);setConfirmAction('edit');},350);
+  return ()=>clearTimeout(timer);
+ },[editAfterPostgame,postgameOpen]);
  const [confirmBusy,setConfirmBusy]=useState(false);
  const [resetPhrase,setResetPhrase]=useState('');
  const [swapOpen,setSwapOpen]=useState(false);
@@ -762,7 +768,15 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
   }catch(e:any){setGameActionError(e?.message||'Could not swap teams.');setSwapOpen(false);}
   finally{setSwapBusy(false);}
  }
- function changeStatus(){const d=docRef.current;if(!d)return;setConfirmAction(d.status==='draft'?'start':d.status==='inProgress'?'end':'edit');}
+ function changeStatus(){
+  const d=docRef.current;if(!d)return;
+  setOptionsOpen(false);
+  if(d.status==='final'&&postgameOpen){
+   // Dismiss the full-screen summary before presenting the edit confirmation.
+   setPostgameOpen(false);setEditAfterPostgame(true);return;
+  }
+  setConfirmAction(d.status==='draft'?'start':d.status==='inProgress'?'end':'edit');
+ }
  async function confirmGameAction(){
   const d=docRef.current,action=confirmAction;if(!d||!action||confirmBusy)return;
   setConfirmBusy(true);
@@ -783,7 +797,11 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
      }
      setSide('away');setInning(1);setSelectedId(null);setSelectedEntry('');setMenu(null);setPreviewResult(null);setLanding(null);setScoreOpen(true);}
    }
-   else if(action==='end'){setPostgameError('');setPostgameAfterConfirm(true);}
+   else if(action==='end'){
+    // Both the automatic and Options paths converge here. Never stack modals.
+    setOptionsOpen(false);setScoreOpen(false);setPostgameOpen(false);
+    setPostgameError('');setPostgameAfterConfirm(true);
+   }
    else if(action==='edit')await commit({...d,status:'inProgress',editHistory:[...(d.editHistory||[]),{at:new Date().toISOString(),description:'Reopened final game for editing'}]});
    setConfirmAction(null);setResetPhrase('');
   }catch(e:any){setGameActionError(e?.message||'Please try again.');}
@@ -801,7 +819,7 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
    const finalized={...d,status:'final' as const,finalRevision:oldRevision+1,finalizedAt:new Date().toISOString(),pitchingDecisions:{win:postgameWin||null,loss:postgameLoss||null,save:postgameSave||null},editHistory:[...(d.editHistory||[]),{at:new Date().toISOString(),description:`Game finalized (revision ${oldRevision+1})`}]};
    const saved=await commit(finalized as ScorebookV2Document);
    if(!saved)throw new Error('The scorebook could not be saved.');
-   setPostgameOpen(true);setPostgameError('');
+   setConfirmAction(null);setPostgameOpen(true);setPostgameError('');
    setMessage(`${d.ownerTeamId===d.awayTeamId?d.away.teamName:d.home.teamName} scorebook finalized (revision ${oldRevision+1}). The opposing manager's scorebook was not changed.`);
   }catch(e:any){setPostgameError(e?.message||'Could not finalize game.');}
   finally{setConfirmBusy(false);}
@@ -1522,7 +1540,7 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
     </View>
    </Modal>
       <Modal visible={swapOpen} transparent animationType="fade" onRequestClose={()=>{if(!swapBusy)setSwapOpen(false);}}><View style={{flex:1,backgroundColor:'#000a',justifyContent:'center',padding:20}}><View style={{backgroundColor:'white',borderRadius:16,padding:20,gap:15}}><Text style={[styles.heading,{fontSize:21,textAlign:'center'}]}>Confirm Official Home / Visitor</Text><Text style={{color:INK,textAlign:'center',fontSize:15,lineHeight:23}}>Visitor: {doc.home.teamName}{'\n'}Home: {doc.away.teamName}</Text><Text style={[styles.muted,{textAlign:'center',fontSize:13,lineHeight:20}]}>This change will be saved for BOTH managers. Each manager keeps their own scorebook. The opponent must reopen Score Game to see the update. Swapping is blocked once either team has started scoring.</Text><View style={{flexDirection:'row',gap:10}}><Pressable disabled={swapBusy} style={[styles.button,{flex:1,backgroundColor:'#64748b'}]} onPress={()=>setSwapOpen(false)}><Text style={styles.white}>Cancel</Text></Pressable><Pressable disabled={swapBusy} style={[styles.button,{flex:1,backgroundColor:'#1d4ed8'}]} onPress={()=>void confirmSwapHomeAway()}><Text style={styles.white}>{swapBusy?'Saving…':'Save Assignment'}</Text></Pressable></View></View></View></Modal>
-      <Modal visible={!!confirmAction} transparent animationType="fade" onRequestClose={()=>{if(!confirmBusy){setConfirmAction(null);setResetPhrase('');}}}><View style={{flex:1,backgroundColor:'#000b',justifyContent:'center',padding:20}}><View style={{backgroundColor:'white',borderRadius:18,padding:20,gap:14,borderWidth:confirmAction==='reset'?3:2,borderColor:confirmAction==='reset'?'#b91c1c':INK}}><View style={{alignItems:'center',gap:8}}><Ionicons name={confirmAction==='reset'?'warning-outline':confirmAction==='end'?'flag-outline':confirmAction==='start'?'play-circle-outline':'create-outline'} size={48} color={confirmAction==='reset'||confirmAction==='end'?'#b91c1c':INK}/><Text style={[styles.heading,{fontSize:21,textAlign:'center',color:confirmAction==='reset'?'#b91c1c':INK}]}>{confirmAction==='reset'?'WARNING: ALL SCOREBOOK DATA WILL BE ERASED':confirmAction==='end'?'End Game?':confirmAction==='start'?'Start Game?':'Reopen Game for Editing?'}</Text><Text style={[styles.muted,{textAlign:'center',fontSize:14,lineHeight:21}]}>{confirmAction==='reset'?'This permanently clears ALL recorded plays, pitches, innings, runs, outs, substitutions and game statistics from YOUR TEAM’S scorebook for this game. A server archive is retained for recovery by an administrator. The opponent’s scorebook and saved Game Lineup Builder lineups are NOT erased.':confirmAction==='end'?'Open the Postgame Summary to review statistics and pitching decisions before finalizing?':confirmAction==='start'?'Begin scoring this game?':'Reopen this completed game for corrections? This change will be logged locally.'}</Text></View>{confirmAction==='reset'?<View style={{gap:6}}><Text style={{fontWeight:'900',color:'#991b1b',textAlign:'center'}}>Type RESET below to unlock the erase button</Text><TextInput autoCapitalize="characters" autoCorrect={false} value={resetPhrase} onChangeText={setResetPhrase} placeholder="Type RESET" style={[styles.input,{borderWidth:2,borderColor:'#b91c1c',textAlign:'center',fontWeight:'800'}]}/></View>:null}<View style={{flexDirection:'row',gap:10}}><Pressable disabled={confirmBusy} style={[styles.button,{flex:1,backgroundColor:'#64748b',minHeight:56,alignItems:'center',justifyContent:'center'}]} onPress={()=>{setConfirmAction(null);setResetPhrase('');}}><Text style={styles.white}>Cancel</Text></Pressable><Pressable disabled={confirmBusy||(confirmAction==='reset'&&resetPhrase.trim().toUpperCase()!=='RESET')} style={[styles.button,{flex:1,backgroundColor:confirmAction==='reset'||confirmAction==='end'?'#b91c1c':'#15803d',opacity:confirmBusy||(confirmAction==='reset'&&resetPhrase.trim().toUpperCase()!=='RESET')?.35:1,minHeight:56,alignItems:'center',justifyContent:'center'}]} onPress={()=>void confirmGameAction()}><Text style={[styles.white,{textAlign:'center',fontSize:14}]}>{confirmBusy?'Working...':confirmAction==='reset'?'ERASE SCOREBOOK':confirmAction==='end'?'Review Postgame':confirmAction==='start'?'Start Game':'Reopen'}</Text></Pressable></View></View></View></Modal>
+      <Modal visible={!!confirmAction&&!postgameOpen&&!optionsOpen} transparent animationType="fade" onRequestClose={()=>{if(!confirmBusy){setConfirmAction(null);setResetPhrase('');}}}><View style={{flex:1,backgroundColor:'#000b',justifyContent:'center',padding:20}}><View style={{backgroundColor:'white',borderRadius:18,padding:20,gap:14,borderWidth:confirmAction==='reset'?3:2,borderColor:confirmAction==='reset'?'#b91c1c':INK}}><View style={{alignItems:'center',gap:8}}><Ionicons name={confirmAction==='reset'?'warning-outline':confirmAction==='end'?'flag-outline':confirmAction==='start'?'play-circle-outline':'create-outline'} size={48} color={confirmAction==='reset'||confirmAction==='end'?'#b91c1c':INK}/><Text style={[styles.heading,{fontSize:21,textAlign:'center',color:confirmAction==='reset'?'#b91c1c':INK}]}>{confirmAction==='reset'?'WARNING: ALL SCOREBOOK DATA WILL BE ERASED':confirmAction==='end'?'End Game?':confirmAction==='start'?'Start Game?':'Reopen Game for Editing?'}</Text><Text style={[styles.muted,{textAlign:'center',fontSize:14,lineHeight:21}]}>{confirmAction==='reset'?'This permanently clears ALL recorded plays, pitches, innings, runs, outs, substitutions and game statistics from YOUR TEAM’S scorebook for this game. A server archive is retained for recovery by an administrator. The opponent’s scorebook and saved Game Lineup Builder lineups are NOT erased.':confirmAction==='end'?'Open the Postgame Summary to review statistics and pitching decisions before finalizing?':confirmAction==='start'?'Begin scoring this game?':'Reopen this completed game for corrections? This change will be logged locally.'}</Text></View>{confirmAction==='reset'?<View style={{gap:6}}><Text style={{fontWeight:'900',color:'#991b1b',textAlign:'center'}}>Type RESET below to unlock the erase button</Text><TextInput autoCapitalize="characters" autoCorrect={false} value={resetPhrase} onChangeText={setResetPhrase} placeholder="Type RESET" style={[styles.input,{borderWidth:2,borderColor:'#b91c1c',textAlign:'center',fontWeight:'800'}]}/></View>:null}<View style={{flexDirection:'row',gap:10}}><Pressable disabled={confirmBusy} style={[styles.button,{flex:1,backgroundColor:'#64748b',minHeight:56,alignItems:'center',justifyContent:'center'}]} onPress={()=>{setConfirmAction(null);setResetPhrase('');}}><Text style={styles.white}>Cancel</Text></Pressable><Pressable disabled={confirmBusy||(confirmAction==='reset'&&resetPhrase.trim().toUpperCase()!=='RESET')} style={[styles.button,{flex:1,backgroundColor:confirmAction==='reset'||confirmAction==='end'?'#b91c1c':'#15803d',opacity:confirmBusy||(confirmAction==='reset'&&resetPhrase.trim().toUpperCase()!=='RESET')?.35:1,minHeight:56,alignItems:'center',justifyContent:'center'}]} onPress={()=>void confirmGameAction()}><Text style={[styles.white,{textAlign:'center',fontSize:14}]}>{confirmBusy?'Working...':confirmAction==='reset'?'ERASE SCOREBOOK':confirmAction==='end'?'Review Postgame':confirmAction==='start'?'Start Game':'Reopen'}</Text></Pressable></View></View></View></Modal>
       <Modal visible={!!errorFor} transparent animationType="fade" onRequestClose={()=>setErrorFor(null)}><View style={{flex:1,backgroundColor:'#0009',justifyContent:'center',padding:14}}><View style={{backgroundColor:'white',borderRadius:14,padding:12,alignItems:'center',gap:8}}><Text style={styles.heading}>Defensive Error</Text><FieldingDiamond sequence={[]} onSelect={n=>{if(errorFor)setRunnerErrors(v=>({...v,[errorFor]:n}));setErrorFor(null);}}/><Text style={[styles.muted,{textAlign:'center'}]}>Touch the player who made the error.</Text><Pressable style={[styles.chip,{width:'100%'}]} onPress={()=>{setErrorFor(null);}}><Text style={styles.bold}>Cancel</Text></Pressable></View></View></Modal>
  </View>;
 }
