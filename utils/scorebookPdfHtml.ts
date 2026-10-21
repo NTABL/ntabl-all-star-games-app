@@ -247,5 +247,11 @@ export function buildTraditionalScorebookHtml(doc:any, battingStats:(pid:string,
  .outmark{bottom:1px;right:3px}
 
  .stopmark{position:absolute;display:block;width:10px;height:2px;background:#222;z-index:4;transform:rotate(-45deg)}.stop1{right:-5px;top:-1px}.stop2{right:-5px;bottom:-1px;transform:rotate(45deg)}.stop3{left:-5px;bottom:-1px}.runnermark{position:absolute;top:27%;left:50%;transform:translateX(-50%);font-size:8px;font-weight:800;color:#0e5685;z-index:5;background:rgba(255,255,255,.75);padding:0 1px;white-space:nowrap}
+
+/* Preserve pitch count fills when printing to PDF. */
+html,body,.pitchdots .dot{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+.pitchdots .dot.ball{background-color:#289c55!important;border-color:#16763b!important;box-shadow:inset 0 0 0 6px #289c55!important}
+.pitchdots .dot.strike{background-color:#d43b40!important;border-color:#ad222b!important;box-shadow:inset 0 0 0 6px #d43b40!important}
+.pitchdots .dot:not(.ball):not(.strike){background-color:#fff!important;box-shadow:none!important}
 </style></head><body>${sheets.join('')}${decisionSheet}</body></html>`;
 }
