@@ -3,11 +3,13 @@ import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router
 import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { getManagerContext } from "../stores/store";
+import Svg, { Circle, Line, Path, Polygon } from "react-native-svg";
 import { API_BASE } from "../utils/appconfig";
 
 type Stats = { g:number; pa:number; ab:number; h:number; doubles:number; triples:number; hr:number; r:number; rbi:number; bb:number; so:number; hbp:number; sac:number; sb:number; tb:number; avg:number|null; slg:number|null };
 type GameStats = {gameId:string;teamId:string;publishedAt:string|null;stats:Stats};
-type Player = {playerId:string; name:string; stats:Stats; games?:GameStats[]};
+type Player = {playerId:string; personId?:string|null; name:string; stats:Stats; games?:GameStats[]};
+type Spray = {id:string;gameId:string;landing:{x:number;y:number};outcome:"hit"|"out"|"error";homeRun:boolean};
 type SortKey = "name" | keyof Stats;
 const cols: {key:SortKey;label:string;width:number}[] = [
   {key:"name",label:"PLAYER",width:170},{key:"g",label:"G",width:48},{key:"pa",label:"PA",width:48},
@@ -25,6 +27,7 @@ export default function Statistics(){
   const [players,setPlayers]=useState<Player[]>([]),[games,setGames]=useState(0);
   const [loading,setLoading]=useState(true),[error,setError]=useState("");
   const [selectedPlayer,setSelectedPlayer]=useState<string|null>(null),[detailTab,setDetailTab]=useState<"season"|"games">("season");
+  const [sprays,setSprays]=useState<Spray[]>([]),[sprayLoading,setSprayLoading]=useState(false),[sprayError,setSprayError]=useState("");
   const [sort,setSort]=useState<SortKey>("avg"),[descending,setDescending]=useState(true);
   const load=useCallback(async()=>{
     setLoading(true);setError("");
@@ -36,11 +39,13 @@ export default function Statistics(){
       const url=`${API_BASE}/api/scorebook-stats/${enc(programId)}/${enc(teamId)}`;
       const response=await fetch(url,{cache:"no-store",headers:{Authorization:`Bearer ${token}`}});const data=await response.json();
       if(!response.ok||!data.ok)throw new Error(data.message||`Statistics request failed (${response.status}).`);
-      setPlayers(Array.isArray(data.players)?data.players:[]);setGames(Number(data.games)||0);
+      const rows:Player[]=Array.isArray(data.players)?data.players:[];setPlayers(rows);setGames(Number(data.games)||0);
+      const requested=str(p.playerId);if(requested){const found=rows.find(x=>str(x.playerId)===requested||str(x.personId)===requested)||(str(p.playerName)?rows.find(x=>x.name.toLowerCase()===str(p.playerName).toLowerCase()):undefined);if(found)setSelectedPlayer(found.playerId);}
     }catch(e:any){setError(e?.message||"Unable to load statistics.");setPlayers([]);setGames(0);}
     finally{setLoading(false);}
-  },[programId,teamId]);
+  },[programId,teamId,p.playerId,p.playerName]);
   useFocusEffect(useCallback(()=>{void load();},[load]));
+  useFocusEffect(useCallback(()=>{let cancelled=false;setSprays([]);setSprayError("");if(!selectedPlayer)return()=>{cancelled=true;};const player=players.find(x=>x.playerId===selectedPlayer);if(!player)return()=>{cancelled=true;};(async()=>{setSprayLoading(true);try{const manager:any=await getManagerContext();if(str(manager?.programId)!==programId||str(manager?.teamId)!==teamId||!manager?.authToken)throw new Error("Sign in to the selected team to view spray charts.");const url=`${API_BASE}/api/scorebook-sprays/${enc(programId)}/${enc(teamId)}/${enc(str(player.playerId))}?personId=${enc(str(player.personId))}`;const response=await fetch(url,{cache:"no-store",headers:{Authorization:`Bearer ${manager.authToken}`}});const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||"Spray chart request failed.");if(!cancelled)setSprays((Array.isArray(data.items)?data.items:[]).filter((x:any)=>Number.isFinite(Number(x.landing?.x))&&Number.isFinite(Number(x.landing?.y))));}catch(e:any){if(!cancelled)setSprayError(e?.message||"Spray chart unavailable.");}finally{if(!cancelled)setSprayLoading(false);}})();return()=>{cancelled=true;};},[selectedPlayer,players,programId,teamId]));
   const sorted=useMemo(()=>[...players].sort((a,b)=>{
     const av=sort==="name"?a.name.toLowerCase():a.stats?.[sort],bv=sort==="name"?b.name.toLowerCase():b.stats?.[sort];
     if(av==null&&bv!=null)return 1;if(bv==null&&av!=null)return -1;
@@ -62,6 +67,7 @@ export default function Statistics(){
           {sorted.map((p,i)=><View key={p.playerId} style={[s.tableRow,i%2===0?s.even:s.odd]}>{cols.map(c=>c.key==="name"?<Pressable key={c.key} onPress={()=>{setSelectedPlayer(p.playerId);setDetailTab("season");}} style={[s.cell,{width:c.width}]}><Text numberOfLines={1} style={s.player}>{p.name}  ›</Text></Pressable>:<View key={c.key} style={[s.cell,{width:c.width}]}><Text numberOfLines={1} style={s.value}>{fmt(p.stats?.[c.key] as number|null,c.key==="avg"||c.key==="slg")}</Text></View>)}</View>)}
         </View></ScrollView>}
         {selectedPlayer&&(()=>{const player=players.find(p=>p.playerId===selectedPlayer);if(!player)return null;const details=detailTab==="season"?[{gameId:"Season Total",stats:player.stats}]:player.games||[];return <View style={s.details}><View style={s.detailHeader}><Text style={s.detailTitle}>{player.name}</Text><Pressable onPress={()=>setSelectedPlayer(null)}><Text style={s.close}>✕ Close</Text></Pressable></View><View style={s.tabs}><Pressable onPress={()=>setDetailTab("season")} style={[s.tab,detailTab==="season"&&s.tabSelected]}><Text style={[s.tabText,detailTab==="season"&&s.tabTextSelected]}>Season Totals</Text></Pressable><Pressable onPress={()=>setDetailTab("games")} style={[s.tab,detailTab==="games"&&s.tabSelected]}><Text style={[s.tabText,detailTab==="games"&&s.tabTextSelected]}>By Game</Text></Pressable></View>{details.length===0?<Text style={s.empty}>No game-by-game details are available yet. The backend statistics module must be deployed first.</Text>:<ScrollView horizontal showsHorizontalScrollIndicator><View><View style={[s.tableRow,s.tableHead]}><Text style={[s.heading,{width:145,padding:9}]}>GAME</Text>{cols.filter(c=>c.key!=="name").map(c=><Text key={c.key} style={[s.heading,{width:c.width,textAlign:"center"}]}>{c.label}</Text>)}</View>{details.map((g,i)=><View key={g.gameId+":"+i} style={[s.tableRow,i%2===0?s.even:s.odd]}><Text style={[s.value,{width:145,textAlign:"left",padding:9}]}>{g.gameId}</Text>{cols.filter(c=>c.key!=="name").map(c=><Text key={c.key} style={[s.value,{width:c.width}]}>{fmt(g.stats?.[c.key] as number|null,c.key==="avg"||c.key==="slg")}</Text>)}</View>)}</View></ScrollView>}</View>;})()}
+        {selectedPlayer?<View style={s.details}><Text style={s.section}>Historical Spray Chart</Text><Text style={s.noticeText}>Finalized games · This team's own scorebooks · Green: hit · Dark: out · Red: error</Text>{sprayLoading?<ActivityIndicator style={{marginVertical:18}}/>:sprayError?<Text style={s.error}>{sprayError}</Text>:<><Svg width="100%" height={310} viewBox="0 0 340 310"><Path d="M 170 282 L 12 40 Q 170 -22 328 40 Z" fill="#e3f1df" stroke="#315c3d" strokeWidth={2}/><Path d="M 170 282 L 95 180 L 170 105 L 245 180 Z" fill="#d8b78c" stroke="#977450" strokeWidth={1.5}/><Polygon points="170,275 164,282 170,289 176,282" fill="#fff" stroke="#334155"/>{sprays.map((item,i)=>{const x=Math.max(0,Math.min(1,Number(item.landing.x))),y=Math.max(0,Math.min(1,Number(item.landing.y)));return <Circle key={item.id||String(i)} cx={x*340} cy={y*310} r={item.homeRun?6:4.5} fill={item.outcome==='hit'?'#15803d':item.outcome==='error'?'#dc2626':'#1e293b'} stroke="#fff" strokeWidth={1.3}/>;})}</Svg><Text style={s.note}>{sprays.length} recorded batted-ball location{sprays.length===1?'':'s'} across finalized games.{!sprays.length?' No historical locations recorded yet.':''}</Text></>}</View>:null}
         <Text style={s.note}>OBP/OPS and pitching are intentionally withheld until their source data and attribution can be validated. Game corrections replace the published snapshot rather than adding a duplicate.</Text>
       </>}
     </ScrollView>
