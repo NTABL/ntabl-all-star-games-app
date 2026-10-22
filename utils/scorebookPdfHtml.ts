@@ -72,7 +72,7 @@ export function buildTraditionalScorebookHtml(doc:any, battingStats:(pid:string,
   const seq=Number(e.sequence)||0;
   const advances=runnerHistory(e.playerId,seq);
   // Circle an out only when THIS recorded play makes an out, not when this runner is retired later.
-   const runnerOutEvent=events.find(x=>Number(x.sequence)>=seq&&(x.kind==='plateAppearance'||x.kind==='runner')&&(x.runners||[]).some((r:any)=>r.playerId===e.playerId&&r.isOut));
+   const runnerOutEvent=events.find(x=>Number(x.sequence)>=seq&&x.inning===e.inning&&x.half===e.half&&x.battingTeamId===e.battingTeamId&&(x.kind==='plateAppearance'||x.kind==='runner')&&(x.runners||[]).some((r:any)=>r.playerId===e.playerId&&r.isOut));
    const runnerOutAdvance=runnerOutEvent?.runners?.find((r:any)=>r.playerId===e.playerId&&r.isOut);
    const runnerOutNumber=runnerOutEvent?Math.min(3,events.filter(x=>(x.kind==='plateAppearance'||x.kind==='runner')&&x.inning===runnerOutEvent.inning&&x.half===runnerOutEvent.half&&x.battingTeamId===runnerOutEvent.battingTeamId&&Number(x.sequence)<Number(runnerOutEvent.sequence)).reduce((n,x)=>n+(Number(x.outsOnPlay)||0),0)+1):0;
    const batterOut=!!(e.runners||[]).some((r:any)=>r.playerId===e.playerId&&r.isOut);
@@ -170,7 +170,7 @@ export function buildTraditionalScorebookHtml(doc:any, battingStats:(pid:string,
   const outs=Number(e.outsOnPlay)||0;
   const play=String(e.notation||e.result||e.action||'');
   const details=playDetails(e);
-  return `<tr><td class="inning">${esc(e.half==='bottom'?'B':'T')}${esc(e.inning||'')}</td><td>${esc(e.battingTeamId===doc.awayTeamId?doc.away.teamName:doc.home.teamName)}</td><td>${esc(playerName(e.playerId)||e.player?.name||'')}</td><td class="playcode">${esc(play)}${outs?` <span class="outcircle">${esc(outNumber(e)||outs)}</span>`:''}</td><td class="rbi">${rbi===null?'—':rbi}</td><td class="detailtext">${esc(details)}</td></tr>`;
+  return `<tr><td class="inning">${esc(e.half==='bottom'?'B':'T')}${esc(e.inning||'')}</td><td>${esc(e.battingTeamId===doc.awayTeamId?doc.away.teamName:doc.home.teamName)}</td><td>${esc(playerName(e.playerId)||e.player?.name||'')}</td><td class="playcode">${esc(play)}${(e.runners||[]).some((r:any)=>r.playerId===e.playerId&&r.isOut)?` <span class="outcircle">${esc(outNumber(e)||outs)}</span>`:''}</td><td class="rbi">${rbi===null?'—':rbi}</td><td class="detailtext">${esc(details)}</td></tr>`;
  }).join('');
  const decisionSheet=`<section class="sheet report"><div class="game">NTABL · POSTGAME REPORT</div><h2>${esc(doc.away.teamName)} at ${esc(doc.home.teamName)}</h2><div class="decision"><div>Winning Pitcher<strong>${esc(named(decisions.win))}</strong></div><div>Losing Pitcher<strong>${esc(named(decisions.loss))}</strong></div><div>Save<strong>${esc(named(decisions.save))}</strong></div></div><h3>Game Play-by-Play</h3><table class="history"><colgroup><col style="width:8%"><col style="width:19%"><col style="width:19%"><col style="width:11%"><col style="width:6%"><col style="width:37%"></colgroup><thead><tr><th>INNING</th><th>TEAM</th><th>PLAYER</th><th>PLAY</th><th>RBI</th><th>DETAILS</th></tr></thead><tbody>${decisionRows}</tbody></table><p class="footnote">Play details and RBI totals reflect recorded scoring events. Pitcher-by-pitcher totals are omitted unless reliable pitcher attribution is available.</p></section>`;
  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NTABL Scorebook</title><style>

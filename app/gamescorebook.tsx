@@ -145,7 +145,7 @@ function ScoreSquare({plays,allEvents=[],active,finalized=false,large=false,comp
  const looking=!!last?.strikeoutLooking;
  const batterOut=!!last?.runners?.some((r:any)=>r.playerId===last.playerId&&r.isOut);
  // The runner's original batting square owns the out when he is retired later.
- const runnerOutEvent=runnerId&&!isSkipped?allEvents.find((e:any)=>Number(e.sequence)>=Number(last.sequence)&&(e.kind==='plateAppearance'||e.kind==='runner')&&(e.runners||[]).some((r:any)=>r.playerId===runnerId&&r.isOut)):null;
+ const runnerOutEvent=runnerId&&!isSkipped?allEvents.find((e:any)=>Number(e.sequence)>=Number(last.sequence)&&e.inning===last.inning&&e.half===last.half&&e.battingTeamId===last.battingTeamId&&(e.kind==='plateAppearance'||e.kind==='runner')&&(e.runners||[]).some((r:any)=>r.playerId===runnerId&&r.isOut)):null;
  const runnerOutAdvance=runnerOutEvent?(runnerOutEvent as any).runners.find((r:any)=>r.playerId===runnerId&&r.isOut):null;
  const runnerOutOrdinal=runnerOutEvent?Math.min(3,allEvents.filter((e:any)=>(e.kind==='plateAppearance'||e.kind==='runner')&&e.inning===runnerOutEvent.inning&&e.half===runnerOutEvent.half&&e.battingTeamId===runnerOutEvent.battingTeamId&&Number(e.sequence)<Number(runnerOutEvent.sequence)).reduce((n:number,e:any)=>n+(Number(e.outsOnPlay)||0),0)+1):0;
  const batterOutOrdinal=batterOut?Math.min(3,Math.max(0,outsCount)):0;
@@ -503,6 +503,13 @@ export default function GameScorebook(){
   docRef.current=next;setDoc(next);
   const state=replayV2(next);setInning(state.inning);setSide(state.half==='top'?'away':'home');
   if(previousState && (previousState.inning!==state.inning || previousState.half!==state.half)){
+    // Ask for the opposing batting order only at the actual half-inning transition.
+    const nextBattingTeam=state.half==='top'?next.away:next.home;
+    if(nextBattingTeam.teamId!==next.ownerTeamId && !missingLineupShown.current &&
+       !nextBattingTeam.slots.some(slot=>slot.appearances.some(a=>a.player.name?.trim()))){
+      missingLineupShown.current=true;
+      setMissingLineupTeam(state.half==='top'?'away':'home');
+    }
     setScoreOpen(false);setMenu(null);setLanding(null);setPreviewResult(null);setSelectedId(null);
     if(sideChangeTimer.current)clearTimeout(sideChangeTimer.current);
     // A short view of the scorebook gives the scorer a chance to see the next yellow cell.
@@ -657,7 +664,7 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
   try{
    const next={...d,events:[...d.events,ev]};
    if(!await commit(next)){setCourtesyError('Scorebook is busy. Please tap Confirm again.');return;}
-   setCourtesyInfoVisible(false);setCourtesyConfirmed(false);setCourtesyError('');setRunnerBase(null);setRunnerChoice(null);setRunnerCourtesy(null);setRunnerCourtesyId(null);setMenu(null);setScoreOpen(false);
+   setCourtesyInfoVisible(false);setCourtesyConfirmed(false);setCourtesyError('');setRunnerBase(null);setRunnerChoice(null);setRunnerCourtesy(null);setRunnerCourtesyId(null);setMenu(null);setScoreOpen(true);
   }catch(e:any){setCourtesyError(e?.message||'Unable to save courtesy runner.');}
   finally{setCourtesySaving(false);}
  }
@@ -666,7 +673,7 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
   const state=replayV2(d),playerId=state.bases[runnerBase-1];if(!playerId)return;
   const batting=state.half==='top'?d.away:d.home;
   if(!runnerSafe&&state.outs>=3)return;
-  if(runnerChoice==='CR'){if(courtesyConfirmed){setCourtesyConfirmed(false);setRunnerBase(null);setRunnerChoice(null);setRunnerCourtesy(null);setRunnerCourtesyId(null);setMenu(null);setScoreOpen(false);return;}setCourtesyInfoVisible(true);return;}
+  if(runnerChoice==='CR'){if(courtesyConfirmed){setCourtesyConfirmed(false);setRunnerBase(null);setRunnerChoice(null);setRunnerCourtesy(null);setRunnerCourtesyId(null);setMenu(null);setScoreOpen(true);return;}setCourtesyInfoVisible(true);return;}
   if(runnerSafe&&runnerDestination<=runnerBase){setDestinationWarning(true);return;}
   if((['E','CS','PICKED OFF'].includes(runnerChoice)||!runnerSafe)&&!runnerFielders.length){Alert.alert('Fielders required','Select the defensive position(s) involved.');return;}
   const advance:RunnerAdvance={playerId,from:runnerBase as 1|2|3,to:runnerDestination,isOut:!runnerSafe};
@@ -823,11 +830,6 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
     const started:ScorebookV2Document={...d,status:'inProgress'};
     const saved=await commit(started);
     if(saved){
-     const opponent=started.ownerTeamId===started.awayTeamId?started.home:started.away;
-     if(!missingLineupShown.current&&!opponent.slots.some(slot=>slot.appearances.some(a=>a.player.name?.trim()))){
-      missingLineupShown.current=true;
-      setMissingLineupTeam(started.ownerTeamId===started.awayTeamId?'home':'away');
-     }
      setSide('away');setInning(1);setSelectedId(null);setSelectedEntry('');setMenu(null);setPreviewResult(null);setLanding(null);setScoreOpen(true);}
    }
    else if(action==='end'){
@@ -1367,7 +1369,7 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
       <View style={{flexDirection:'row',gap:6}}><Text style={{width:26,fontWeight:'900'}}>#</Text><Text style={{width:55,fontWeight:'900'}}>UNI #</Text><Text style={{flex:1,fontWeight:'900'}}>PLAYER NAME</Text><Text style={{width:55,fontWeight:'900'}}>POS</Text></View>
       {lineupDraft.map((row,i)=><View key={i} style={{flexDirection:'row',alignItems:'center',gap:6}}><Text style={{width:26,fontWeight:'800',color:INK}}>{i+1}</Text><TextInput value={row.number} onChangeText={v=>updateLineupDraft(i,'number',v)} placeholder="#" style={[styles.input,{width:55,textAlign:'center',paddingHorizontal:3}]} autoCapitalize="characters"/><TextInput value={row.name} onChangeText={v=>updateLineupDraft(i,'name',v)} placeholder="Player name" style={[styles.input,{flex:1,minWidth:0}]} autoCapitalize="words"/><TextInput value={row.position} onChangeText={v=>updateLineupDraft(i,'position',v)} placeholder="POS" style={[styles.input,{width:55,textAlign:'center',paddingHorizontal:3}]} autoCapitalize="characters"/></View>)}
      </ScrollView>
-     <View style={{flexDirection:'row',gap:10,margin:12}}><Pressable onPress={()=>setLineupEditorOpen(false)} style={[styles.button,{flex:1,backgroundColor:'#64748b',minHeight:48}]}><Text style={styles.white}>Cancel</Text></Pressable><Pressable onPress={()=>void saveLineupEdits()} style={[styles.button,{flex:1,backgroundColor:'#16803c',minHeight:48}]}><Text style={styles.white}>Save Lineup</Text></Pressable></View>
+     <View style={{flexDirection:'row',gap:10,margin:12}}><Pressable onPress={()=>setLineupEditorOpen(false)} style={[styles.button,{flex:1,backgroundColor:'#64748b',minHeight:52,justifyContent:'center',paddingVertical:0}]}><Text style={[styles.white,{textAlign:'center'}]}>Cancel</Text></Pressable><Pressable onPress={()=>void saveLineupEdits()} style={[styles.button,{flex:1,backgroundColor:'#16803c',minHeight:52,justifyContent:'center',paddingVertical:0}]}><Text style={[styles.white,{textAlign:'center'}]}>Save Lineup</Text></Pressable></View>
     </View>
    </Modal>
     <Modal visible={miscOpen} transparent animationType="fade" onRequestClose={()=>setMiscOpen(false)}><View style={{flex:1,backgroundColor:'#0009',justifyContent:'center',padding:20}}><View style={{backgroundColor:'white',borderRadius:16,padding:18,gap:12}}><Text style={[styles.heading,{fontSize:20,textAlign:'center'}]}>Misc Scoring</Text><Text style={[styles.muted,{textAlign:'center'}]}>Select a scoring action.</Text><Pressable style={[styles.chip,{minHeight:54}]} onPress={()=>{setMiscOpen(false);setBalkConfirmOpen(true);}}><Text style={styles.bold}>Balk</Text></Pressable><Pressable style={[styles.chip,{minHeight:54}]} onPress={()=>{setMiscOpen(false);setSkipConfirmOpen(true);}}><Text style={styles.bold}>Skip Batter</Text></Pressable><Pressable style={styles.chip} onPress={()=>setMiscOpen(false)}><Text style={styles.bold}>Cancel</Text></Pressable></View></View></Modal>
