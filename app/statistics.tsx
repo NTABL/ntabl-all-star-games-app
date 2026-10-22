@@ -55,7 +55,7 @@ export default function Statistics(){
   return <View style={s.page}>
     <Stack.Screen options={{title:"Statistics",headerShown:false}}/>
     <ScrollView contentContainerStyle={s.content}>
-      <View style={s.navHeader}><Pressable accessibilityLabel="Back to Dashboard" onPress={()=>router.replace("/dashboard")} style={s.circleBack}><Ionicons name="arrow-back" color="#fff" size={22}/></Pressable><Text style={s.navTitle}>Statistics Center</Text></View>
+      <View style={s.navHeader}><Pressable accessibilityLabel="Go back" onPress={()=>router.canGoBack()?router.back():router.replace("/dashboard")} style={s.circleBack}><Ionicons name="arrow-back" color="#fff" size={22}/></Pressable><Text style={s.navTitle}>Statistics Center</Text></View>
       
       <Text style={s.sub}>{division||"Selected division"} • {teamName||"Selected team"}</Text>
       <View style={s.notice}><Text style={s.noticeText}>Finalized scorebooks only. Players and managers on this team can view published batting statistics.</Text></View>

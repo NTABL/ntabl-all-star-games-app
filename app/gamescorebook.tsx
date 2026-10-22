@@ -2,9 +2,9 @@ import {buildTraditionalScorebookHtml} from '../utils/scorebookPdfHtml';
 import {teamPitching} from '../utils/scorebookPitching';
 import {Ionicons} from '@expo/vector-icons';
 import Svg,{Rect,Path,Line,Circle,Text as SvgText,G,Polygon} from 'react-native-svg';
-import {router,Stack,useLocalSearchParams} from 'expo-router';
+import {router,Stack,useLocalSearchParams,useFocusEffect} from 'expo-router';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import React,{useEffect,useRef,useState} from 'react';
+import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {ActivityIndicator,Alert,Modal,Pressable,ScrollView,StyleSheet,Text,TextInput,View,Platform,useWindowDimensions} from 'react-native';
 import {API_BASE} from '../utils/appconfig';
 import {getManagerContext} from '../stores/store';
@@ -336,6 +336,8 @@ export default function GameScorebook(){
 
  const [gameSummaryOpen,setGameSummaryOpen]=useState(false);
  const [postgameOpen,setPostgameOpen]=useState(false);
+ const restorePostgameAfterStats=useRef(false);
+ useFocusEffect(useCallback(()=>{if(restorePostgameAfterStats.current){restorePostgameAfterStats.current=false;setPostgameOpen(true);}},[]));
  const [postgameWin,setPostgameWin]=useState('');
  const [postgameLoss,setPostgameLoss]=useState('');
  const [postgameSave,setPostgameSave]=useState('');
@@ -1480,7 +1482,7 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
        </>;
       })()}
       <Text style={styles.heading}>Review Game Statistics</Text>
-      <Pressable onPress={()=>{setPostgameOpen(false);router.push({pathname:'/statistics',params:{programId,teamId,teamName:doc.ownerTeamId===doc.homeTeamId?doc.home.teamName:doc.away.teamName,division:''}});}} style={[styles.button,{backgroundColor:'#1d4ed8'}]}><Text style={[styles.white,{textAlign:'center'}]}>Open Statistics Center — Player Game History</Text></Pressable>
+      <Pressable onPress={()=>{setPostgameOpen(false);restorePostgameAfterStats.current=true;router.push({pathname:'/statistics',params:{programId,teamId,teamName:doc.ownerTeamId===doc.homeTeamId?doc.home.teamName:doc.away.teamName,division:''}});}} style={[styles.button,{backgroundColor:'#1d4ed8'}]}><Text style={[styles.white,{textAlign:'center'}]}>Open Statistics Center — Player Game History</Text></Pressable>
 
       <Text style={styles.muted}>The opponent's batting line below is a reference from YOUR scoring, not their official team statistics. Their own finalized scorebook will supply their players' league totals.</Text>
       <View style={{flexDirection:'row',gap:8}}>{(['away','home'] as const).map(t=><Pressable key={t} onPress={()=>{setBoxScoreSide(t);setBoxScoreOpen(true);}} style={[styles.button,{flex:1,backgroundColor:INK}]}><Text style={[styles.white,{fontSize:12,textAlign:'center'}]}>{t==='away'?'Visiting':'Home'} {doc.ownerTeamId===(t==='away'?doc.awayTeamId:doc.homeTeamId)?'Team Stats':'Stats (Reference)'}</Text></Pressable>)}</View>
@@ -1507,7 +1509,7 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
        const pitchLine=(entry:any)=>{const st=pitching[String(entry.player.id)];const name=entry.player.jerseyNumber?'#'+entry.player.jerseyNumber+' '+entry.player.name:entry.player.name;if(!st)return [name,...Array(14).fill('—')];return [name,st.ip,st.balls,st.strikes,st.strikes?(st.balls/st.strikes).toFixed(2):'—',st.pitches,st.runs,st.earnedRuns??'—',st.era,st.strikeouts,st.hits,st.walks,st.whip,st.opponentAverage,st.lob??'—'];};
        return <>
        <View style={{backgroundColor:'white',borderColor:RULE,borderWidth:1,borderRadius:8,padding:12}}><Text style={[styles.heading,{textAlign:'center'}]}>{team.teamName}</Text><View style={{flexDirection:'row',justifyContent:'space-around',marginTop:8}}>{[{k:'R',v:runs},{k:'H',v:hits},{k:'E',v:errors}].map(item=><View key={item.k} style={{alignItems:'center'}}><Text style={{color:INK,fontWeight:'900'}}>{item.k}</Text><Text style={{fontSize:25,fontWeight:'900',color:INK}}>{item.v}</Text></View>)}</View><Text style={[styles.muted,{textAlign:'center',marginTop:6}]}>LOB pending complete runner accounting</Text></View>
-       <Pressable onPress={()=>{setBoxScoreOpen(false);setPostgameOpen(false);router.push({pathname:'/statistics',params:{programId,teamId,teamName:doc.ownerTeamId===doc.homeTeamId?doc.home.teamName:doc.away.teamName,division:''}});}} style={[styles.button,{backgroundColor:'#1d4ed8'}]}><Text style={[styles.white,{textAlign:'center'}]}>Open Statistics Center · Season · Game History · Spray Charts ›</Text></Pressable>
+       <Pressable onPress={()=>{setBoxScoreOpen(false);setPostgameOpen(false);restorePostgameAfterStats.current=true;router.push({pathname:'/statistics',params:{programId,teamId,teamName:doc.ownerTeamId===doc.homeTeamId?doc.home.teamName:doc.away.teamName,division:''}});}} style={[styles.button,{backgroundColor:'#1d4ed8'}]}><Text style={[styles.white,{textAlign:'center'}]}>Open Statistics Center · Season · Game History · Spray Charts ›</Text></Pressable>
        <Text style={styles.muted}>Tap a player name below to review this game's batting line and open their finalized season history.</Text>
        <Text style={styles.heading}>Batting - Detailed</Text><ScrollView horizontal showsHorizontalScrollIndicator><View><View style={{flexDirection:'row',backgroundColor:INK,paddingVertical:9}}>{cols.map((c,i)=><Text key={c} style={{width:widths[i],color:'white',fontWeight:'900',textAlign:i?'center':'left',paddingLeft:i?0:6,fontSize:11}}>{c}</Text>)}</View>{lines.map((line,i)=><View key={i} style={{flexDirection:'row',backgroundColor:i%2?'#dbe7ef':'white',paddingVertical:8,borderBottomWidth:1,borderColor:RULE}}>{line.map((v,j)=>j===0?<Pressable key={j} accessibilityRole="button" onPress={()=>setBoxPlayerId(String(entries[i].player.id))} style={{width:widths[j],paddingLeft:6,justifyContent:'center'}}><Text numberOfLines={1} style={{color:'#1d4ed8',fontWeight:'800',textDecorationLine:'underline',fontSize:11}}>{v} ›</Text></Pressable>:<Text key={j} numberOfLines={1} style={{width:widths[j],textAlign:'center',color:'#0f2747',fontSize:11}}>{v}</Text>)}</View>)}<View style={{flexDirection:'row',backgroundColor:INK,paddingVertical:9}}>{totals.map((v,j)=><Text key={j} style={{width:widths[j],color:'white',fontWeight:'900',textAlign:j?'center':'left',paddingLeft:j?0:6,fontSize:11}}>{v}</Text>)}</View></View></ScrollView>
        <Text style={styles.heading}>Season Batting Totals — {seasonGames} Finalized Games</Text>
@@ -1536,7 +1538,7 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
           {([['THIS GAME',...current],['SEASON',...season]]).map((line,i)=><View key={i} style={{flexDirection:'row',backgroundColor:i?'#dbe7ef':'white',paddingVertical:11}}>{line.map((v,j)=><Text key={j} style={{width:j?52:110,color:INK,fontSize:11,fontWeight:j?'600':'900',textAlign:j?'center':'left',paddingLeft:j?0:12}}>{String(v)}</Text>)}</View>)}
          </View></ScrollView>
          <Text style={styles.muted}>{seasonLoading?'Loading season totals…':seasonError||(!published?'Season totals require a published record for this player.':'Season totals include finalized games only.')}</Text>
-         {tid===String(doc.ownerTeamId)&&<Pressable style={[styles.button,{backgroundColor:'#1d4ed8'}]} onPress={()=>{setBoxPlayerId(null);setBoxScoreOpen(false);setPostgameOpen(false);router.push({pathname:'/statistics',params:{programId,teamId,teamName:team.teamName,division:'',playerId:String(p.personId||p.id),playerName:p.name}});}}><Text style={[styles.white,{textAlign:'center'}]}>Game History & Spray Chart ›</Text></Pressable>}
+         {tid===String(doc.ownerTeamId)&&<Pressable style={[styles.button,{backgroundColor:'#1d4ed8'}]} onPress={()=>{setBoxPlayerId(null);setBoxScoreOpen(false);setPostgameOpen(false);restorePostgameAfterStats.current=true;router.push({pathname:'/statistics',params:{programId,teamId,teamName:team.teamName,division:'',playerId:String(p.personId||p.id),playerName:p.name}});}}><Text style={[styles.white,{textAlign:'center'}]}>Game History & Spray Chart ›</Text></Pressable>}
         </View>
        </View>;
      })()}
