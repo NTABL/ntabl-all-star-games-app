@@ -663,34 +663,26 @@ await registerPushNotifications(managerContext);
               </Pressable>
             </View>
 
-            <Pressable
-              style={[styles.managerLoginButton, styles.loginPrimaryButton]}
-              onPress={() => handleLogin()}
-              disabled={loading}
-            >
-              {loading ? (
-                <View style={styles.buttonContentRow}>
-                  <ActivityIndicator
-                    color="#ffffff"
-                    style={{ marginRight: 8 }}
-                  />
-                  <Text style={styles.buttonText}>Signing In...</Text>
-                </View>
-              ) : (
-                <View style={styles.buttonContentRow}>
-                  <Ionicons
-                    name="baseball-outline"
-                    size={22}
-                    color="#ffffff"
-                    style={{ marginRight: 8 }}
-                  />
-
-                  <Text style={styles.buttonText}>Manager & Player Login</Text>
-                </View>
-              )}
-            </Pressable>
-
             <View style={styles.loginTileGrid}>
+              <View style={styles.loginTileSlot}>
+                <Pressable
+                  style={[styles.managerLoginButton, styles.loginTileButton]}
+                  onPress={() => handleLogin()}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <View style={[styles.buttonContentRow, styles.loginTileContent]}>
+                      <ActivityIndicator color="#ffffff" style={{ marginBottom: 6 }} />
+                      <Text style={[styles.buttonText, styles.loginTileText]}>Signing In...</Text>
+                    </View>
+                  ) : (
+                    <View style={[styles.buttonContentRow, styles.loginTileContent]}>
+                      <Ionicons name="baseball-outline" size={22} color="#ffffff" style={{ marginBottom: 6 }} />
+                      <Text style={[styles.buttonText, styles.loginTileText]}>Manager & Player Login</Text>
+                    </View>
+                  )}
+                </Pressable>
+              </View>
             {showBiometricLogin && (
               <View style={styles.loginTileSlot}>
               <Pressable
@@ -1204,10 +1196,6 @@ const styles = StyleSheet.create({
   },
 
   // Dashboard-style compact navigation tiles.
-  loginPrimaryButton: {
-    minHeight: 58,
-    justifyContent: "center",
-  },
   loginTileGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
