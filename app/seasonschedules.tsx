@@ -3,7 +3,6 @@ import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   Linking,
   Modal,
   Pressable,
@@ -307,7 +306,6 @@ export default function SeasonSchedules() {
   const programId = String(manager?.programId || "");
   const personId = String(manager?.playerId || manager?.leagueAppsId || "");
   const isManager = String(manager?.role || "").toLowerCase() === "manager";
-  const teamLogo = getTeamLogo(manager?.teamName || "", manager?.division || "");
 
   const loadMyAttendance = useCallback(async (
     currentManager: ManagerData | null,
@@ -808,36 +806,26 @@ export default function SeasonSchedules() {
               />
             }
           >
-            <View style={styles.headerRow}>
+            <View style={styles.scheduleHeader}>
               <Pressable
-                style={styles.backButton}
+                style={styles.circleBackButton}
                 onPress={() => router.replace("/dashboard")}
+                accessibilityRole="button"
+                accessibilityLabel="Back to Dashboard"
               >
-                <View style={styles.smallButtonRow}>
-                  <Ionicons
-                    name="chevron-back-outline"
-                    size={16}
-                    color="#ffffff"
-                    style={{ marginRight: 3 }}
-                  />
-                  <Text style={styles.backButtonText}>Back</Text>
-                </View>
+                <Ionicons name="arrow-back" size={23} color="#ffffff" />
               </Pressable>
-            </View>
-
-            <View style={styles.heroCard}>
-              <Image
-                source={teamLogo}
-                style={styles.heroLogo}
-                resizeMode="contain"
-              />
-              <Text style={styles.heroTitle}>Team Schedule</Text>
-              <Text style={styles.heroTeam}>
-                {manager?.teamName || "Your Team"}
-              </Text>
-              {!!manager?.division && (
-                <Text style={styles.heroDivision}>{manager.division}</Text>
-              )}
+              <View style={styles.scheduleHeaderText}>
+                <Text style={styles.scheduleHeaderTitle}>Team Schedule</Text>
+                <Text style={styles.scheduleTeamName} numberOfLines={2}>
+                  {manager?.teamName || "Your Team"}
+                </Text>
+                {!!manager?.division && (
+                  <Text style={styles.scheduleDivision} numberOfLines={2}>
+                    {manager.division}
+                  </Text>
+                )}
+              </View>
             </View>
 
             {!!error && (
@@ -992,65 +980,41 @@ const styles = StyleSheet.create({
     paddingTop: 32,
     paddingBottom: 50,
   },
-  headerRow: {
+  scheduleHeader: {
+    backgroundColor: "#102849",
+    marginBottom: 18,
+    minHeight: 106,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
     flexDirection: "row",
-    justifyContent: "flex-start",
-    marginBottom: 10,
+    alignItems: "center",
   },
-  backButton: {
-    backgroundColor: "#1d4ed8",
-    borderRadius: 9,
-    paddingVertical: 7,
-    paddingHorizontal: 13,
-  },
-  backButtonText: {
-    color: "#ffffff",
-    fontWeight: "800",
-    fontSize: 14,
-  },
-  smallButtonRow: {
-    flexDirection: "row",
+  circleBackButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#29476c",
     alignItems: "center",
     justifyContent: "center",
+    marginRight: 12,
   },
-  heroCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 18,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    shadowColor: "#000000",
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-  },
-  heroLogo: {
-    width: 125,
-    height: 125,
-    marginBottom: 6,
-  },
-  heroTitle: {
-    fontSize: 26,
+  scheduleHeaderText: { flex: 1, justifyContent: "center" },
+  scheduleHeaderTitle: {
+    color: "#ffffff",
+    fontSize: 22,
     fontWeight: "900",
-    color: "#1f4e9e",
-    textAlign: "center",
+    marginBottom: 3,
   },
-  heroTeam: {
-    color: "#111827",
-    fontSize: 18,
-    fontWeight: "900",
-    textAlign: "center",
-    marginTop: 3,
-  },
-  heroDivision: {
-    color: "#64748b",
+  scheduleTeamName: {
+    color: "#ffffff",
     fontSize: 13,
-    fontWeight: "700",
-    textAlign: "center",
-    marginTop: 4,
+    fontWeight: "600",
+  },
+  scheduleDivision: {
+    color: "#dbeafe",
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: 1,
   },
   section: {
     width: "100%",

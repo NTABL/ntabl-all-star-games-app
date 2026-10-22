@@ -569,22 +569,6 @@ async function sendHelpRequest() {
             </View>
           )}
 
-          {!managerData?.isImpersonating && (
-            <View style={styles.headerRow}>
-              <Pressable onPress={handleLogout} style={styles.logoutButton}>
-                <View style={styles.smallButtonRow}>
-                  <Ionicons
-                    name="log-out-outline"
-                    size={16}
-                    color="#ffffff"
-                    style={{ marginRight: 5 }}
-                  />
-                  <Text style={styles.logoutText}>Logout</Text>
-                </View>
-              </Pressable>
-            </View>
-          )}
-
 <View
   style={[
     styles.headerCard,
@@ -621,40 +605,6 @@ async function sendHelpRequest() {
               </View>
             </View>
           </View>
-
-{Array.isArray(managerData?.assignments) && managerData.assignments.length > 1 && (
-  <View
-    style={[
-      styles.teamSwitcherCard,
-      isTabletLayout && styles.cardTablet,
-    ]}
-  >
-    <View style={styles.teamSwitcherTextWrap}>
-      <Text style={styles.teamSwitcherLabel}>CURRENT ASSIGNMENT</Text>
-      <Text style={styles.teamSwitcherTeam}>{managerData?.teamName || ""}</Text>
-      <Text style={styles.teamSwitcherDivision}>{managerData?.division || ""}</Text>
-      <Text style={styles.teamSwitcherRole}>
-        {isPlayer ? "Player" : "Team Manager"}
-        {managerData?.isSelectedAllStar ? " • Selected All-Star" : ""}
-      </Text>
-    </View>
-
-    <Pressable
-      style={styles.switchTeamButton}
-      onPress={() => setShowTeamSwitcher(true)}
-    >
-      <View style={styles.buttonContentRow}>
-        <Ionicons
-          name="swap-horizontal-outline"
-          size={20}
-          color="#ffffff"
-          style={{ marginRight: 6 }}
-        />
-        <Text style={styles.switchTeamButtonText}>Change Teams</Text>
-      </View>
-    </Pressable>
-  </View>
-)}
 
           <View
   style={[
@@ -790,6 +740,36 @@ async function sendHelpRequest() {
 
 
 <View style={styles.compactTileGrid}>
+{Array.isArray(managerData?.assignments) && managerData.assignments.length > 1 && (
+  <View style={styles.compactTileSlot}>
+    <Pressable style={[styles.switchTeamButton, styles.compactTileButton]} onPress={() => setShowTeamSwitcher(true)}>
+      <View style={[styles.buttonContentRow, styles.compactTileContent]}>
+        <Ionicons name="swap-horizontal-outline" size={23} color="#ffffff" style={{ marginBottom: 6 }} />
+        <Text style={[styles.switchTeamButtonText, styles.compactTileText]}>Change Teams</Text>
+      </View>
+    </Pressable>
+  </View>
+)}
+
+{managerData?.programId && managerData?.teamId && (
+            <View style={styles.compactTileSlot}>
+<Pressable
+              style={[styles.teamScheduleButton, styles.compactTileButton]}
+              onPress={() => router.push("/seasonschedules")}
+            >
+              <View style={[styles.buttonContentRow, styles.compactTileContent]}>
+                <Ionicons
+                  name="calendar-number-outline"
+                  size={23}
+                  color="#ffffff"
+                  style={{ marginBottom: 6 }}
+                />
+                <Text style={[styles.teamScheduleButtonText, styles.compactTileText]}>Team Schedule</Text>
+              </View>
+            </Pressable>
+</View>
+          )}
+
 {managerData?.programId && managerData?.teamId && (
   <View style={styles.compactTileSlot}>
     <Pressable
@@ -806,6 +786,29 @@ async function sendHelpRequest() {
     </Pressable>
   </View>
 )}
+
+{managerData?.programId && managerData?.teamId && (
+  <View style={styles.compactTileSlot}>
+<Pressable
+    style={[styles.teamChatButton, styles.compactTileButton]}
+    onPress={() => router.push("/teamchat")}
+  >
+    <View style={[styles.buttonContentRow, styles.compactTileContent]}>
+      <Ionicons
+        name="chatbubbles-outline"
+        size={23}
+        color="#ffffff"
+        style={{ marginBottom: 6 }}
+      />
+
+      <Text style={[styles.teamChatButtonText, styles.compactTileText]}>
+        Team Chat
+      </Text>
+    </View>
+  </Pressable>
+</View>
+)}
+
 {allStarFeaturesEnabled && shouldShowWaiver && (
   <View style={styles.compactTileSlot}>
 <Pressable
@@ -831,48 +834,7 @@ async function sendHelpRequest() {
 </View>
 )}
 
-          {managerData?.programId && managerData?.teamId && (
-            <View style={styles.compactTileSlot}>
-<Pressable
-              style={[styles.teamScheduleButton, styles.compactTileButton]}
-              onPress={() => router.push("/seasonschedules")}
-            >
-              <View style={[styles.buttonContentRow, styles.compactTileContent]}>
-                <Ionicons
-                  name="calendar-number-outline"
-                  size={23}
-                  color="#ffffff"
-                  style={{ marginBottom: 6 }}
-                />
-                <Text style={[styles.teamScheduleButtonText, styles.compactTileText]}>Team Schedule</Text>
-              </View>
-            </Pressable>
-</View>
-          )}
-
-          {managerData?.programId && managerData?.teamId && (
-  <View style={styles.compactTileSlot}>
-<Pressable
-    style={[styles.teamChatButton, styles.compactTileButton]}
-    onPress={() => router.push("/teamchat")}
-  >
-    <View style={[styles.buttonContentRow, styles.compactTileContent]}>
-      <Ionicons
-        name="chatbubbles-outline"
-        size={23}
-        color="#ffffff"
-        style={{ marginBottom: 6 }}
-      />
-
-      <Text style={[styles.teamChatButtonText, styles.compactTileText]}>
-        Team Chat
-      </Text>
-    </View>
-  </Pressable>
-</View>
-)}
-
-          {allStarFeaturesEnabled && (
+{allStarFeaturesEnabled && (
           <View style={styles.compactTileSlot}>
 <Pressable style={[styles.primaryButton, styles.compactTileButton]} onPress={handleOpenSelections}>
             <View style={[styles.buttonContentRow, styles.compactTileContent]}>
@@ -896,7 +858,7 @@ async function sendHelpRequest() {
 
           )}
 
-          {managerData?.isAllStarManager && managerData?.allStarManagerAccess && (
+{managerData?.isAllStarManager && managerData?.allStarManagerAccess && (
             <View style={styles.compactTileSlot}>
 <Pressable
               style={[styles.allStarManagerButton, styles.compactTileButton]}
@@ -918,7 +880,7 @@ async function sendHelpRequest() {
 </View>
           )}
 
-          {allStarFeaturesEnabled && (
+{allStarFeaturesEnabled && (
           <View style={styles.compactTileSlot}>
 <Pressable
             style={[styles.scheduleButton, styles.compactTileButton]}
@@ -941,9 +903,9 @@ async function sendHelpRequest() {
 
           )}
 
+{allStarFeaturesEnabled && managerData && (
 
-          {allStarFeaturesEnabled && managerData && (
-            <View style={styles.compactTileSlot}>
+<View style={styles.compactTileSlot}>
 <Pressable
               style={[styles.announcerButton, styles.compactTileButton]}
               onPress={() => router.push("/announcer")}
@@ -962,7 +924,7 @@ async function sendHelpRequest() {
 </View>
           )}
 
-          <View style={styles.compactTileSlot}>
+<View style={styles.compactTileSlot}>
 <Pressable
             style={[styles.changePasswordButton, styles.compactTileButton]}
             onPress={() => router.push("/changepassword")}
@@ -999,6 +961,18 @@ async function sendHelpRequest() {
             </View>
           </Pressable>
 </View>
+
+{!managerData?.isImpersonating && (
+  <View style={styles.compactTileSlot}>
+    <Pressable style={[styles.logoutButton, styles.compactTileButton]} onPress={handleLogout}>
+      <View style={[styles.buttonContentRow, styles.compactTileContent]}>
+        <Ionicons name="log-out-outline" size={23} color="#ffffff" style={{ marginBottom: 6 }} />
+        <Text style={[styles.logoutText, styles.compactTileText]}>Logout</Text>
+      </View>
+    </Pressable>
+  </View>
+)}
+
 {managerData && (
   <View style={styles.compactTileSlot}>
 <Pressable
@@ -1020,7 +994,8 @@ async function sendHelpRequest() {
   </Pressable>
 </View>
 )}
-          {isShawn && (
+
+{isShawn && (
             <View style={styles.compactTileSlot}>
 <Pressable
               style={[styles.adminButton, styles.compactTileButton]}
@@ -1038,9 +1013,7 @@ async function sendHelpRequest() {
               </View>
             </Pressable>
 </View>
-          )}
-
-</View>
+          )}</View>
           <Text style={styles.versionFooter}>
   NTABL All-Star App • Version 1.0
 </Text>
