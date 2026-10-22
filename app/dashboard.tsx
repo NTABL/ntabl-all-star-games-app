@@ -790,6 +790,22 @@ async function sendHelpRequest() {
 
 
 <View style={styles.compactTileGrid}>
+{managerData?.programId && managerData?.teamId && (
+  <View style={styles.compactTileSlot}>
+    <Pressable
+      style={[styles.teamScheduleButton, styles.compactTileButton]}
+      onPress={() => router.push({pathname: "/statistics", params: {
+        programId: String(managerData.programId), teamId: String(managerData.teamId),
+        teamName: String(managerData.teamName || ""), division: String(managerData.division || ""),
+      }})}
+    >
+      <View style={[styles.buttonContentRow, styles.compactTileContent]}>
+        <Ionicons name="stats-chart-outline" size={23} color="#ffffff" style={{marginBottom:6}} />
+        <Text style={[styles.teamScheduleButtonText, styles.compactTileText]}>Statistics</Text>
+      </View>
+    </Pressable>
+  </View>
+)}
 {allStarFeaturesEnabled && shouldShowWaiver && (
   <View style={styles.compactTileSlot}>
 <Pressable

@@ -52,6 +52,7 @@ export async function restoreLastManagerAssignment(data: any) {
   return {
     ...data,
     ...selected,
+    authToken: current?.authToken || "",
     assignments,
     activeAssignmentKey: selected.assignmentKey,
   };
@@ -93,6 +94,7 @@ export async function switchManagerAssignment(assignmentKey: string) {
 
   const nextContext = {
     ...selected,
+    authToken: current?.authToken || "",
     assignments,
     activeAssignmentKey: selected.assignmentKey,
     isImpersonating:

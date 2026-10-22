@@ -416,7 +416,7 @@ export default function Login() {
 
 const managerContext = await restoreLastManagerAssignment(data.manager);
 
-await setManagerContext(managerContext);
+await setManagerContext({ ...managerContext, authToken: data.token });
 await registerPushNotifications(managerContext);
 
       const savedCredentials = await getManagerCredentials();
