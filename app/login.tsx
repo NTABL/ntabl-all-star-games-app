@@ -664,7 +664,7 @@ await registerPushNotifications(managerContext);
             </View>
 
             <Pressable
-              style={styles.managerLoginButton}
+              style={[styles.managerLoginButton, styles.loginPrimaryButton]}
               onPress={() => handleLogin()}
               disabled={loading}
             >
@@ -690,81 +690,91 @@ await registerPushNotifications(managerContext);
               )}
             </Pressable>
 
+            <View style={styles.loginTileGrid}>
             {showBiometricLogin && (
+              <View style={styles.loginTileSlot}>
               <Pressable
-                style={styles.biometricButton}
+                style={[styles.biometricButton, styles.loginTileButton]}
                 onPress={handleBiometricLogin}
                 disabled={loading}
               >
-                <View style={styles.buttonContentRow}>
+                <View style={[styles.buttonContentRow, styles.loginTileContent]}>
                   <Ionicons
                     name="finger-print-outline"
                     size={22}
                     color="#ffffff"
-                    style={{ marginRight: 8 }}
+                    style={{ marginBottom: 6 }}
                   />
 
-                  <Text style={styles.buttonText}>
+                  <Text style={[styles.buttonText, styles.loginTileText]}>
                     Use Fingerprint / Face ID
                   </Text>
                 </View>
               </Pressable>
+              </View>
             )}
 
+            <View style={styles.loginTileSlot}>
             <Pressable
-              style={styles.donateButton}
+              style={[styles.donateButton, styles.loginTileButton]}
               onPress={() => router.push("/donate")}
               disabled={loading}
             >
-              <View style={styles.buttonContentRow}>
+              <View style={[styles.buttonContentRow, styles.loginTileContent]}>
                 <Ionicons
                   name="heart"
                   size={22}
                   color="#ffffff"
-                  style={{ marginRight: 8 }}
+                  style={{ marginBottom: 6 }}
                 />
 
-                <Text style={styles.buttonText}>Donate</Text>
+                <Text style={[styles.buttonText, styles.loginTileText]}>Donate</Text>
               </View>
             </Pressable>
+            </View>
 
+            <View style={styles.loginTileSlot}>
             <Pressable
-              style={styles.announcerButton}
+              style={[styles.announcerButton, styles.loginTileButton]}
               onPress={handleAnnouncerLogin}
               disabled={loading}
             >
-              <View style={styles.buttonContentRow}>
+              <View style={[styles.buttonContentRow, styles.loginTileContent]}>
                 <Ionicons
                   name="mic-outline"
                   size={22}
                   color="#ffffff"
-                  style={{ marginRight: 8 }}
+                  style={{ marginBottom: 6 }}
                 />
 
-                <Text style={styles.buttonText}>Announcer Login</Text>
+                <Text style={[styles.buttonText, styles.loginTileText]}>Announcer Login</Text>
               </View>
             </Pressable>
+            </View>
+            <View style={styles.loginTileSlot}>
             <Pressable
-              style={styles.helpButton}
+              style={[styles.helpButton, styles.loginTileButton]}
               onPress={() => {
                 setHelpEmail(email.trim());
                 setShowHelpModal(true);
               }}
               disabled={loading}
             >
-              <View style={styles.buttonContentRow}>
+              <View style={[styles.buttonContentRow, styles.loginTileContent]}>
                 <Ionicons
                   name="help-circle-outline"
                   size={22}
                   color="#111827"
-                  style={{ marginRight: 8 }}
+                  style={{ marginBottom: 6 }}
                 />
 
-                <Text style={styles.helpButtonText}>
+                <Text style={[styles.helpButtonText, styles.loginTileText]}>
                   Need Login Assistance?
                 </Text>
               </View>
             </Pressable>
+            </View>
+            </View>
             <View style={styles.footer}>
               <Text style={styles.footerText}>
                 © 2026 North Texas Adult Baseball League
@@ -1191,6 +1201,40 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  // Dashboard-style compact navigation tiles.
+  loginPrimaryButton: {
+    minHeight: 58,
+    justifyContent: "center",
+  },
+  loginTileGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginTop: 12,
+  },
+  loginTileSlot: {
+    width: "48.5%",
+    marginBottom: 10,
+  },
+  loginTileButton: {
+    marginTop: 0,
+    minHeight: 92,
+    flex: 1,
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 7,
+  },
+  loginTileContent: {
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loginTileText: {
+    textAlign: "center",
+    fontSize: 13,
+    lineHeight: 17,
   },
 
   footer: {
