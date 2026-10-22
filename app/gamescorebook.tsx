@@ -116,27 +116,29 @@ function FieldingDiamond({onSelect,sequence=[]}:{onSelect:(position:number)=>voi
   })}
  </View>;
 }
-type HistoricalSpray={id:string;landing:SprayPoint;outcome:'hit'|'out'|'error';homeRun:boolean;name:string};
+type HistoricalSpray={id:string;landing:SprayPoint;outcome:'hit'|'out'|'error';homeRun:boolean;trajectory?:'ground'|'line'|'fly';name:string};
 // Draft-game sprays are authoritative immediately: server history contains only finalized games.
 // Match both player ID and stable person ID so lineup substitutions do not merge players.
 function currentGameSprays(doc:ScorebookV2Document,player:{id:string;personId?:string|null;name:string}|null|undefined):HistoricalSpray[]{
  if(!player)return [];
  const ids=new Set<string>([String(player.id)]);
  if(player.personId){for(const slot of [...doc.home.slots,...doc.away.slots])for(const appearance of slot.appearances){if(String(appearance.player.personId||'')===String(player.personId))ids.add(String(appearance.player.id));}}
- return doc.events.filter((e:any)=>e.kind==='plateAppearance'&&ids.has(String(e.playerId))&&e.spray?.landing&&Number.isFinite(Number(e.spray.landing.x))&&Number.isFinite(Number(e.spray.landing.y))).map((e:any)=>({id:`local:${doc.gameId}:${e.id}`,landing:e.spray.landing,outcome:e.spray.outcome==='error'?'error':e.spray.outcome==='out'?'out':'hit',homeRun:e.result==='HR',name:player.name}));
+ return doc.events.filter((e:any)=>e.kind==='plateAppearance'&&ids.has(String(e.playerId))&&e.spray?.landing&&Number.isFinite(Number(e.spray.landing.x))&&Number.isFinite(Number(e.spray.landing.y))).map((e:any)=>({id:`local:${doc.gameId}:${e.id}`,landing:e.spray.landing,outcome:e.spray.outcome==='error'?'error':e.spray.outcome==='out'?'out':'hit',homeRun:e.result==='HR',trajectory:e.trajectory==='fly'||e.trajectory==='line'||e.trajectory==='ground'?e.trajectory:(e.result==='HR'?'fly':'line'),name:player.name}));
 }
 
 function HistoricalSprayOverlay({items,size}:{items:HistoricalSpray[];size:number}){
  return <View pointerEvents="none" style={{position:'absolute',left:0,top:0,width:size,height:size}}>
   <Svg width={size} height={size} viewBox="0 0 600 600">
-   {items.map(item=>{const x=100+400*Math.max(0,Math.min(1,item.landing.x));const y=item.homeRun?Math.min(95,380-315*Math.max(0,Math.min(1,item.landing.y))):380-315*Math.max(0,Math.min(1,item.landing.y));const color=item.outcome==='out'?OUT_RED:item.outcome==='error'?'#A47700':RUN_GREEN;return <G key={item.id}><Line x1={288} y1={394} x2={x} y2={y} stroke={color} strokeWidth={3} opacity={.72}/><Circle cx={x} cy={y} r={6} fill={color} opacity={.85}/></G>;})}
+   {items.map(item=>{const x=100+400*Math.max(0,Math.min(1,item.landing.x));const y=item.homeRun?Math.min(95,380-315*Math.max(0,Math.min(1,item.landing.y))):380-315*Math.max(0,Math.min(1,item.landing.y));const color=item.outcome==='out'?OUT_RED:item.outcome==='error'?'#A47700':RUN_GREEN;const style=item.trajectory||(item.homeRun?'fly':'line');const path=style==='fly'?`M 288 402 Q ${Math.round((288+x)/2)} ${Math.round(y-85)} ${x} ${y}`:`M 288 402 L ${x} ${y}`;return <G key={item.id}><Path d={path} fill="none" stroke={color} strokeWidth={3} strokeDasharray={style==='ground'?'10 7':undefined} strokeLinecap="round" opacity={.72}/><Circle cx={x} cy={y} r={6} fill={color} opacity={.85}/></G>;})}
   </Svg>
  </View>;
 }
 function ScoreSquare({plays,allEvents=[],active,finalized=false,large=false,compact=false,balls=0,strikes=0,onPress,onAbbr,onRbi,rbi=0,previewResult,outsCount=0,onLanding,landing,trajectory='ground',baseRunners=[],onRunnerTap}:{plays:any[];allEvents?:ScorebookV2Event[];active?:boolean;finalized?:boolean;large?:boolean;compact?:boolean;balls?:number;strikes?:number;onPress?:()=>void;onAbbr?:(x:string)=>void;onRbi?:(n:number)=>void;rbi?:number;previewResult?:string;outsCount?:number;onLanding?:(p:SprayPoint)=>void;landing?:SprayPoint|null;trajectory?:'ground'|'line'|'fly';baseRunners?:{base:number;name:string;playerId:string}[];onRunnerTap?:(base:number)=>void}){
  const size=compact?270:large?350:110;
  const last=plays[plays.length-1];
- const label=(v:string)=>v==='HBP'?'HP':v==='SAC'?(trajectory==='fly'?'SF':'BT'):v;
+ const recordedTrajectory=last&&['ground','line','fly'].includes(last.trajectory)?last.trajectory:(last?.result==='HR'||last?.result==='SF'?'fly':last?.result==='SAC'?'ground':'line');
+ const displayTrajectory=last?recordedTrajectory:trajectory;
+ const label=(v:string)=>v==='HBP'?'HP':v==='SAC'?(displayTrajectory==='fly'?'SF':'BT'):v;
  const selected=label(previewResult||last?.result||'');
  // Find all movement of the original batter, including movement on later batters' plays.
  const runnerId=last?.playerId;
@@ -165,7 +167,7 @@ function ScoreSquare({plays,allEvents=[],active,finalized=false,large=false,comp
  const sprayColor=sprayOutcome==='out'?OUT_RED:sprayOutcome==='error'?'#A47700':RUN_GREEN;
  const endX=spray?100+400*Math.max(0,Math.min(1,spray.x)):0;
  const endY=spray?(selected==='HR'?Math.min(95,380-315*Math.max(0,Math.min(1,spray.y))):380-315*Math.max(0,Math.min(1,spray.y))):0;
- const sprayShape=spray?(trajectory==='fly'||last?.notes?.includes('fly')?`M 288 394 Q ${Math.round((288+endX)/2)} ${Math.round(endY-85)} ${endX} ${endY}`:`M 288 394 L ${endX} ${endY}`):'';
+ const sprayShape=spray?(displayTrajectory==='fly'?`M 288 402 Q ${Math.round((288+endX)/2)} ${Math.round(endY-85)} ${endX} ${endY}`:`M 288 402 L ${endX} ${endY}`):'';
  const drawing=<Svg width={size} height={size} viewBox="0 0 600 600">
   <Rect x={8} y={8} width={584} height={584} fill={active?(finalized?"#e5e7eb":"#fff9df"):"white"} stroke={SCORE_BLUE} strokeWidth={7}/>
   <Path d="M 98 192 L 213 315 L 288 395 M 288 395 L 362 315 L 476 192" fill="none" stroke="#b8b8b8" strokeWidth={2.5}/>
@@ -183,7 +185,7 @@ function ScoreSquare({plays,allEvents=[],active,finalized=false,large=false,comp
   {/* A safely occupied base is a COMPLETE segment, with no stop bar.
       Only a recorded runner out gets the halfway segment and perpendicular cap. */}
   {runnerMarkText?<SvgText x={288} y={220} textAnchor="middle" fontSize={29} fontWeight="bold" fill={runnerMarks.includes('CS')?OUT_RED:SCORE_BLUE}>{runnerMarkText}</SvgText>:null}
-  {spray?<Path d={sprayShape} fill="none" stroke={sprayColor} strokeWidth={4} strokeDasharray={sprayOutcome==='error'||trajectory==='ground'||last?.notes?.includes('ground')?'10 7':undefined} strokeLinecap="round"/>:null}
+  {spray?<Path d={sprayShape} fill="none" stroke={sprayColor} strokeWidth={4} strokeDasharray={displayTrajectory==='ground'?'10 7':undefined} strokeLinecap="round"/>:null}
   {spray?<Circle cx={endX} cy={endY} r={6} fill={sprayColor}/>:null}
   {ABBRS.map(([name,x,y])=><G key={name}>
    <SvgText fontFamily="Arial" x={x} y={y+12} textAnchor="middle" fontSize={36} fontWeight="bold" fill={SCORE_BLUE}>{name}</SvgText>
@@ -486,7 +488,7 @@ export default function GameScorebook(){
    const response=await fetch(url,{cache:'no-store',headers:{Authorization:`Bearer ${token}`}});
    const payload=await response.json();
    if(!response.ok||!payload.ok)throw new Error(payload.message||'Spray history unavailable');
-   if(!cancelled)setHistoricalSprays(Array.isArray(payload.items)?payload.items.map((item:any)=>({...item,name:player.name})):[]);
+   if(!cancelled)setHistoricalSprays(Array.isArray(payload.items)?payload.items.map((item:any)=>({...item,trajectory:['ground','line','fly'].includes(item.trajectory)?item.trajectory:(item.homeRun?'fly':'line'),name:player.name})):[]);
   }catch{if(!cancelled)setHistoricalSprays([]);}finally{if(!cancelled)setHistoryLoading(false);}})();
   return()=>{cancelled=true;};
  },[scoreOpen,selectedId,doc?.gameId,sprayHistoryVersion,doc?.home.slots,doc?.away.slots,programId,teamId]);
