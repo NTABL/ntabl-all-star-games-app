@@ -129,7 +129,7 @@ function currentGameSprays(doc:ScorebookV2Document,player:{id:string;personId?:s
 function HistoricalSprayOverlay({items,size}:{items:HistoricalSpray[];size:number}){
  return <View pointerEvents="none" style={{position:'absolute',left:0,top:0,width:size,height:size}}>
   <Svg width={size} height={size} viewBox="0 0 600 600">
-   {items.map(item=>{const x=100+400*Math.max(0,Math.min(1,item.landing.x));const y=item.homeRun?Math.min(95,380-315*Math.max(0,Math.min(1,item.landing.y))):380-315*Math.max(0,Math.min(1,item.landing.y));const color=item.outcome==='out'?OUT_RED:item.outcome==='error'?'#A47700':RUN_GREEN;const style=item.trajectory||(item.homeRun?'fly':'line');const path=style==='fly'?`M 288 420 Q ${Math.round((288+x)/2)} ${Math.round(y-85)} ${x} ${y}`:`M 288 420 L ${x} ${y}`;return <G key={item.id}><Path d={path} fill="none" stroke={color} strokeWidth={3} strokeDasharray={style==='ground'?'10 7':undefined} strokeLinecap="round" opacity={.72}/><Circle cx={x} cy={y} r={6} fill={color} opacity={.85}/></G>;})}
+   {items.map(item=>{const x=100+400*Math.max(0,Math.min(1,item.landing.x));const y=item.homeRun?Math.min(95,380-315*Math.max(0,Math.min(1,item.landing.y))):380-315*Math.max(0,Math.min(1,item.landing.y));const color=item.outcome==='out'?OUT_RED:item.outcome==='error'?'#A47700':RUN_GREEN;const style=item.trajectory||(item.homeRun?'fly':'line');const path=style==='fly'?`M 288 411 Q ${Math.round((288+x)/2)} ${Math.round(y-85)} ${x} ${y}`:`M 288 411 L ${x} ${y}`;return <G key={item.id}><Path d={path} fill="none" stroke={color} strokeWidth={3} strokeDasharray={style==='ground'?'10 7':undefined} strokeLinecap="round" opacity={.72}/><Circle cx={x} cy={y} r={6} fill={color} opacity={.85}/></G>;})}
   </Svg>
  </View>;
 }
@@ -167,7 +167,7 @@ function ScoreSquare({plays,allEvents=[],active,finalized=false,large=false,comp
  const sprayColor=sprayOutcome==='out'?OUT_RED:sprayOutcome==='error'?'#A47700':RUN_GREEN;
  const endX=spray?100+400*Math.max(0,Math.min(1,spray.x)):0;
  const endY=spray?(selected==='HR'?Math.min(95,380-315*Math.max(0,Math.min(1,spray.y))):380-315*Math.max(0,Math.min(1,spray.y))):0;
- const sprayShape=spray?(displayTrajectory==='fly'?`M 288 420 Q ${Math.round((288+endX)/2)} ${Math.round(endY-85)} ${endX} ${endY}`:`M 288 420 L ${endX} ${endY}`):'';
+ const sprayShape=spray?(displayTrajectory==='fly'?`M 288 411 Q ${Math.round((288+endX)/2)} ${Math.round(endY-85)} ${endX} ${endY}`:`M 288 411 L ${endX} ${endY}`):'';
  const drawing=<Svg width={size} height={size} viewBox="0 0 600 600">
   <Rect x={8} y={8} width={584} height={584} fill={active?(finalized?"#e5e7eb":"#fff9df"):"white"} stroke={SCORE_BLUE} strokeWidth={7}/>
   <Path d="M 98 192 L 213 315 L 288 395 M 288 395 L 362 315 L 476 192" fill="none" stroke="#b8b8b8" strokeWidth={2.5}/>
