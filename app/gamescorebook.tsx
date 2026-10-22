@@ -326,7 +326,7 @@ export default function GameScorebook(){
  useEffect(()=>{if(!boxScoreOpen||!doc)return;let active=true;
   setSeasonRows([]);setSeasonGames(0);setSeasonError('');setSeasonLoading(true);
   (async()=>{try{const manager:any=await getManagerContext();
-   if(String(manager?.teamId)!==String(doc.ownerTeamId)||String(manager?.programId)!==String(programId)||!manager?.authToken)throw new Error('Season totals require login to the scoring team.');
+   if(!manager?.authToken)throw new Error('Season totals need a current login token. Please sign in again.');
    const r=await fetch(`${API_BASE}/api/scorebook-stats/${encodeURIComponent(programId)}/${encodeURIComponent(doc.ownerTeamId)}`,{headers:{Authorization:`Bearer ${manager.authToken}`},cache:'no-store'});
    const data=await r.json();if(!r.ok||!data.ok)throw new Error(data.message||'Season statistics unavailable.');
    if(active){setSeasonRows(Array.isArray(data.players)?data.players:[]);setSeasonGames(Number(data.games)||0);}
@@ -1528,7 +1528,7 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
        const published=tid===String(doc.ownerTeamId)?seasonRows.find((x:any)=>String(x.playerId)===String(p.personId||p.id)||(!!p.personId&&String(x.personId)===String(p.personId))):null;
        const st=published?.stats;const season=st?[st.g,st.pa,st.ab,st.r,st.h,st.rbi,st.doubles,st.triples,st.hr,st.bb,st.so,st.sb,st.avg==null?'—':Number(st.avg).toFixed(3)]:Array(13).fill('—');
        return <View style={{position:'absolute',top:0,bottom:0,left:0,right:0,backgroundColor:'#000a',justifyContent:'center',padding:12}}>
-        <View style={{backgroundColor:'white',borderRadius:14,borderWidth:2,borderColor:INK,padding:14,gap:12}}>
+        <View style={{backgroundColor:'white',borderRadius:14,borderWidth:2,borderColor:INK,paddingHorizontal:18,paddingVertical:16,gap:12,marginHorizontal:6}}>
          <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center'}}><Text style={{fontSize:18,fontWeight:'900',color:INK,flex:1}}>{p.jerseyNumber?'#'+p.jerseyNumber+' ':''}{p.name}</Text><Pressable onPress={()=>setBoxPlayerId(null)}><Ionicons name="close-circle" size={28} color={INK}/></Pressable></View>
          <Text style={{color:INK,fontWeight:'700'}}>{team.teamName} · {entry.position||'Player'}</Text>
          <ScrollView horizontal><View>
