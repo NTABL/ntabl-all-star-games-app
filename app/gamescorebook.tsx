@@ -387,6 +387,7 @@ export default function GameScorebook(){
  const [confirmAction,setConfirmAction]=useState<null|'start'|'end'|'edit'|'reset'>(null);
  const [confirmBusy,setConfirmBusy]=useState(false);
  const [resetPhrase,setResetPhrase]=useState('');
+ const [resetSuccessOpen,setResetSuccessOpen]=useState(false);
  const [swapOpen,setSwapOpen]=useState(false);
  const [swapBusy,setSwapBusy]=useState(false);
  const [assignmentRevision,setAssignmentRevision]=useState(0);
@@ -850,7 +851,18 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
     if(resetPhrase.trim().toUpperCase()!=='RESET')throw new Error('Type RESET to confirm.');
     await saveQueue.current;
     await resetGameScorebook(programId,gameId,teamId,managerPersonId);
-    docRef.current=null;setDoc(null);setScoreOpen(false);setMessage('Game scorebook reset. Return to lineup and reopen Score Game.');
+    // Reinitialize this team's scorebook in place, retaining the saved lineups,
+    // official home/visitor assignment, and scheduled game length.
+    const now=new Date().toISOString();
+    const fresh:ScorebookV2Document={...d,createdAt:now,updatedAt:now,events:[],status:'draft',editHistory:[]};
+    await saveScorebook(fresh);
+    docRef.current=fresh;setDoc(fresh);
+    undoStack.current=[];redoStack.current=[];setUndoCount(0);setRedoCount(0);
+    setSide('away');setInning(1);setSelectedId(null);setSelectedEntry('');
+    setMenu(null);setPreviewResult(null);setLanding(null);setScoreOpen(false);
+    setOptionsOpen(false);setStartHelpOpen(false);startHelpShown.current=true;
+    setMessage('Scorebook reset. Ready to start a new game.');
+    setResetSuccessOpen(true);
    }else if(action==='start'){
     const started:ScorebookV2Document={...d,status:'inProgress'};
     const saved=await commit(started);
@@ -1279,6 +1291,16 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
    </View>
   </View>
   </View>
+   <Modal visible={resetSuccessOpen} transparent animationType="fade" onRequestClose={()=>setResetSuccessOpen(false)}>
+    <View style={{flex:1,backgroundColor:'#000a',justifyContent:'center',padding:22}}>
+     <View style={{backgroundColor:'white',borderRadius:18,padding:22,gap:15,alignItems:'center'}}>
+      <Ionicons name="checkmark-circle" size={54} color="#15803d"/>
+      <Text style={[styles.heading,{fontSize:22,textAlign:'center'}]}>Scorebook Reset Successfully</Text>
+      <Text style={[styles.muted,{textAlign:'center',fontSize:15,lineHeight:23}]}>All recorded scoring data for your team has been cleared. Your lineups and home/visitor assignments are preserved. Select Start Game from Options when you're ready to score again.</Text>
+      <Pressable onPress={()=>setResetSuccessOpen(false)} style={[styles.button,{backgroundColor:'#15803d',minWidth:140,minHeight:50,justifyContent:'center'}]}><Text style={styles.white}>OK</Text></Pressable>
+     </View>
+    </View>
+   </Modal>
    <Modal visible={startHelpOpen&&doc.status==='draft'} transparent animationType="fade" onRequestClose={()=>setStartHelpOpen(false)}>
     <View style={{flex:1,backgroundColor:'#000a',justifyContent:'center',padding:22}}>
      <View style={{backgroundColor:'white',borderRadius:18,padding:20,gap:14,borderWidth:2,borderColor:INK}}>
