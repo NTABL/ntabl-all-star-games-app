@@ -1,13 +1,13 @@
 import {buildTraditionalScorebookHtml} from '../utils/scorebookPdfHtml';
 import {teamPitching} from '../utils/scorebookPitching';
 import {Ionicons} from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg,{Rect,Path,Line,Circle,Text as SvgText,G,Polygon} from 'react-native-svg';
 import {router,Stack,useLocalSearchParams} from 'expo-router';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import React,{useEffect,useRef,useState} from 'react';
 import {ActivityIndicator,Alert,Modal,Pressable,ScrollView,StyleSheet,Text,TextInput,View,Platform,useWindowDimensions} from 'react-native';
 import {API_BASE} from '../utils/appconfig';
+import {getManagerContext} from '../stores/store';
 import {importGameLineup} from '../utils/scorebookLineups';
 import {activePlayer} from '../utils/scorebookEngine';
 import {loadScorebook,saveScorebook,resetGameScorebook} from '../utils/scorebookStorage';
@@ -456,35 +456,29 @@ export default function GameScorebook(){
  }catch(e:any){if(!cancelled)setMessage(e?.message||'Could not open scorebook.');}finally{if(!cancelled)setLoading(false);}})();return()=>{cancelled=true;};},[programId,gameId,teamId,opponentTeamId,managerPersonId,myHome,teamName,opponentName]);
  // Explain why scoring controls are disabled before the first game start.
  useEffect(()=>{if(doc?.status==='draft'&&!startHelpShown.current){startHelpShown.current=true;setScoreOpen(false);setStartHelpOpen(true);}},[doc?.status]);
- // Pitch taps must not re-read every saved game from AsyncStorage. Refresh spray
- // history when the active plate appearance or lineup changes, not every pitch.
+ // Retrieve published history from the server rather than this browser's cache.
+ // Keep the overlay visible only before the batter begins a new scoring action.
  const sprayHistoryVersion=doc?.events.filter(e=>e.kind==='plateAppearance').length||0;
- // Local history: all saved games for this program on THIS device. Season IDs and
- // server-backed history must be added before treating this as an official season chart.
  useEffect(()=>{let cancelled=false;
-  if(!scoreOpen||!doc||selectedId||!activePlayer(replayV2(doc).half==='top'?doc.away:doc.home,replayV2(doc).nextSlot[(replayV2(doc).half==='top'?doc.away:doc.home).teamId]||1)?.player?.id){setHistoricalSprays([]);return;}
-  const state=replayV2(doc);const batting=state.half==='top'?doc.away:doc.home;const player=activePlayer(batting,state.nextSlot[batting.teamId]||1)?.player;
+  if(!scoreOpen||!doc||selectedId){setHistoricalSprays([]);return;}
+  const state=replayV2(doc);const batting=state.half==='top'?doc.away:doc.home;
+  // Historical records are owned by the team scoring this scorebook.
+  if(String(batting.teamId)!==String(teamId)){setHistoricalSprays([]);return;}
+  const player=activePlayer(batting,state.nextSlot[batting.teamId]||1)?.player;
   if(!player){setHistoricalSprays([]);return;}
-  setHistoryLoading(true);setShowSprayHistory(true);
+  setHistoricalSprays([]);setHistoryLoading(true);setShowSprayHistory(true);
   (async()=>{try{
-   const prefix='ntabl-scorebook-v1:';
-   const keys=(await AsyncStorage.getAllKeys()).filter(k=>k.startsWith(prefix));
-   const values=await AsyncStorage.multiGet(keys);
-   const items:HistoricalSpray[]=[];
-   const seen=new Set<string>();
-   for(const [,raw] of values){if(!raw)continue;let other:ScorebookV2Document;try{other=JSON.parse(raw);}catch{continue;}
-    if(other.programId!==programId||other.ownerTeamId!==teamId)continue;
-    const players=[...other.home.slots,...other.away.slots].flatMap(s=>s.appearances.map(a=>a.player));
-    const matchingIds=new Set(players.filter(p=>p.id===player.id||(player.personId&&p.personId===player.personId)).map(p=>p.id));
-    for(const e of other.events){if(e.kind!=='plateAppearance'||!matchingIds.has(e.playerId)||!e.spray?.landing)continue;
-     const unique=other.ownerTeamId+':'+other.gameId+':'+e.id;if(seen.has(unique))continue;seen.add(unique);
-     items.push({id:unique,landing:e.spray.landing,outcome:e.spray.outcome,homeRun:e.result==='HR',name:player.name});
-    }
-   }
-   if(!cancelled)setHistoricalSprays(items);
+   const manager:any=await getManagerContext();
+   const token=String(manager?.authToken||'');
+   if(!token)throw new Error('Missing statistics session');
+   const url=`${API_BASE}/api/scorebook-sprays/${enc(programId)}/${enc(teamId)}/${enc(String(player.id))}?personId=${enc(String(player.personId||''))}`;
+   const response=await fetch(url,{cache:'no-store',headers:{Authorization:`Bearer ${token}`}});
+   const payload=await response.json();
+   if(!response.ok||!payload.ok)throw new Error(payload.message||'Spray history unavailable');
+   if(!cancelled)setHistoricalSprays(Array.isArray(payload.items)?payload.items.map((item:any)=>({...item,name:player.name})):[]);
   }catch{if(!cancelled)setHistoricalSprays([]);}finally{if(!cancelled)setHistoryLoading(false);}})();
   return()=>{cancelled=true;};
- },[scoreOpen,selectedId,doc?.gameId,sprayHistoryVersion,doc?.home.slots,doc?.away.slots,programId]);
+ },[scoreOpen,selectedId,doc?.gameId,sprayHistoryVersion,doc?.home.slots,doc?.away.slots,programId,teamId]);
  async function commit(next:ScorebookV2Document,historyAction:'normal'|'undo'|'redo'='normal'){
   if(lock.current)return false;
   // Protect team-owned scorebook identity through every edit, undo and finalization.
@@ -1458,6 +1452,8 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
        </>;
       })()}
       <Text style={styles.heading}>Review Game Statistics</Text>
+      <Pressable onPress={()=>{setPostgameOpen(false);router.push({pathname:'/statistics',params:{programId,teamId,teamName:doc.ownerTeamId===doc.homeTeamId?doc.home.teamName:doc.away.teamName,division:''}});}} style={[styles.button,{backgroundColor:'#1d4ed8'}]}><Text style={[styles.white,{textAlign:'center'}]}>Open Statistics Center — Player Game History</Text></Pressable>
+
       <Text style={styles.muted}>The opponent's batting line below is a reference from YOUR scoring, not their official team statistics. Their own finalized scorebook will supply their players' league totals.</Text>
       <View style={{flexDirection:'row',gap:8}}>{(['away','home'] as const).map(t=><Pressable key={t} onPress={()=>{setBoxScoreSide(t);setBoxScoreOpen(true);}} style={[styles.button,{flex:1,backgroundColor:INK}]}><Text style={[styles.white,{fontSize:12,textAlign:'center'}]}>{t==='away'?'Visiting':'Home'} {doc.ownerTeamId===(t==='away'?doc.awayTeamId:doc.homeTeamId)?'Team Stats':'Stats (Reference)'}</Text></Pressable>)}</View>
       <Pressable onPress={()=>{setGameSummaryOpen(true);}} style={[styles.button,{backgroundColor:'#334155'}]}><Text style={styles.white}>Full Game Summary</Text></Pressable>
@@ -1466,7 +1462,7 @@ function choose(r:PlateAppearanceResult){if(!doc)return;try{setScreenUndo([]);se
       {postgameError?<Text style={{color:'#b91c1c',fontWeight:'800'}}>{postgameError}</Text>:null}
       <Pressable disabled={confirmBusy} onPress={()=>void finalizePostgame()} style={[styles.button,{backgroundColor:'#15803d',height:44,padding:0,alignItems:'center',justifyContent:'center'}]}><Text style={[styles.white,{textAlign:'center'}]}>{confirmBusy?'Saving…':doc.status==='final'?'Re-finalize Game':'Finalize Game'}</Text></Pressable>
       <Pressable onPress={()=>setPostgameOpen(false)} style={[styles.button,{backgroundColor:'#64748b'}]}><Text style={styles.white}>Return to Scorebook</Text></Pressable>
-      <Text style={styles.muted}>On production web, this team's scorebook is saved to the NTABL backend independently of the opposing team's scorebook. Development builds continue to save locally. League-wide statistics are not yet connected.</Text>
+      <Text style={styles.muted}>On production web, this team's scorebook is saved to the NTABL backend independently of the opposing team's scorebook. Development builds continue to save locally. Published team batting statistics are available in Statistics Center after finalization. Division-wide statistics and pitching validation remain in development.</Text>
      </ScrollView>
     </View>
    </Modal>
